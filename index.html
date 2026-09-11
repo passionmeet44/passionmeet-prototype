@@ -1048,6 +1048,7 @@
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -1521,6 +1522,7 @@
     </div>
     <div class="settings-link" onclick="openLegal('cgu','profile')">Conditions Générales d'Utilisation</div>
     <div class="settings-link" onclick="openLegal('confidentialite','profile')">Politique de confidentialité</div>
+    <div class="settings-link" onclick="logOut()">Déconnexion</div>
     <div class="settings-link danger" onclick="showToast('Profil supprimé (démo)', '🗑️')">Supprimer mon compte</div>
   </div>
 
@@ -1753,6 +1755,15 @@
           updateLocationLabel();
           renderNearbyActivities();
           if(swipeInitialized){ applyRadiusFilter(); renderSwipeStack(); }
+          if(typeof myProfile !== 'undefined'){
+            myProfile.latitude = pos.coords.latitude;
+            myProfile.longitude = pos.coords.longitude;
+            const city = nearestAreaName().name;
+            myProfile.city = city;
+            if(typeof saveLocationToSupabase === 'function'){
+              saveLocationToSupabase(pos.coords.latitude, pos.coords.longitude, city);
+            }
+          }
         },
         ()=>{ usingRealLocation = false; updateLocationLabel(); },
         { timeout: 5000 }
@@ -2587,7 +2598,7 @@ function showScreen(name){
     document.getElementById('nav-messages').classList.toggle('active', name==='messages');
     document.getElementById('nav-profile').classList.toggle('active', name==='profile');
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
-    if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); }
+    if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
     if(name==='messages'){ renderMessagesList(); }
     if(name==='profile'){ renderProfileScreen(); }
   } else {
@@ -2686,15 +2697,18 @@ function openPhotoPicker(index){
 function onPhotoFileSelected(event){
   const file = event.target.files[0];
   if(!file) return;
+  const slot = activePhotoSlot;
   const reader = new FileReader();
   reader.onload = function(e){
-    signupPhotos[activePhotoSlot] = e.target.result;
+    signupPhotos[slot] = e.target.result;
     myProfile.photos = signupPhotos.filter(Boolean);
     renderPhotoGrid();
     updateProfileFruit();
   };
   reader.readAsDataURL(file);
   event.target.value = '';
+  // Envoi réel vers Supabase Storage en arrière-plan (n'affecte pas l'aperçu ci-dessus)
+  uploadPhotoToSupabase(file, slot);
 }
 
 function removePhoto(index){
@@ -2715,16 +2729,190 @@ const firebaseConfig = {
   measurementId: "G-RRTGNNQSXG"
 };
 let firebaseAuth = null;
+let currentFirebaseUser = null;
+
+/* ---------- Supabase (base de données, stockage, temps réel) ---------- */
+// Valeurs publiques (URL + clé anon) : à récupérer dans Supabase > Project Settings > API.
+// Comme pour firebaseConfig ci-dessus, ce ne sont PAS des secrets : la sécurité
+// réelle vient des règles RLS côté serveur, jamais de la confidentialité de ces valeurs.
+// Ne JAMAIS mettre ici la clé "service_role".
+const SUPABASE_URL = "https://mcmnbhkrxodviiiycqdc.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Gm7SpnOPHixW_gZjUiZBGw_o_r5eKXt";
+
+let supabaseClient = null;
+let profileSource = 'local'; // 'supabase' | 'local' — indique d'où vient le profil actuellement chargé
+try{
+  const supabaseConfigured = window.supabase
+    && SUPABASE_URL.startsWith('https://')
+    && !SUPABASE_URL.includes('YOUR-PROJECT');
+  if(supabaseConfigured){
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      // Third-Party Auth : on fournit le token Firebase de l'utilisateur courant
+      // comme jeton d'accès Supabase, sans jamais passer par Supabase Auth.
+      accessToken: async () => {
+        try{
+          return currentFirebaseUser ? await currentFirebaseUser.getIdToken() : null;
+        } catch(e){ return null; }
+      }
+    });
+  }
+} catch(e){
+  console.warn('Supabase indisponible, on reste en mode local :', e.message);
+  supabaseClient = null;
+}
+
+async function loadProfileFromSupabase(firebaseUid){
+  if(!supabaseClient) return null;
+  try{
+    const { data, error } = await supabaseClient
+      .from('profiles').select('*').eq('firebase_uid', firebaseUid).maybeSingle();
+    if(error) throw error;
+    return data;
+  } catch(e){
+    console.warn('Lecture profil Supabase impossible, fallback local :', e.message);
+    return null;
+  }
+}
+
+async function ensureSupabaseProfile(user){
+  if(!supabaseClient) return null;
+  try{
+    let profile = await loadProfileFromSupabase(user.uid);
+    if(!profile){
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .insert({ firebase_uid: user.uid, first_name: user.displayName || '' })
+        .select().maybeSingle();
+      if(error) throw error;
+      profile = data;
+    }
+    return profile;
+  } catch(e){
+    console.warn('Création profil Supabase impossible, fallback local :', e.message);
+    return null;
+  }
+}
+
+function mapSupabaseProfileToMyProfile(row){
+  if(!row) return;
+  myProfile.supabaseId = row.id;
+  myProfile.name = row.first_name || myProfile.name;
+  myProfile.age = row.age != null ? String(row.age) : myProfile.age;
+  myProfile.bio = row.bio || myProfile.bio;
+  myProfile.city = row.city || myProfile.city;
+  myProfile.latitude = row.latitude != null ? row.latitude : myProfile.latitude;
+  myProfile.longitude = row.longitude != null ? row.longitude : myProfile.longitude;
+  myProfile.intent = row.intent || myProfile.intent;
+  if(row.relationship_mode){ myProfile.modes = row.relationship_mode.split(',').filter(Boolean); }
+  if(Array.isArray(row.passions)){ myProfile.interests = row.passions; }
+  myProfile.minAgeSet = row.min_age != null;
+  if(row.min_age != null) myProfile.ageMin = row.min_age;
+  if(row.max_age != null) myProfile.ageMax = row.max_age;
+  if(row.max_distance != null) myProfile.radiusKm = row.max_distance;
+  isPremiumUser = !!row.is_premium;
+}
+
+async function saveProfileToSupabase(){
+  if(!supabaseClient || !currentFirebaseUser) return false;
+  try{
+    const payload = {
+      firebase_uid: currentFirebaseUser.uid,
+      first_name: myProfile.name || null,
+      age: myProfile.age ? parseInt(myProfile.age, 10) : null,
+      bio: myProfile.bio || null,
+      city: myProfile.city || null,
+      latitude: myProfile.latitude,
+      longitude: myProfile.longitude,
+      intent: myProfile.intent || null,
+      relationship_mode: (myProfile.modes || []).join(','),
+      passions: myProfile.interests || [],
+      min_age: myProfile.ageMin,
+      max_age: myProfile.ageMax,
+      max_distance: myProfile.radiusKm,
+      onboarding_completed: true,
+      updated_at: new Date().toISOString()
+    };
+    const { data, error } = await supabaseClient
+      .from('profiles').upsert(payload, { onConflict: 'firebase_uid' }).select().maybeSingle();
+    if(error) throw error;
+    if(data) myProfile.supabaseId = data.id;
+    return true;
+  } catch(e){
+    console.warn('Sauvegarde Supabase impossible, le profil reste sauvegardé localement :', e.message);
+    return false;
+  }
+}
+
+async function saveLocationToSupabase(lat, lon, city){
+  if(!supabaseClient || !currentFirebaseUser) return;
+  try{
+    await supabaseClient.from('profiles').update({
+      latitude: lat, longitude: lon, city: city || null, updated_at: new Date().toISOString()
+    }).eq('firebase_uid', currentFirebaseUser.uid);
+  } catch(e){
+    console.warn('Sauvegarde de la position Supabase impossible :', e.message);
+  }
+}
+
+async function uploadPhotoToSupabase(file, position){
+  if(!supabaseClient || !currentFirebaseUser) return null;
+  try{
+    const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'jpg';
+    const path = `${currentFirebaseUser.uid}/${Date.now()}-${position}.${ext}`;
+    const { error: upErr } = await supabaseClient.storage.from('avatars').upload(path, file, { upsert:true });
+    if(upErr) throw upErr;
+    const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(path);
+    if(myProfile.supabaseId){
+      await supabaseClient.from('profile_photos').upsert({
+        user_id: myProfile.supabaseId, storage_path: path, position
+      }, { onConflict: 'user_id,position' });
+    }
+    return urlData ? urlData.publicUrl : null;
+  } catch(e){
+    console.warn('Upload photo Supabase impossible, la photo reste locale (base64) uniquement :', e.message);
+    return null;
+  }
+}
+
 try{
   firebase.initializeApp(firebaseConfig);
   firebaseAuth = firebase.auth();
-  firebaseAuth.onAuthStateChanged((user) => {
-    const onboarded = localStorage.getItem('pm_onboarded');
-    if(user && onboarded){
-      try{
-        const saved = JSON.parse(localStorage.getItem('pm_profile') || '{}');
-        Object.assign(myProfile, saved);
-      } catch(e){}
+  firebaseAuth.onAuthStateChanged(async (user) => {
+    currentFirebaseUser = user;
+    if(!user) return;
+
+    // Force un jeton frais : nécessaire pour que le custom claim "role: authenticated"
+    // (posé côté Firebase, voir Cloud Function fournie) soit bien inclus si un compte
+    // vient d'être créé. Sans ça, une claim posée juste après l'inscription pourrait
+    // ne pas encore être présente dans le token mis en cache.
+    try{ await user.getIdToken(true); } catch(e){ /* pas bloquant */ }
+
+    let supaProfile = null;
+    if(supabaseClient){
+      supaProfile = await ensureSupabaseProfile(user);
+    }
+
+    let onboardingDone = false;
+    if(supaProfile){
+      mapSupabaseProfileToMyProfile(supaProfile);
+      profileSource = 'supabase';
+      onboardingDone = !!supaProfile.onboarding_completed;
+      saveProfileLocally(); // on garde aussi une copie locale à jour, en secours
+    } else {
+      // Supabase indisponible ou pas encore configuré : comportement identique à avant
+      profileSource = 'local';
+      const onboarded = localStorage.getItem('pm_onboarded');
+      if(onboarded){
+        try{
+          const saved = JSON.parse(localStorage.getItem('pm_profile') || '{}');
+          Object.assign(myProfile, saved);
+        } catch(e){}
+      }
+      onboardingDone = !!onboarded;
+    }
+
+    if(onboardingDone){
+      updateHomeGreeting();
       renderProfileScreen();
       renderCategoryGrid();
       showScreen('home');
@@ -2739,6 +2927,21 @@ function saveProfileLocally(){
     localStorage.setItem('pm_profile', JSON.stringify(myProfile));
     localStorage.setItem('pm_onboarded', '1');
   } catch(e){}
+  // Tentative en arrière-plan, sans bloquer l'UI ni casser le flux si Supabase échoue
+  saveProfileToSupabase();
+}
+
+function logOut(){
+  if(!firebaseAuth){
+    showToast("Déconnexion impossible ici — ouvrez le fichier dans un vrai navigateur", "⚠️");
+    return;
+  }
+  firebaseAuth.signOut().then(() => {
+    currentFirebaseUser = null;
+    showScreen('login');
+  }).catch((error) => {
+    showToast("Déconnexion impossible : " + error.message, "⚠️");
+  });
 }
 
 function signInWithGoogle(){
@@ -2754,6 +2957,8 @@ function signInWithGoogle(){
     if(user.photoURL){ myProfile.photos = [user.photoURL]; }
     showToast('Connecté avec Google', '✅');
     showScreen('signup-account');
+    const nameInput = document.getElementById('signup-name');
+    if(nameInput) nameInput.value = myProfile.name;
   }).catch((error) => {
     showToast("Connexion Google impossible : " + error.message, "⚠️");
   });
@@ -2807,13 +3012,21 @@ function signUpWithEmail(){
 let myProfile = {
   name: '', age: '', bio: '', hasKids: false, isNewcomer: false, photos: [],
   interests: [], modes: ['friend','love'],
-  radiusKm: 20, ageMin: 28, ageMax: 45
+  radiusKm: 20, ageMin: 28, ageMax: 45,
+  city: '', latitude: null, longitude: null, intent: '', supabaseId: null
 };
 
 let myUpcomingActivities = [
   { key:'rando', title:"Rando dominicale bord de Loire", when:"📅 Dim. 14 sept", status:"Inscrit ✓" },
   { key:'concert_saintnazaire', title:"Concert acoustique au bar", when:"📅 Sam. 6 sept (passée)", status:"Terminée", past:true, rating:0 }
 ];
+
+function updateHomeGreeting(){
+  const el = document.getElementById('home-greeting');
+  if(!el) return;
+  const firstName = (myProfile.name || '').trim().split(' ')[0];
+  el.textContent = firstName ? `Bonjour ${firstName}` : 'Bonjour';
+}
 
 function finishSignup(){
   myProfile.name = document.getElementById('signup-name').value || 'Vous';
@@ -2830,6 +3043,7 @@ function finishSignup(){
   myProfile.ageMin = parseInt(document.getElementById('prefs-age-min').value);
   myProfile.ageMax = parseInt(document.getElementById('prefs-age-max').value);
   currentRadius = myProfile.radiusKm;
+  updateHomeGreeting();
   renderProfileScreen();
   saveProfileLocally();
   showScreen('location-permission');
