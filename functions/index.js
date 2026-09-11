@@ -1,7 +1,7 @@
 const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 const { auth } = require("firebase-functions/v1");
-const { onRequest } = require("firebase-functions/v2/https");
+
 
 initializeApp();
 
@@ -12,17 +12,3 @@ exports.setSupabaseRoleClaim = auth.user().onCreate(async (user) => {
   });
 });
 
-// TEMPORAIRE : attribue le rôle à ton compte existant
-exports.setupExistingUser = onRequest(async (req, res) => {
-  try {
-    await getAuth().setCustomUserClaims(
-      "Svqhs49Ba2NDlNohxb0CEe1XUv53",
-      { role: "authenticated" }
-    );
-
-    res.status(200).send("ROLE AJOUTE AVEC SUCCES");
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("ERREUR");
-  }
-});
