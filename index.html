@@ -4121,15 +4121,31 @@ async function loadRealSwipeProfiles(){
       if(!row.first_name || !row.first_name.trim()) reasons.push('prénom manquant');
       if(!row.bio || !row.bio.trim()) reasons.push('bio manquante');
       if(!Array.isArray(row.passions) || row.passions.length === 0) reasons.push('aucune passion');
+
       const hasCoords = typeof row.latitude === 'number' && typeof row.longitude === 'number';
       const dist = hasCoords ? haversineKm(userCoords[0], userCoords[1], row.latitude, row.longitude) : null;
       if(!hasCoords) reasons.push('pas de coordonnées GPS');
       else if(dist > currentRadius) reasons.push(`distance ${dist.toFixed(1)} km > rayon actuel ${currentRadius} km`);
-      swipeDebugLines.push(`${row.first_name || '(sans nom)'} → ${reasons.length ? '❌ ' + reasons.join(' · ') : '✅ éligible'}`);
+
+      const modeMap = { friend:'Amitié', love:'Rencontre', couple:'Sorties en couple' };
+      const modeLabels = (row.relationship_mode || '').split(',').map(m => modeMap[m.trim()]).filter(Boolean);
+      if(swipeModeFilter !== 'tous' && !modeLabels.includes(swipeModeFilter)){
+        reasons.push(`mode actif [${modeLabels.join(', ') || 'aucun'}] ne correspond pas au filtre sélectionné [${swipeModeFilter}]`);
+      }
+
+      if(row.age != null && (row.age < myProfile.ageMin || row.age > myProfile.ageMax)){
+        reasons.push(`âge ${row.age} hors de votre tranche ${myProfile.ageMin}-${myProfile.ageMax} ans`);
+      }
+
+      swipeDebugLines.push(
+        `<b>${row.first_name || '(sans nom)'}</b> — ${reasons.length ? '❌ ' + reasons.join(' · ') : '✅ éligible'}<br>` +
+        `&nbsp;&nbsp;onboarding_completed: ${row.onboarding_completed} · passions: [${(row.passions||[]).join(', ')}] · ` +
+        `mode: [${modeLabels.join(', ') || 'aucun'}] · distance: ${dist !== null ? dist.toFixed(1) + ' km' : 'inconnue'}`
+      );
       console.info('[Découvrir][debug]', row.first_name, row, 'distance:', dist);
     });
     if((data || []).length === 0){
-      swipeDebugLines.push('⚠️ 0 ligne reçue alors que la table en contient peut-être plus : signe probable d\'un blocage RLS (policy SELECT trop restrictive), pas d\'un problème de données.');
+      swipeDebugLines.push('0 ligne reçue depuis Supabase — vérifier RLS ou la requête.');
     }
 
     // Filtre réel de production (identique à avant, appliqué ici côté client
@@ -4187,6 +4203,13 @@ function initSwipe(){
   }
 }
 
+function buildSwipeDebugHtml(){
+  if(!swipeDebugLines.length) return '';
+  return `<div style="margin-top:16px; font-size:10.5px; text-align:left; background:rgba(255,255,255,0.15); padding:10px 12px; border-radius:10px; line-height:1.6;">
+      <b>🔍 Debug temporaire :</b><br>${swipeDebugLines.join('<br>')}
+    </div>`;
+}
+
 function renderSwipeStack(){
   const stack = document.getElementById('swipe-stack');
   stack.innerHTML = '';
@@ -4197,22 +4220,18 @@ function renderSwipeStack(){
       return;
     }
     if(swipeLoadState === 'error'){
-      stack.innerHTML = `<div class="swipe-empty"><span>⚠️</span>Impossible de charger les profils pour le moment.<br><span style="text-decoration:underline; cursor:pointer;" onclick="loadRealSwipeProfiles()">Réessayer</span></div>`;
+      stack.innerHTML = `<div class="swipe-empty"><span>⚠️</span>Impossible de charger les profils pour le moment.<br><span style="text-decoration:underline; cursor:pointer;" onclick="loadRealSwipeProfiles()">Réessayer</span>${buildSwipeDebugHtml()}</div>`;
       return;
     }
     if(swipeLoadState === 'empty'){
-      const debugHtml = swipeDebugLines.length
-        ? `<div style="margin-top:16px; font-size:10.5px; text-align:left; background:rgba(255,255,255,0.15); padding:10px 12px; border-radius:10px; line-height:1.5;">
-            <b>🔍 Debug temporaire :</b><br>${swipeDebugLines.map(l => l.replace(/</g,'&lt;')).join('<br>')}
-          </div>`
-        : '';
-      stack.innerHTML = `<div class="swipe-empty"><span>🌱</span>Personne d'autre pour l'instant.<br>Reviens bientôt, la communauté grandit !${debugHtml}</div>`;
+      stack.innerHTML = `<div class="swipe-empty"><span>🌱</span>Personne d'autre pour l'instant.<br>Reviens bientôt, la communauté grandit !${buildSwipeDebugHtml()}</div>`;
       return;
     }
   }
 
   if(swipeIndex >= filteredProfiles.length){
-    stack.innerHTML = `<div class="swipe-empty"><span>✨</span>Plus de profils correspondant à vos critères<br>Essayez d'élargir la distance ou la tranche d'âge !</div>`;
+    const debugForCriteria = (supabaseClient && realSwipeProfiles !== null) ? buildSwipeDebugHtml() : '';
+    stack.innerHTML = `<div class="swipe-empty"><span>✨</span>Plus de profils correspondant à vos critères<br>Essayez d'élargir la distance ou la tranche d'âge !${debugForCriteria}</div>`;
     return;
   }
 
