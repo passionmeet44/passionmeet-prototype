@@ -965,6 +965,10 @@
     85%{ opacity:1; transform:translateY(0); }
     100%{ opacity:0; transform:translateY(-10px); }
   }
+  .toast:has(.toast-action){ animation-duration:7s; }
+  .toast-action{
+    text-decoration:underline; font-weight:800; cursor:pointer; white-space:nowrap; margin-left:4px;
+  }
 
   /* ---------- Like burst & Match overlay ---------- */
   .like-burst{
@@ -2627,13 +2631,14 @@ const activities = {
   }
 };
 
-function showToast(text, emoji){
+function showToast(text, emoji, action){
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.innerHTML = `<span>${emoji || '✨'}</span><span>${text}</span>`;
+  const actionHtml = action ? `<span class="toast-action" onclick="${action.onclick}">${action.label}</span>` : '';
+  toast.innerHTML = `<span>${emoji || '✨'}</span><span>${text}</span>${actionHtml}`;
   container.appendChild(toast);
-  setTimeout(()=> toast.remove(), 3000);
+  setTimeout(()=> toast.remove(), action ? 7000 : 3000);
 }
 
 /* ---------- Settings: dark mode & profile pause ---------- */
@@ -3111,17 +3116,29 @@ try{
       return;
     }
 
-    // Force un jeton frais : nécessaire pour que le custom claim "role: authenticated"
-    // (posé côté Firebase, voir Cloud Function fournie) soit bien inclus si un compte
-    // vient d'être créé. Sans ça, une claim posée juste après l'inscription pourrait
-    // ne pas encore être présente dans le token mis en cache.
-    try{ await user.getIdToken(true); } catch(e){ /* pas bloquant */ }
+    await syncUserProfile(user);
+  });
 
-    // Profil Supabase : timeout indépendant (6s), ne bloque jamais indéfiniment.
-    // En cas de dépassement, on retombe simplement sur le profil local, sans erreur affichée.
+  async function syncUserProfile(user){
+    // Force un jeton frais (protégé par timeout : ne doit jamais bloquer la suite,
+    // même si le rafraîchissement de token traîne sur certains réseaux mobiles).
+    try{
+      await withTimeout(user.getIdToken(true), 4000, 'rafraîchissement du jeton Firebase');
+    } catch(e){ /* pas bloquant */ }
+
+    // Profil Supabase : timeout indépendant de 5s, ne bloque jamais indéfiniment.
     let supaProfile = null;
+    let supabaseTimedOutOrFailed = false;
     if(supabaseClient){
-      supaProfile = await withTimeout(ensureSupabaseProfile(user), 6000, 'profil Supabase');
+      console.info('[Démarrage] Début recherche profil Supabase pour', user.uid);
+      try{
+        supaProfile = await withTimeout(ensureSupabaseProfile(user), 5000, 'profil Supabase');
+        console.info('[Démarrage] Résultat reçu pour le profil Supabase :', supaProfile ? 'profil trouvé' : 'aucun profil / délai dépassé');
+        if(!supaProfile) supabaseTimedOutOrFailed = true;
+      } catch(e){
+        console.warn('[Démarrage] Erreur pendant la recherche du profil Supabase :', e.message);
+        supabaseTimedOutOrFailed = true;
+      }
     }
 
     let onboardingDone = false;
@@ -3149,11 +3166,17 @@ try{
       updateHomeGreeting();
       renderProfileScreen();
       renderCategoryGrid();
+      console.info('[Démarrage] Navigation → accueil');
       showScreen('home');
     } else {
       const nameInput = document.getElementById('signup-name');
       if(nameInput) nameInput.value = myProfile.name || user.displayName || '';
+      console.info('[Démarrage] Navigation → inscription');
       showScreen('signup-account');
+    }
+
+    if(supabaseTimedOutOrFailed){
+      showToast("Profil Supabase non chargé (délai dépassé)", "⚠️", { label:'Réessayer', onclick:'retryProfileSync()' });
     }
 
     // Photos : chargées en arrière-plan, après avoir déjà ouvert l'accueil/profil.
@@ -3166,7 +3189,14 @@ try{
         console.warn('[Démarrage] Chargement des photos interrompu :', e.message);
       });
     }
-  });
+  }
+
+  function retryProfileSync(){
+    if(currentFirebaseUser){
+      console.info('[Démarrage] Nouvelle tentative demandée par l\'utilisateur (Réessayer)');
+      syncUserProfile(currentFirebaseUser);
+    }
+  }
 } catch(e){
   console.warn('Firebase indisponible dans cet environnement :', e.message);
   const err = document.getElementById('loading-error');
