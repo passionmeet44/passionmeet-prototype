@@ -1331,7 +1331,7 @@
 
     <div class="range-row">
       <div class="range-label">Distance de recherche <span id="prefs-distance-value">20 km</span></div>
-      <input type="range" min="1" max="50" value="20" id="prefs-distance" oninput="document.getElementById('prefs-distance-value').textContent = this.value + ' km'">
+      <input type="range" min="1" max="100" value="20" id="prefs-distance" oninput="setRadius(this.value)">
     </div>
 
     <div class="form-label" style="margin-top:26px;">Tranche d'âge recherchée</div>
@@ -1507,7 +1507,7 @@
     </div>
     <div class="radius-slider-row">
       <div class="range-label">Rayon de recherche <span id="swipe-radius-value">20 km</span></div>
-      <input type="range" min="1" max="50" value="20" id="swipe-radius-input" oninput="setRadius(this.value)">
+      <input type="range" min="1" max="100" value="20" id="swipe-radius-input" oninput="setRadius(this.value)">
     </div>
     <div class="time-filter-row" id="swipe-mode-filter-row">
       <div class="time-chip active" data-t="tous" onclick="setSwipeModeFilter('tous')">Tous</div>
@@ -3703,6 +3703,7 @@ function openCategoryList(type){
 renderCategoryGrid();
 renderPassionFilterRow();
 initSettingsUI();
+loadStoredRadius();
 
 function openDetail(key){
   openDetailFrom(key, 'home');
@@ -3958,16 +3959,39 @@ let filteredProfiles = swipeProfiles;
 
 function setRadius(km){
   km = parseInt(km);
-  currentRadius = km;
-  const valueEl = document.getElementById('swipe-radius-value');
-  if(valueEl) valueEl.textContent = km + ' km';
-  myProfile.radiusKm = km;
-  const prefsInput = document.getElementById('prefs-distance');
-  if(prefsInput){ prefsInput.value = km; document.getElementById('prefs-distance-value').textContent = km + ' km'; }
+  syncRadiusUI(km);
+  try{ localStorage.setItem(RADIUS_STORAGE_KEY, km); } catch(e){}
   swipeIndex = 0;
   applyRadiusFilter();
   renderSwipeStack();
   renderNearbyActivities();
+}
+
+const RADIUS_STORAGE_KEY = 'passionmeet_search_radius';
+
+function syncRadiusUI(km){
+  currentRadius = km;
+  myProfile.radiusKm = km;
+  const swipeInput = document.getElementById('swipe-radius-input');
+  const swipeValueEl = document.getElementById('swipe-radius-value');
+  const prefsInput = document.getElementById('prefs-distance');
+  const prefsValueEl = document.getElementById('prefs-distance-value');
+  if(swipeInput) swipeInput.value = km;
+  if(swipeValueEl) swipeValueEl.textContent = km + ' km';
+  if(prefsInput) prefsInput.value = km;
+  if(prefsValueEl) prefsValueEl.textContent = km + ' km';
+}
+
+function loadStoredRadius(){
+  let km = 20;
+  try{
+    const stored = localStorage.getItem(RADIUS_STORAGE_KEY);
+    if(stored !== null){
+      const parsed = parseInt(stored, 10);
+      if(!isNaN(parsed)) km = parsed;
+    }
+  } catch(e){}
+  syncRadiusUI(km);
 }
 
 let swipeModeFilter = 'tous';
