@@ -4097,21 +4097,45 @@ async function getMainPhotoForProfile(profileId){
   }
 }
 
+let swipeDebugLines = []; // TEMPORAIRE — diagnostic "Découvrir vide", à retirer une fois la cause confirmée
+
 async function loadRealSwipeProfiles(){
   swipeLoadState = 'loading';
   renderSwipeStack();
   try{
     const excludeUid = currentFirebaseUser ? currentFirebaseUser.uid : '';
+
+    // Requête de DIAGNOSTIC (temporaire) : sans le filtre onboarding_completed,
+    // pour voir absolument toutes les lignes que Supabase accepte de nous renvoyer.
     const { data, error } = await supabaseClient
       .from('profiles')
       .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed')
-      .eq('onboarding_completed', true)
       .neq('firebase_uid', excludeUid);
     if(error) throw error;
 
-    // Profil valide = prénom + bio + au moins une passion renseignés
-    // (âge et ville sont optionnels, affichés seulement s'ils existent)
+    swipeDebugLines = [];
+    swipeDebugLines.push(`${(data || []).length} ligne(s) reçue(s) de Supabase (hors votre propre profil)`);
+    (data || []).forEach(row => {
+      const reasons = [];
+      if(!row.onboarding_completed) reasons.push('onboarding_completed = false');
+      if(!row.first_name || !row.first_name.trim()) reasons.push('prénom manquant');
+      if(!row.bio || !row.bio.trim()) reasons.push('bio manquante');
+      if(!Array.isArray(row.passions) || row.passions.length === 0) reasons.push('aucune passion');
+      const hasCoords = typeof row.latitude === 'number' && typeof row.longitude === 'number';
+      const dist = hasCoords ? haversineKm(userCoords[0], userCoords[1], row.latitude, row.longitude) : null;
+      if(!hasCoords) reasons.push('pas de coordonnées GPS');
+      else if(dist > currentRadius) reasons.push(`distance ${dist.toFixed(1)} km > rayon actuel ${currentRadius} km`);
+      swipeDebugLines.push(`${row.first_name || '(sans nom)'} → ${reasons.length ? '❌ ' + reasons.join(' · ') : '✅ éligible'}`);
+      console.info('[Découvrir][debug]', row.first_name, row, 'distance:', dist);
+    });
+    if((data || []).length === 0){
+      swipeDebugLines.push('⚠️ 0 ligne reçue alors que la table en contient peut-être plus : signe probable d\'un blocage RLS (policy SELECT trop restrictive), pas d\'un problème de données.');
+    }
+
+    // Filtre réel de production (identique à avant, appliqué ici côté client
+    // sur les données déjà reçues)
     const validRows = (data || []).filter(row =>
+      row.onboarding_completed &&
       row.first_name && row.first_name.trim() &&
       row.bio && row.bio.trim() &&
       Array.isArray(row.passions) && row.passions.length > 0
@@ -4134,6 +4158,7 @@ async function loadRealSwipeProfiles(){
     swipeLoadState = mapped.length ? 'loaded' : 'empty';
   } catch(e){
     console.warn('Chargement des profils Supabase impossible :', e.message);
+    swipeDebugLines = [`Erreur Supabase : ${e.message}`];
     realSwipeProfiles = [];
     swipeLoadState = 'error';
   }
@@ -4176,7 +4201,12 @@ function renderSwipeStack(){
       return;
     }
     if(swipeLoadState === 'empty'){
-      stack.innerHTML = `<div class="swipe-empty"><span>🌱</span>Personne d'autre pour l'instant.<br>Reviens bientôt, la communauté grandit !</div>`;
+      const debugHtml = swipeDebugLines.length
+        ? `<div style="margin-top:16px; font-size:10.5px; text-align:left; background:rgba(255,255,255,0.15); padding:10px 12px; border-radius:10px; line-height:1.5;">
+            <b>🔍 Debug temporaire :</b><br>${swipeDebugLines.map(l => l.replace(/</g,'&lt;')).join('<br>')}
+          </div>`
+        : '';
+      stack.innerHTML = `<div class="swipe-empty"><span>🌱</span>Personne d'autre pour l'instant.<br>Reviens bientôt, la communauté grandit !${debugHtml}</div>`;
       return;
     }
   }
