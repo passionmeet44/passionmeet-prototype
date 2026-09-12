@@ -3079,124 +3079,99 @@ try{
   firebase.initializeApp(firebaseConfig);
   firebaseAuth = firebase.auth();
 
-  let authResolved = false;
+  // Filet de sécurité unique : si Firebase Auth lui-même ne répond jamais
+  // (extrêmement rare — SDK bloqué, réseau totalement coupé), on ne reste
+  // jamais bloqué indéfiniment sur l'écran de chargement.
+  let firebaseResponded = false;
   setTimeout(() => {
-    if(!authResolved){
-      console.warn('[Démarrage] Délai dépassé pour : session Firebase (Firebase Auth lui-même)');
+    if(!firebaseResponded){
+      console.warn('[Auth] Firebase n\'a pas répondu après 10s');
       const err = document.getElementById('loading-error');
       const txt = document.getElementById('loading-text');
       if(err) err.classList.remove('hidden');
-      if(txt) txt.textContent = "Ça prend plus de temps que prévu…";
+      if(txt) txt.textContent = "Connexion impossible pour le moment.";
     }
-  }, 8000);
-
-  function withTimeout(promise, ms, label){
-    return Promise.race([
-      promise,
-      new Promise((resolve) => setTimeout(() => {
-        console.warn(`[Démarrage] Délai dépassé pour : ${label} — poursuite sans bloquer`);
-        resolve(null);
-      }, ms))
-    ]);
-  }
+  }, 10000);
 
   firebaseAuth.onAuthStateChanged(async (user) => {
+    firebaseResponded = true;
     currentFirebaseUser = user;
-    console.info('[Démarrage] Session Firebase reçue :', user ? `connecté (${user.uid})` : 'aucun utilisateur connecté');
-
-    // Firebase a répondu : ce n'est plus lui qui peut être en cause si la suite
-    // (Supabase, photos) prend du temps. Le message d'erreur global ne doit
-    // donc plus jamais se déclencher après cette ligne.
-    authResolved = true;
-    const errBox = document.getElementById('loading-error');
-    if(errBox) errBox.classList.add('hidden');
+    console.info('[Auth] Firebase connecté :', user ? user.uid : 'aucun utilisateur');
 
     if(!user){
       showScreen('splash');
       return;
     }
 
-    await syncUserProfile(user);
-  });
+    // Étape 1 : Firebase est connecté → confirmation immédiate et simple
+    const txt = document.getElementById('loading-text');
+    if(txt) txt.textContent = 'Connexion réussie, chargement de votre espace…';
+    const err = document.getElementById('loading-error');
+    if(err) err.classList.add('hidden');
+    showScreen('loading');
 
-  async function syncUserProfile(user){
-    // Force un jeton frais (protégé par timeout : ne doit jamais bloquer la suite,
-    // même si le rafraîchissement de token traîne sur certains réseaux mobiles).
-    try{
-      await withTimeout(user.getIdToken(true), 4000, 'rafraîchissement du jeton Firebase');
-    } catch(e){ /* pas bloquant */ }
+    // Tentative de rafraîchissement du jeton en tâche de fond (pour le custom
+    // claim Supabase) — jamais attendue, ne peut donc jamais bloquer la suite.
+    user.getIdToken(true).catch(() => {});
 
-    // Profil Supabase : timeout indépendant de 5s, ne bloque jamais indéfiniment.
+    // Étape 2 : profil Supabase, vérifié séparément, un seul timeout simple (6s)
     let supaProfile = null;
-    let supabaseTimedOutOrFailed = false;
     if(supabaseClient){
-      console.info('[Démarrage] Début recherche profil Supabase pour', user.uid);
       try{
-        supaProfile = await withTimeout(ensureSupabaseProfile(user), 5000, 'profil Supabase');
-        console.info('[Démarrage] Résultat reçu pour le profil Supabase :', supaProfile ? 'profil trouvé' : 'aucun profil / délai dépassé');
-        if(!supaProfile) supabaseTimedOutOrFailed = true;
+        supaProfile = await Promise.race([
+          ensureSupabaseProfile(user),
+          new Promise((resolve) => setTimeout(() => {
+            console.warn('[Auth] Délai dépassé pour le profil Supabase');
+            resolve(null);
+          }, 6000))
+        ]);
+        console.info('[Auth] Résultat profil Supabase :', supaProfile ? 'trouvé' : 'absent ou délai dépassé');
       } catch(e){
-        console.warn('[Démarrage] Erreur pendant la recherche du profil Supabase :', e.message);
-        supabaseTimedOutOrFailed = true;
+        console.warn('[Auth] Erreur Supabase :', e.message);
       }
     }
 
     let onboardingDone = false;
     if(supaProfile){
       mapSupabaseProfileToMyProfile(supaProfile);
-      console.info('[Démarrage] Profil Supabase chargé');
       profileSource = 'supabase';
       onboardingDone = !!supaProfile.onboarding_completed;
-      saveProfileLocally(); // on garde aussi une copie locale à jour, en secours
+      saveProfileLocally();
     } else {
-      // Supabase indisponible, pas encore configuré, ou délai dépassé : comportement identique à avant
       profileSource = 'local';
       const onboarded = localStorage.getItem('pm_onboarded');
       if(onboarded){
-        try{
-          const saved = JSON.parse(localStorage.getItem('pm_profile') || '{}');
-          Object.assign(myProfile, saved);
-        } catch(e){}
+        try{ Object.assign(myProfile, JSON.parse(localStorage.getItem('pm_profile') || '{}')); } catch(e){}
       }
       onboardingDone = !!onboarded;
+      if(supabaseClient){
+        showToast("Profil chargé depuis cet appareil (Supabase indisponible)", "⚠️");
+      }
     }
 
-    // Navigation immédiate : ne dépend jamais des photos, qui se chargent après (voir plus bas)
+    // Étape 3 : navigation — jamais dépendante des photos
     if(onboardingDone){
       updateHomeGreeting();
       renderProfileScreen();
       renderCategoryGrid();
-      console.info('[Démarrage] Navigation → accueil');
+      console.info('[Auth] Navigation → accueil');
       showScreen('home');
     } else {
       const nameInput = document.getElementById('signup-name');
       if(nameInput) nameInput.value = myProfile.name || user.displayName || '';
-      console.info('[Démarrage] Navigation → inscription');
+      console.info('[Auth] Navigation → inscription');
       showScreen('signup-account');
     }
 
-    if(supabaseTimedOutOrFailed){
-      showToast("Profil Supabase non chargé (délai dépassé)", "⚠️", { label:'Réessayer', onclick:'retryProfileSync()' });
-    }
-
-    // Photos : chargées en arrière-plan, après avoir déjà ouvert l'accueil/profil.
-    // N'importe quel délai ici ne retarde jamais l'ouverture de l'application.
+    // Étape 4 : photos, toujours après, jamais bloquantes
     if(supaProfile){
       loadPhotosFromSupabase().then(() => {
-        console.info('[Démarrage] Photos chargées');
-        renderProfileScreen(); // rafraîchit l'avatar/la galerie une fois les photos prêtes
+        renderProfileScreen();
       }).catch((e) => {
-        console.warn('[Démarrage] Chargement des photos interrompu :', e.message);
+        console.warn('[Auth] Photos non chargées :', e.message);
       });
     }
-  }
-
-  function retryProfileSync(){
-    if(currentFirebaseUser){
-      console.info('[Démarrage] Nouvelle tentative demandée par l\'utilisateur (Réessayer)');
-      syncUserProfile(currentFirebaseUser);
-    }
-  }
+  });
 } catch(e){
   console.warn('Firebase indisponible dans cet environnement :', e.message);
   const err = document.getElementById('loading-error');
