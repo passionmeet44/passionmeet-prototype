@@ -2913,17 +2913,31 @@ async function ensureSupabaseProfile(user){
   if(!supabaseClient) return null;
   try{
     let profile = await loadProfileFromSupabase(user.uid);
+    console.info('[Profil] Lecture directe pour', user.uid, ':', profile ? 'trouvé' : 'non trouvé');
     if(!profile){
       const { data, error } = await supabaseClient
         .from('profiles')
         .insert({ firebase_uid: user.uid, first_name: user.displayName || '' })
         .select().maybeSingle();
-      if(error) throw error;
-      profile = data;
+      if(error){
+        console.warn('[Profil] Erreur à l\'insertion :', error.message, '(code:', error.code, ')');
+        // Code 23505 = violation de contrainte unique sur firebase_uid : le
+        // profil existe déjà réellement (la lecture précédente a juste raté
+        // une fois). On ne le recrée jamais — on relit simplement.
+        if(error.code === '23505' || (error.message && error.message.toLowerCase().includes('duplicate'))){
+          console.warn('[Profil] Le profil existe déjà (conflit d\'unicité) — nouvelle lecture au lieu de recréer');
+          profile = await loadProfileFromSupabase(user.uid);
+          console.info('[Profil] Résultat de la seconde lecture :', profile ? 'trouvé' : 'toujours introuvable');
+        } else {
+          throw error;
+        }
+      } else {
+        profile = data;
+      }
     }
     return profile;
   } catch(e){
-    console.warn('Création profil Supabase impossible, fallback local :', e.message);
+    console.warn('[Profil] ensureSupabaseProfile a échoué :', e.message);
     return null;
   }
 }
@@ -3152,6 +3166,9 @@ try{
       ]);
       window.__PM_AUTH_STEP = 'fin profil Supabase';
       console.info('[Auth] 3. Profil Supabase reçu :', supaProfile ? 'oui' : 'non (absent ou timeout)');
+      if(supaProfile){
+        console.info('[Auth] onboarding_completed reçu de Supabase :', supaProfile.onboarding_completed, '(type:', typeof supaProfile.onboarding_completed, ')');
+      }
     } else {
       window.__PM_AUTH_STEP = 'fin profil Supabase (non configuré)';
       console.info('[Auth] Supabase non configuré, profil local utilisé directement');
@@ -3170,6 +3187,7 @@ try{
       } else {
         profileSource = 'local';
         const onboarded = localStorage.getItem('pm_onboarded');
+        console.info('[Auth] Repli localStorage — pm_onboarded :', onboarded);
         if(onboarded){
           try{ Object.assign(myProfile, JSON.parse(localStorage.getItem('pm_profile') || '{}')); } catch(e){}
         }
@@ -3178,6 +3196,7 @@ try{
           showToast("Profil chargé depuis cet appareil (Supabase indisponible)", "⚠️");
         }
       }
+      console.info('[Auth] Source du profil utilisée :', profileSource, '— onboardingDone :', onboardingDone);
     } catch(e){
       console.warn('[Auth] Erreur pendant la préparation du profil (ignorée, navigation quand même) :', e.message);
     }
