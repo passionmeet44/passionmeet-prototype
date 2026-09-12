@@ -3075,6 +3075,8 @@ async function loadPhotosFromSupabase(){
   }
 }
 
+window.__PM_AUTH_STEP = 'non démarré';
+
 try{
   firebase.initializeApp(firebaseConfig);
   firebaseAuth = firebase.auth();
@@ -3096,7 +3098,8 @@ try{
   firebaseAuth.onAuthStateChanged(async (user) => {
     firebaseResponded = true;
     currentFirebaseUser = user;
-    console.info('[Auth] Firebase connecté :', user ? user.uid : 'aucun utilisateur');
+    window.__PM_AUTH_STEP = 'Firebase connecté';
+    console.info('[Auth] 1. Firebase connecté :', user ? user.uid : 'aucun utilisateur');
 
     if(!user){
       showScreen('splash');
@@ -3108,65 +3111,113 @@ try{
     if(txt) txt.textContent = 'Connexion réussie, chargement de votre espace…';
     const err = document.getElementById('loading-error');
     if(err) err.classList.add('hidden');
+    window.__PM_AUTH_STEP = 'avant showScreen(loading)';
     showScreen('loading');
+    window.__PM_AUTH_STEP = 'après showScreen(loading)';
+
+    // WATCHDOG TEMPORAIRE — indépendant de tout le reste de ce flux.
+    // Si 8 secondes après "Connexion réussie" l'accueil n'est toujours pas
+    // affiché, on force l'ouverture de l'accueil quoi qu'il arrive, et on
+    // note précisément à quelle étape le blocage a eu lieu.
+    let navigationCompleted = false;
+    const watchdogTimer = setTimeout(() => {
+      if(!navigationCompleted){
+        console.warn('[Watchdog] Blocage détecté à l\'étape :', window.__PM_AUTH_STEP);
+        showToast('Mode secours : accueil chargé.', '🛟');
+        try{ showScreen('home'); } catch(e){ console.warn('[Watchdog] showScreen a aussi échoué :', e.message); }
+        navigationCompleted = true;
+      }
+    }, 8000);
 
     // Tentative de rafraîchissement du jeton en tâche de fond (pour le custom
     // claim Supabase) — jamais attendue, ne peut donc jamais bloquer la suite.
     user.getIdToken(true).catch(() => {});
 
-    // Étape 2 : profil Supabase, vérifié séparément, un seul timeout simple (6s)
+    // Étape 2 : profil Supabase, vérifié séparément, un seul timeout simple (6s).
+    // .catch() sur la promesse elle-même : une erreur Supabase devient null,
+    // jamais une exception qui remonterait et interromprait ce bloc.
     let supaProfile = null;
+    window.__PM_AUTH_STEP = 'début profil Supabase';
+    console.info('[Auth] 2. Début vérification profil Supabase');
     if(supabaseClient){
-      try{
-        supaProfile = await Promise.race([
-          ensureSupabaseProfile(user),
-          new Promise((resolve) => setTimeout(() => {
-            console.warn('[Auth] Délai dépassé pour le profil Supabase');
-            resolve(null);
-          }, 6000))
-        ]);
-        console.info('[Auth] Résultat profil Supabase :', supaProfile ? 'trouvé' : 'absent ou délai dépassé');
-      } catch(e){
-        console.warn('[Auth] Erreur Supabase :', e.message);
-      }
+      supaProfile = await Promise.race([
+        ensureSupabaseProfile(user).catch((e) => {
+          console.warn('[Auth] Erreur pendant ensureSupabaseProfile :', e.message);
+          return null;
+        }),
+        new Promise((resolve) => setTimeout(() => {
+          console.warn('[Auth] 3. Timeout Supabase (6s dépassées)');
+          resolve(null);
+        }, 6000))
+      ]);
+      window.__PM_AUTH_STEP = 'fin profil Supabase';
+      console.info('[Auth] 3. Profil Supabase reçu :', supaProfile ? 'oui' : 'non (absent ou timeout)');
+    } else {
+      window.__PM_AUTH_STEP = 'fin profil Supabase (non configuré)';
+      console.info('[Auth] Supabase non configuré, profil local utilisé directement');
     }
 
+    // Préparation des données de profil — protégée : une erreur ici ne doit
+    // jamais empêcher la navigation qui suit.
+    window.__PM_AUTH_STEP = 'préparation du profil';
     let onboardingDone = false;
-    if(supaProfile){
-      mapSupabaseProfileToMyProfile(supaProfile);
-      profileSource = 'supabase';
-      onboardingDone = !!supaProfile.onboarding_completed;
-      saveProfileLocally();
-    } else {
-      profileSource = 'local';
-      const onboarded = localStorage.getItem('pm_onboarded');
-      if(onboarded){
-        try{ Object.assign(myProfile, JSON.parse(localStorage.getItem('pm_profile') || '{}')); } catch(e){}
+    try{
+      if(supaProfile){
+        mapSupabaseProfileToMyProfile(supaProfile);
+        profileSource = 'supabase';
+        onboardingDone = !!supaProfile.onboarding_completed;
+        saveProfileLocally();
+      } else {
+        profileSource = 'local';
+        const onboarded = localStorage.getItem('pm_onboarded');
+        if(onboarded){
+          try{ Object.assign(myProfile, JSON.parse(localStorage.getItem('pm_profile') || '{}')); } catch(e){}
+        }
+        onboardingDone = !!onboarded;
+        if(supabaseClient){
+          showToast("Profil chargé depuis cet appareil (Supabase indisponible)", "⚠️");
+        }
       }
-      onboardingDone = !!onboarded;
-      if(supabaseClient){
-        showToast("Profil chargé depuis cet appareil (Supabase indisponible)", "⚠️");
-      }
+    } catch(e){
+      console.warn('[Auth] Erreur pendant la préparation du profil (ignorée, navigation quand même) :', e.message);
     }
 
-    // Étape 3 : navigation — jamais dépendante des photos
-    if(onboardingDone){
-      updateHomeGreeting();
-      renderProfileScreen();
-      renderCategoryGrid();
-      console.info('[Auth] Navigation → accueil');
-      showScreen('home');
-    } else {
-      const nameInput = document.getElementById('signup-name');
-      if(nameInput) nameInput.value = myProfile.name || user.displayName || '';
-      console.info('[Auth] Navigation → inscription');
-      showScreen('signup-account');
+    // Étape 3 : navigation — GARANTIE dans tous les cas. Chaque fonction d'affichage
+    // est isolée dans son propre try/catch pour qu'une erreur dans l'une d'elles
+    // ne puisse jamais empêcher showScreen(...) de s'exécuter juste après.
+    try{
+      if(onboardingDone){
+        window.__PM_AUTH_STEP = 'updateHomeGreeting';
+        try{ updateHomeGreeting(); } catch(e){ console.warn('[Auth] updateHomeGreeting a échoué :', e.message); }
+        window.__PM_AUTH_STEP = 'renderProfileScreen';
+        try{ renderProfileScreen(); } catch(e){ console.warn('[Auth] renderProfileScreen a échoué :', e.message); }
+        window.__PM_AUTH_STEP = 'renderCategoryGrid';
+        try{ renderCategoryGrid(); } catch(e){ console.warn('[Auth] renderCategoryGrid a échoué :', e.message); }
+        window.__PM_AUTH_STEP = 'showScreen(home)';
+        console.info('[Auth] 4. Navigation vers l\'accueil');
+        showScreen('home');
+        window.__PM_AUTH_STEP = 'accueil affiché';
+      } else {
+        try{
+          const nameInput = document.getElementById('signup-name');
+          if(nameInput) nameInput.value = myProfile.name || user.displayName || '';
+        } catch(e){ console.warn('[Auth] Pré-remplissage du prénom échoué :', e.message); }
+        window.__PM_AUTH_STEP = 'showScreen(signup-account)';
+        console.info('[Auth] 4. Navigation vers l\'inscription');
+        showScreen('signup-account');
+        window.__PM_AUTH_STEP = 'inscription affichée';
+      }
+      navigationCompleted = true;
+      clearTimeout(watchdogTimer);
+    } catch(e){
+      console.warn('[Auth] Erreur inattendue pendant la navigation, secours vers l\'accueil :', e.message);
+      try{ showScreen('home'); navigationCompleted = true; clearTimeout(watchdogTimer); } catch(e2){}
     }
 
-    // Étape 4 : photos, toujours après, jamais bloquantes
+    // Étape 4 : photos, toujours après, jamais bloquantes pour ce qui précède
     if(supaProfile){
       loadPhotosFromSupabase().then(() => {
-        renderProfileScreen();
+        try{ renderProfileScreen(); } catch(e){}
       }).catch((e) => {
         console.warn('[Auth] Photos non chargées :', e.message);
       });
