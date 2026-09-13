@@ -4508,6 +4508,42 @@ async function recordSwipeAction(toProfileId, action){
   }
 }
 
+// Vérifie si l'autre profil a déjà envoyé la même intention en retour, et si oui,
+// crée le match dans Supabase (une seule fois, grâce à la contrainte d'unicité).
+async function checkAndCreateMatch(otherProfileId, mode){
+  if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return false;
+  try{
+    const { data: reciprocal, error: checkError } = await supabaseClient
+      .from('swipe_actions')
+      .select('id')
+      .eq('from_profile_id', otherProfileId)
+      .eq('to_profile_id', myProfile.supabaseId)
+      .eq('action', mode)
+      .maybeSingle();
+    if(checkError) throw checkError;
+    if(!reciprocal){
+      console.info('[Match] Pas encore de réciprocité pour', mode);
+      return false;
+    }
+
+    // Réciprocité confirmée : on crée le match, avec l'ordre imposé par la contrainte SQL
+    const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
+    const { error: insertError } = await supabaseClient
+      .from('matches')
+      .upsert({
+        profile_a_id: profileAId,
+        profile_b_id: profileBId,
+        mode: mode
+      }, { onConflict: 'profile_a_id,profile_b_id,mode' });
+    if(insertError) throw insertError;
+    console.info('[Match] Match créé :', profileAId, profileBId, mode);
+    return true;
+  } catch(e){
+    console.warn('[Match] Vérification/création impossible :', e.message);
+    return false;
+  }
+}
+
 function flyOut(card, type){
   const likedProfile = filteredProfiles[swipeIndex];
   let transform = '';
@@ -4521,15 +4557,25 @@ function flyOut(card, type){
     showLikeBurst(type);
   }
 
-  if(likedProfile && likedProfile.isRealProfile && likedProfile.supabaseId){
+  const isRealSwipe = !!(likedProfile && likedProfile.isRealProfile && likedProfile.supabaseId);
+  if(isRealSwipe){
     recordSwipeAction(likedProfile.supabaseId, type);
   }
 
-  setTimeout(()=>{
+  setTimeout(async ()=>{
     swipeIndex++;
     renderSwipeStack();
-    if((type==='love' || type==='friend') && likedProfile && Math.random() < 0.5){
-      setTimeout(()=> showMatchOverlay(likedProfile, type), 250);
+    if(type==='love' || type==='friend'){
+      if(isRealSwipe){
+        const matched = await checkAndCreateMatch(likedProfile.supabaseId, type);
+        if(matched){
+          setTimeout(()=> showMatchOverlay(likedProfile, type), 250);
+        }
+      } else if(likedProfile && Math.random() < 0.5){
+        // Comportement de démonstration conservé uniquement pour les profils fictifs
+        // (utilisé quand Supabase n'est pas configuré) — aucune vraie donnée à vérifier ici.
+        setTimeout(()=> showMatchOverlay(likedProfile, type), 250);
+      }
     }
   }, 300);
 }
