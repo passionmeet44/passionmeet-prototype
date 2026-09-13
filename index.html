@@ -4488,6 +4488,26 @@ function swipeAction(type){
   flyOut(card, type);
 }
 
+// Enregistrement réel de l'action (pass / amitié / rencontre) dans Supabase.
+// Étape 1 uniquement : n'enregistre que l'action, ne crée aucun match pour l'instant.
+async function recordSwipeAction(toProfileId, action){
+  if(!supabaseClient || !myProfile.supabaseId || !toProfileId) return;
+  try{
+    const { error } = await supabaseClient
+      .from('swipe_actions')
+      .upsert({
+        from_profile_id: myProfile.supabaseId,
+        to_profile_id: toProfileId,
+        action: action,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'from_profile_id,to_profile_id' });
+    if(error) throw error;
+    console.info('[Swipe] Action enregistrée dans Supabase :', action, '→', toProfileId);
+  } catch(e){
+    console.warn('[Swipe] Enregistrement de l\'action impossible :', e.message);
+  }
+}
+
 function flyOut(card, type){
   const likedProfile = filteredProfiles[swipeIndex];
   let transform = '';
@@ -4499,6 +4519,10 @@ function flyOut(card, type){
 
   if(type==='love' || type==='friend'){
     showLikeBurst(type);
+  }
+
+  if(likedProfile && likedProfile.isRealProfile && likedProfile.supabaseId){
+    recordSwipeAction(likedProfile.supabaseId, type);
   }
 
   setTimeout(()=>{
