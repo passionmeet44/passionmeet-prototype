@@ -2678,6 +2678,7 @@ function showScreen(name){
   incoming.classList.add('screen-anim');
   if(name==='passions' && !passionsInitialized){ renderPassionList(); }
   if(name==='signup-photos'){ renderPhotoGrid(); }
+  if(name==='premium'){ renderTierPanel(); }
   const nav = document.getElementById('bottom-nav');
   const fab = document.getElementById('nav-fab');
   const fabPlate = document.getElementById('nav-fab-plate');
@@ -2865,6 +2866,7 @@ const firebaseConfig = {
 };
 let firebaseAuth = null;
 let currentFirebaseUser = null;
+let currentRadius = 20; // déclarée tôt : utilisée par loadStoredRadius(), appelée dès le chargement de la page
 let isPremiumUser = false; // déclarée tôt : utilisée par mapSupabaseProfileToMyProfile(), qui peut être
                             // appelée très rapidement après la connexion Firebase (parfois avant la fin
                             // du chargement du reste du script) — la déclarer ici évite l'erreur
@@ -4095,7 +4097,6 @@ const swipeProfiles = [
 let swipeIndex = 0;
 let swipeInitialized = false;
 let dragState = null;
-let currentRadius = 20;
 let filteredProfiles = swipeProfiles;
 
 function setRadius(km){
