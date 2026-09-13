@@ -3127,7 +3127,10 @@ try{
     }
   }, 10000);
 
+  let authCallSeq = 0; // protège contre deux déclenchements concurrents de onAuthStateChanged
+
   firebaseAuth.onAuthStateChanged(async (user) => {
+    const mySeq = ++authCallSeq;
     firebaseResponded = true;
     currentFirebaseUser = user;
     window.__PM_AUTH_STEP = 'Firebase connecté';
@@ -3159,7 +3162,7 @@ try{
         try{ showScreen('home'); } catch(e){ console.warn('[Watchdog] showScreen a aussi échoué :', e.message); }
         navigationCompleted = true;
       }
-    }, 8000);
+    }, 13000);
 
     // Tentative de rafraîchissement du jeton en tâche de fond (pour le custom
     // claim Supabase) — jamais attendue, ne peut donc jamais bloquer la suite.
@@ -3180,7 +3183,7 @@ try{
         new Promise((resolve) => setTimeout(() => {
           console.warn('[Auth] 3. Timeout Supabase (6s dépassées)');
           resolve(null);
-        }, 6000))
+        }, 10000))
       ]);
       window.__PM_AUTH_STEP = 'fin profil Supabase';
       console.info('[Auth] 3. Profil Supabase reçu :', supaProfile ? 'oui' : 'non (absent ou timeout)');
@@ -3235,6 +3238,10 @@ try{
     }
 
     // --- Affichage du panneau de diagnostic visible, juste avant la décision finale ---
+    if(mySeq !== authCallSeq){
+      console.warn('[Auth] Exécution obsolète ignorée (une connexion plus récente est en cours) — séquence', mySeq, 'vs', authCallSeq);
+      return;
+    }
     const pmOnboardedRaw = localStorage.getItem('pm_onboarded');
     showAuthDebugPanel([
       `1. UID Firebase connecté : ${user.uid}`,
