@@ -2874,6 +2874,10 @@ const firebaseConfig = {
 };
 let firebaseAuth = null;
 let currentFirebaseUser = null;
+let isPremiumUser = false; // déclarée tôt : utilisée par mapSupabaseProfileToMyProfile(), qui peut être
+                            // appelée très rapidement après la connexion Firebase (parfois avant la fin
+                            // du chargement du reste du script) — la déclarer ici évite l'erreur
+                            // "Cannot access 'isPremiumUser' before initialization".
 
 /* ---------- Supabase (base de données, stockage, temps réel) ---------- */
 // Valeurs publiques (URL + clé anon) : à récupérer dans Supabase > Project Settings > API.
@@ -4024,7 +4028,6 @@ function renderLegalPanel(){
   `;
 }
 
-let isPremiumUser = false;
 let currentDetailKey = null;
 
 function openSafetyShare(){
