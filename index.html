@@ -3215,13 +3215,31 @@ try{
       }
     }
 
-    let onboardingDone = false;
+    // --- DÉCISION, isolée : ce bloc ne fait STRICTEMENT rien d'autre que lire
+    // onboarding_completed. Aucun traitement du profil ici, donc aucune erreur
+    // de traitement ne peut jamais l'atteindre ni la modifier.
+    let shouldShowSignup = true;
+    let profileProcessingError = null;
+    try{
+      if(supaProfile){
+        shouldShowSignup = !supaProfile.onboarding_completed;
+      } else {
+        const onboarded = localStorage.getItem('pm_onboarded');
+        shouldShowSignup = !onboarded;
+      }
+    } catch(error){
+      console.error('[Auth] Erreur lors de la lecture du profil (décision) :', error);
+    }
+    const onboardingDone = !shouldShowSignup; // conservé pour le reste du code (panneau, navigation)
+
+    // --- TRAITEMENT du profil, séparé : s'exécute APRÈS la décision ci-dessus.
+    // Une erreur ici est visible et loguée, mais ne peut plus jamais changer
+    // l'écran qui va s'afficher.
     let pmOnboardedValue = null;
     try{
       if(supaProfile){
         mapSupabaseProfileToMyProfile(supaProfile);
         profileSource = 'supabase';
-        onboardingDone = !!supaProfile.onboarding_completed;
         saveProfileLocally();
       } else {
         profileSource = 'local';
@@ -3231,14 +3249,14 @@ try{
         if(onboarded){
           try{ Object.assign(myProfile, JSON.parse(localStorage.getItem('pm_profile') || '{}')); } catch(e){}
         }
-        onboardingDone = !!onboarded;
         if(supabaseClient){
           showToast("Profil chargé depuis cet appareil (Supabase indisponible)", "⚠️");
         }
       }
       console.info('[Auth] Source du profil utilisée :', profileSource, '— onboardingDone :', onboardingDone);
     } catch(e){
-      console.warn('[Auth] Erreur pendant la préparation du profil (ignorée, navigation quand même) :', e.message);
+      profileProcessingError = `${e.message} | ${e.stack ? e.stack.split('\n').slice(0,2).join(' >> ') : 'pas de pile'}`;
+      console.warn('[Auth] Erreur pendant le TRAITEMENT du profil (sans effet sur la navigation, déjà décidée) :', e);
     }
 
     // --- Affichage du panneau de diagnostic visible, juste avant la décision finale ---
@@ -3248,11 +3266,23 @@ try{
     }
     const pmOnboardedRaw = localStorage.getItem('pm_onboarded');
     showAuthDebugPanel([
+      `Profil Supabase trouvé : ${supaProfile ? 'oui' : 'non'}`,
+      `onboarding_completed : ${supaProfile ? supaProfile.onboarding_completed : '(non applicable)'}`,
+      `Écran final demandé : ${shouldShowSignup ? 'signup-account' : 'home'}`,
+      ``,
+      `--- RÉCAPITULATIF DEMANDÉ ---`,
+      `Utilisateur connecté : ${user.uid}`,
+      `Profil Supabase trouvé : ${supaProfile ? 'OUI' : 'NON'}`,
+      `supaProfile.onboarding_completed = ${supaProfile ? supaProfile.onboarding_completed : '(non applicable)'}`,
+      `Valeur finale de onboardingDone = ${onboardingDone}`,
+      `Écran demandé par showScreen() = ${onboardingDone ? 'home' : 'signup-account'}`,
+      ``,
       `1. UID Firebase connecté : ${user.uid}`,
       `--- APPEL RÉEL (celui qui compte pour la décision) ---`,
       `supaProfile trouvé : ${supaProfile ? 'OUI' : 'NON'}`,
       `Timeout dépassé (10s) : ${realCallTimedOut ? 'OUI' : 'non'}`,
-      `Erreur JS capturée : ${realCallError || 'aucune'}`,
+      `Erreur JS capturée (requête) : ${realCallError || 'aucune'}`,
+      `Erreur JS capturée (traitement du profil) : ${profileProcessingError || 'aucune'}`,
       supaProfile ? `onboarding_completed (appel réel) = ${supaProfile.onboarding_completed}` : '',
       ``,
       `--- APPEL DE DIAGNOSTIC SÉPARÉ (sans timeout, sans retry) ---`,
@@ -3273,7 +3303,7 @@ try{
     // est isolée dans son propre try/catch pour qu'une erreur dans l'une d'elles
     // ne puisse jamais empêcher showScreen(...) de s'exécuter juste après.
     try{
-      if(onboardingDone){
+      if(!shouldShowSignup){
         window.__PM_AUTH_STEP = 'updateHomeGreeting';
         try{ updateHomeGreeting(); } catch(e){ console.warn('[Auth] updateHomeGreeting a échoué :', e.message); }
         window.__PM_AUTH_STEP = 'renderProfileScreen';
