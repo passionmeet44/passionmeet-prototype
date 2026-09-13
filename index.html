@@ -3172,16 +3172,20 @@ try{
     // .catch() sur la promesse elle-même : une erreur Supabase devient null,
     // jamais une exception qui remonterait et interromprait ce bloc.
     let supaProfile = null;
+    let realCallError = null;
+    let realCallTimedOut = false;
     window.__PM_AUTH_STEP = 'début profil Supabase';
     console.info('[Auth] 2. Début vérification profil Supabase');
     if(supabaseClient){
       supaProfile = await Promise.race([
         ensureSupabaseProfile(user).catch((e) => {
           console.warn('[Auth] Erreur pendant ensureSupabaseProfile :', e.message);
+          realCallError = e.message;
           return null;
         }),
         new Promise((resolve) => setTimeout(() => {
-          console.warn('[Auth] 3. Timeout Supabase (6s dépassées)');
+          console.warn('[Auth] 3. Timeout Supabase (10s dépassées)');
+          realCallTimedOut = true;
           resolve(null);
         }, 10000))
       ]);
@@ -3245,11 +3249,18 @@ try{
     const pmOnboardedRaw = localStorage.getItem('pm_onboarded');
     showAuthDebugPanel([
       `1. UID Firebase connecté : ${user.uid}`,
+      `--- APPEL RÉEL (celui qui compte pour la décision) ---`,
+      `supaProfile trouvé : ${supaProfile ? 'OUI' : 'NON'}`,
+      `Timeout dépassé (10s) : ${realCallTimedOut ? 'OUI' : 'non'}`,
+      `Erreur JS capturée : ${realCallError || 'aucune'}`,
+      supaProfile ? `onboarding_completed (appel réel) = ${supaProfile.onboarding_completed}` : '',
+      ``,
+      `--- APPEL DE DIAGNOSTIC SÉPARÉ (sans timeout, sans retry) ---`,
       `2. Résultat requête Supabase (lecture brute) :`,
       `   data = ${rawDebugResult.data ? JSON.stringify(rawDebugResult.data) : 'null'}`,
       `   error = ${rawDebugResult.error ? JSON.stringify(rawDebugResult.error) : 'aucune'}`,
       `3. Colonnes reçues : ${rawDebugResult.data ? Object.keys(rawDebugResult.data).join(', ') : '(aucune ligne reçue)'}`,
-      `4. onboarding_completed = ${rawDebugResult.data ? rawDebugResult.data.onboarding_completed : '(non applicable, pas de ligne)'}`,
+      `4. onboarding_completed (diagnostic) = ${rawDebugResult.data ? rawDebugResult.data.onboarding_completed : '(non applicable, pas de ligne)'}`,
       `5. pm_onboarded (localStorage) = ${pmOnboardedRaw}`,
       `6. DÉCISION FINALE : ${onboardingDone ? 'ACCUEIL' : 'INSCRIPTION'}`,
       ``,
