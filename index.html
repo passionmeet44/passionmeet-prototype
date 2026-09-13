@@ -4491,7 +4491,10 @@ function swipeAction(type){
 // Enregistrement réel de l'action (pass / amitié / rencontre) dans Supabase.
 // Étape 1 uniquement : n'enregistre que l'action, ne crée aucun match pour l'instant.
 async function recordSwipeAction(toProfileId, action){
-  if(!supabaseClient || !myProfile.supabaseId || !toProfileId) return;
+  if(!supabaseClient || !myProfile.supabaseId || !toProfileId){
+    showToast(`Debug: enregistrement annulé (supabaseClient=${!!supabaseClient}, monId=${myProfile.supabaseId||'absent'}, cibleId=${toProfileId||'absente'})`, "⚠️");
+    return;
+  }
   try{
     const { error } = await supabaseClient
       .from('swipe_actions')
@@ -4503,8 +4506,10 @@ async function recordSwipeAction(toProfileId, action){
       }, { onConflict: 'from_profile_id,to_profile_id' });
     if(error) throw error;
     console.info('[Swipe] Action enregistrée dans Supabase :', action, '→', toProfileId);
+    showToast(`Debug: action "${action}" enregistrée OK`, "✅");
   } catch(e){
     console.warn('[Swipe] Enregistrement de l\'action impossible :', e.message);
+    showToast(`Debug erreur: ${e.message}`, "⚠️");
   }
 }
 
@@ -4558,6 +4563,9 @@ function flyOut(card, type){
   }
 
   const isRealSwipe = !!(likedProfile && likedProfile.isRealProfile && likedProfile.supabaseId);
+  if(!isRealSwipe){
+    showToast(`Debug: profil non reconnu comme réel (isRealProfile=${likedProfile?likedProfile.isRealProfile:'profil absent'}, id=${likedProfile?likedProfile.supabaseId:'-'})`, "⚠️");
+  }
   if(isRealSwipe){
     recordSwipeAction(likedProfile.supabaseId, type);
   }
