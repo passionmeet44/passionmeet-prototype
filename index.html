@@ -1699,6 +1699,27 @@
         <div id="ract-participants-list"></div>
       </div>
       <button class="btn-join" id="ract-cta" onclick="toggleActivityParticipation()">Je participe</button>
+      <div class="report-link" id="ract-report-link" onclick="openActivityReportModal()">🚩 Signaler cette activité</div>
+    </div>
+  </div>
+
+  <!-- REPORT ACTIVITY MODAL -->
+  <div class="tag-comment-overlay" id="report-activity-overlay">
+    <div class="tag-comment-card">
+      <div class="tag-comment-title">Signaler cette activité</div>
+      <div id="report-reason-options" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+        <div class="pill" data-reason="Contenu inapproprié" onclick="selectReportReason(this)">Contenu inapproprié</div>
+        <div class="pill" data-reason="Harcèlement ou comportement dangereux" onclick="selectReportReason(this)">Harcèlement ou comportement dangereux</div>
+        <div class="pill" data-reason="Activité illégale" onclick="selectReportReason(this)">Activité illégale</div>
+        <div class="pill" data-reason="Publicité ou spam" onclick="selectReportReason(this)">Publicité ou spam</div>
+        <div class="pill" data-reason="Fausse information" onclick="selectReportReason(this)">Fausse information</div>
+        <div class="pill" data-reason="Autre" onclick="selectReportReason(this)">Autre</div>
+      </div>
+      <textarea class="tag-comment-input" id="report-details-input" rows="2" placeholder="Précisions (facultatif)"></textarea>
+      <div class="tag-comment-actions">
+        <button class="tag-comment-btn friend" style="width:100%;" onclick="submitActivityReport()">Envoyer le signalement</button>
+      </div>
+      <div class="tag-comment-cancel" onclick="closeActivityReportModal()">Annuler</div>
     </div>
   </div>
 
@@ -5533,6 +5554,65 @@ async function resolveActivityPhotoUrl(rawValue, activityId){
   }
 }
 
+// Échappe le HTML avant affichage — évite qu'un titre/description contenant
+// des caractères spéciaux ne casse la mise en page ou n'exécute du code.
+function escapeHtml(str){
+  if(str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Liste courte et volontairement non exhaustive, à compléter selon vos propres
+// règles de modération — sert uniquement à bloquer les cas les plus évidents,
+// pas à remplacer une vraie modération humaine.
+const MODERATION_BLOCKED_TERMS = [
+  'vente de drogue', 'acheter de la drogue', 'deal illégal',
+  'vente d\'arme', 'arme à feu à vendre',
+  'service sexuel rémunéré', 'escort',
+  'virement urgent avant de venir', 'paiement d\'avance obligatoire en espèces'
+];
+
+// Vérification automatique du contenu d'une activité, avant son enregistrement.
+// Trois issues possibles : 'active' (publication normale), 'pending_review'
+// (publiée mais mise en attente de vérification), 'rejected' (jamais enregistrée).
+function moderateActivityContent(title, description, location){
+  const rawText = `${title || ''} ${description || ''} ${location || ''}`;
+  const text = rawText.toLowerCase();
+
+  // Rejet immédiat : tentative d'injection de code, jamais tolérée
+  if(/<script|<iframe|javascript:|onerror\s*=|onload\s*=/i.test(rawText)){
+    return { status: 'rejected', reason: "Le contenu saisi n'est pas autorisé (code détecté)." };
+  }
+
+  // Rejet : titre ou description manifestement trop courts pour être exploitables
+  if(!title || title.trim().length < 3){
+    return { status: 'rejected', reason: 'Le titre est trop court pour être publié.' };
+  }
+  if(description && description.trim().length > 0 && description.trim().length < 5){
+    return { status: 'rejected', reason: 'La description est trop courte pour être publiée.' };
+  }
+
+  // Rejet : mots ou expressions clairement interdits (liste courte, non exhaustive)
+  const blockedHit = MODERATION_BLOCKED_TERMS.find(term => text.includes(term));
+  if(blockedHit){
+    return { status: 'rejected', reason: "Cette activité ne respecte pas les règles de PassionMeet." };
+  }
+
+  // Mise en attente (jamais un rejet) pour les signaux ambigus, à vérifier manuellement
+  const flags = [];
+  if(title.length > 100 || (description && description.length > 2000)) flags.push('longueur inhabituelle');
+  if(/(.)\1{9,}/.test(rawText)) flags.push('répétition excessive de caractères');
+  if(/https?:\/\/|www\./i.test(rawText)) flags.push('lien externe');
+  if(/(\+33|0)[\s.-]?[1-9]([\s.-]?\d{2}){4}/.test(rawText)) flags.push('numéro de téléphone visible');
+
+  if(flags.length > 0){
+    return { status: 'pending_review', reason: 'À vérifier : ' + flags.join(', ') };
+  }
+
+  return { status: 'active', reason: null };
+}
+
 async function submitRealActivity(){
   const errBox = document.getElementById('ract-form-error');
   const submitBtn = document.getElementById('ract-form-submit');
@@ -5561,6 +5641,15 @@ async function submitRealActivity(){
     return;
   }
 
+  // Vérification automatique du contenu, avant tout envoi (y compris la photo) —
+  // voir moderateActivityContent() pour le détail des règles.
+  const moderation = moderateActivityContent(title, description, location);
+  if(moderation.status === 'rejected'){
+    errBox.textContent = moderation.reason;
+    errBox.style.display = 'block';
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.textContent = 'Publication en cours…';
 
@@ -5580,11 +5669,17 @@ async function submitRealActivity(){
       activity_time: time || null,
       location,
       max_participants: maxParticipants,
-      mode: mode
+      mode: mode,
+      moderation_status: moderation.status,
+      moderation_reason: moderation.reason
     });
     if(error) throw error;
 
-    showToast('Activité publiée !', '🎉');
+    if(moderation.status === 'pending_review'){
+      showToast('Activité enregistrée : elle sera vérifiée avant publication.', '🕓');
+    } else {
+      showToast('Activité publiée !', '🎉');
+    }
     showScreen('activities-list');
   } catch(e){
     console.warn('[Activités] Publication impossible :', e.message);
@@ -5605,11 +5700,15 @@ async function renderActivitiesList(){
   }
   list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⏳</span>Chargement des activités…</div>`;
   try{
-    const { data, error } = await supabaseClient
+    const { data: rawData, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status')
       .order('created_at', { ascending: false });
     if(error) throw error;
+
+    // Seules les activités actives apparaissent dans la découverte publique —
+    // même si la sécurité (RLS) l'impose déjà côté base, on le confirme ici aussi.
+    const data = (rawData || []).filter(a => (a.moderation_status || 'active') === 'active');
 
     // Remplit le menu des catégories une seule fois, sans écraser le choix actuel
     const catSelect = document.getElementById('activity-category-filter');
@@ -5713,10 +5812,10 @@ async function renderActivitiesList(){
         <div class="card" onclick="openActivityDetail('${a.id}')">
           <div class="card-media" style="${mediaStyle}">${resolvedPhotoUrl ? '' : emoji}</div>
           <div class="card-body">
-            <h3>${a.title}</h3>
+            <h3>${escapeHtml(a.title)}</h3>
             <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
-            <div class="card-meta"><span>📍 ${a.location || 'Lieu à définir'}</span></div>
-            <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${organizerName}</span></div>
+            <div class="card-meta"><span>📍 ${escapeHtml(a.location) || 'Lieu à définir'}</span></div>
+            <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${escapeHtml(organizerName)}</span></div>
             <div style="margin-top:6px;">${modeTagHtml}</div>
           </div>
         </div>
@@ -5861,7 +5960,7 @@ async function fetchSingleActivityForDetail(activityId){
   try{
     const { data: a, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status')
       .eq('id', activityId).maybeSingle();
     if(error || !a) throw (error || new Error('introuvable'));
     const cat = categories.find(c => c.key === a.category);
@@ -5877,11 +5976,79 @@ async function fetchSingleActivityForDetail(activityId){
       id: a.id, title: a.title, description: a.description, category: a.category,
       activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
       organizerName, organizerId: a.organizer_profile_id, emoji, bg,
-      maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode
+      maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode,
+      moderationStatus: a.moderation_status || 'active'
     };
   } catch(e){
     console.warn('[Activités] Récupération directe impossible :', e.message);
     return null;
+  }
+}
+
+let selectedReportReason = null;
+
+function selectReportReason(el){
+  document.querySelectorAll('#report-reason-options .pill').forEach(p => p.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedReportReason = el.getAttribute('data-reason');
+}
+
+async function openActivityReportModal(){
+  if(!currentActivityDetail) return;
+  if(!currentFirebaseUser || !myProfile.supabaseId){
+    showToast("Connectez-vous pour signaler une activité.", "⚠️");
+    return;
+  }
+  selectedReportReason = null;
+  document.querySelectorAll('#report-reason-options .pill').forEach(p => p.classList.remove('sel'));
+  document.getElementById('report-details-input').value = '';
+
+  // Vérifie si un signalement existe déjà — la contrainte unique en base reste
+  // la vraie garantie en dernier ressort, ceci n'est qu'un confort d'affichage.
+  try{
+    const { data: existing } = await supabaseClient
+      .from('activity_reports').select('id')
+      .eq('activity_id', currentActivityDetail.id).eq('reporter_id', myProfile.supabaseId).maybeSingle();
+    if(existing){
+      showToast('Vous avez déjà signalé cette activité.', 'ℹ️');
+      return;
+    }
+  } catch(e){ /* pas bloquant */ }
+
+  document.getElementById('report-activity-overlay').classList.add('show');
+}
+
+function closeActivityReportModal(){
+  document.getElementById('report-activity-overlay').classList.remove('show');
+}
+
+async function submitActivityReport(){
+  if(!currentActivityDetail || !supabaseClient || !myProfile.supabaseId || !currentFirebaseUser) return;
+  if(!selectedReportReason){
+    showToast('Merci de choisir un motif.', '⚠️');
+    return;
+  }
+  const details = document.getElementById('report-details-input').value.trim();
+  try{
+    const { error } = await supabaseClient.from('activity_reports').insert({
+      activity_id: currentActivityDetail.id,
+      reporter_id: myProfile.supabaseId,
+      reason: selectedReportReason,
+      details: details || null
+    });
+    if(error){
+      if(error.code === '23505'){
+        showToast('Vous avez déjà signalé cette activité.', 'ℹ️');
+        closeActivityReportModal();
+        return;
+      }
+      throw error;
+    }
+    closeActivityReportModal();
+    showToast("Merci, votre signalement a bien été transmis.", '✅');
+  } catch(e){
+    console.warn('[Signalement] Envoi impossible :', e.message);
+    showToast("Le signalement n'a pas pu être envoyé, réessayez.", "⚠️");
   }
 }
 
@@ -5892,7 +6059,14 @@ async function openActivityDetail(activityId){
     // passé par l'onglet Activités) : on va la chercher directement.
     a = await fetchSingleActivityForDetail(activityId);
   }
-  if(!a) return;
+  if(!a) {
+    showToast("Cette activité n'est plus disponible.", "⚠️");
+    return;
+  }
+  if(a.moderationStatus && a.moderationStatus !== 'active'){
+    showToast("Cette activité n'est plus disponible.", "⚠️");
+    return;
+  }
   currentActivityDetail = a;
 
   document.getElementById('ract-media').style.background = a.bg;
