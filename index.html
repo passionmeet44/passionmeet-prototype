@@ -1526,6 +1526,7 @@
     <div class="swipe-header">
       <h1>Découvrir des profils</h1>
       <p>Glissez pour choisir : ✕ passer · 🤝 amitié · 💜 rencontre</p>
+      <div class="profile-photo-hint" id="discover-filters-btn" style="margin-top:6px;" onclick="openDiscoverFilters()">🎛️ Filtres<span id="discover-filters-badge"></span></div>
     </div>
     <div class="radius-slider-row">
       <div class="range-label">Rayon de recherche <span id="swipe-radius-value">20 km</span></div>
@@ -1707,6 +1708,22 @@
     <div style="padding:0 20px 14px;">
       <button class="btn-primary" style="width:100%;" onclick="openCreateActivityReal()">➕ Créer une activité</button>
     </div>
+    <div style="padding:0 20px 10px;">
+      <input class="form-input" id="activity-search-input" type="text" placeholder="🔍 Rechercher une activité…" style="margin-bottom:8px;" oninput="onActivityFiltersChanged()">
+      <div style="display:flex; gap:8px;">
+        <select class="form-input" id="activity-category-filter" style="flex:1;" onchange="onActivityFiltersChanged()">
+          <option value="tous">Toutes catégories</option>
+        </select>
+        <select class="form-input" id="activity-date-filter" style="flex:1;" onchange="onActivityFiltersChanged()">
+          <option value="toutes">Toutes dates</option>
+          <option value="today">Aujourd'hui</option>
+          <option value="week">Cette semaine</option>
+          <option value="weekend">Ce week-end</option>
+          <option value="later">Plus tard</option>
+        </select>
+      </div>
+      <div id="activity-filters-active" class="report-link" style="display:none; text-align:left; margin-top:8px;" onclick="resetActivityFilters()">✕ Réinitialiser les filtres</div>
+    </div>
     <div id="activities-real-list" style="padding:0 20px;"></div>
   </div>
 
@@ -1717,6 +1734,40 @@
   </div>
 
   <!-- EDIT PROFILE -->
+  <!-- DISCOVER FILTERS -->
+  <div class="screen" id="screen-discover-filters" style="position:relative;">
+    <div class="detail-back" onclick="showScreen('swipe')" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
+    <div class="ob-title">Filtres de découverte</div>
+    <div class="ob-sub">Affinez les profils que vous voyez dans Découvrir.</div>
+    <div style="padding:0 22px 100px;">
+      <div class="form-label">Rayon de recherche <span id="df-radius-value"></span></div>
+      <input type="range" min="1" max="100" id="df-radius-input" oninput="onDiscoverRadiusChange(this.value)">
+
+      <div class="form-label" style="margin-top:22px;">Tranche d'âge recherchée</div>
+      <div class="age-inputs">
+        <input type="number" id="df-age-min" min="18" max="99">
+        <span>à</span>
+        <input type="number" id="df-age-max" min="18" max="99">
+      </div>
+
+      <div class="form-label" style="margin-top:22px;">Mode recherché</div>
+      <div class="pills">
+        <div class="pill" id="df-mode-tous" onclick="setDiscoverModeFilter('tous')">Tous</div>
+        <div class="pill" id="df-mode-friend" onclick="setDiscoverModeFilter('friend')">🤝 Amitié</div>
+        <div class="pill" id="df-mode-love" onclick="setDiscoverModeFilter('love')">💜 Rencontre</div>
+      </div>
+
+      <div class="mode-card" id="df-passions-card" style="margin-top:22px;">
+        <div class="mode-icon friend">❤️</div>
+        <div class="mode-info"><h3>Passions communes en priorité</h3><p>Affiche d'abord les profils qui partagent au moins une passion avec vous</p></div>
+        <div class="switch" id="df-passions-switch" onclick="togglePrioritizeSharedPassions()"></div>
+      </div>
+
+      <div class="report-link" style="margin-top:22px;" onclick="resetDiscoverFilters()">✕ Réinitialiser tous les filtres</div>
+      <button class="btn-primary" style="width:100%; margin-top:18px;" onclick="applyDiscoverFiltersAndClose()">Appliquer</button>
+    </div>
+  </div>
+
   <div class="screen" id="screen-edit-profile" style="position:relative;">
     <div class="detail-back" onclick="showScreen('profile')" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
     <div class="ob-title">Modifier mon profil</div>
@@ -2848,6 +2899,7 @@ function showScreen(name){
     document.getElementById('nav-messages').classList.toggle('active', name==='messages');
     document.getElementById('nav-profile').classList.toggle('active', name==='profile');
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
+    if(name==='swipe'){ updateDiscoverFiltersBadge(); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
     if(name==='activities-list'){ renderActivitiesList(); }
     if(name==='matches'){ renderMatchesList(); }
@@ -4090,6 +4142,7 @@ renderCategoryGrid();
 renderPassionFilterRow();
 initSettingsUI();
 loadStoredRadius();
+try{ prioritizeSharedPassions = localStorage.getItem('pm_prioritize_shared_passions') === '1'; } catch(e){}
 
 function openDetail(key){
   openDetailFrom(key, 'home');
@@ -4380,6 +4433,91 @@ function loadStoredRadius(){
 }
 
 let swipeModeFilter = 'tous';
+let prioritizeSharedPassions = false;
+
+function countActiveDiscoverFilters(){
+  let n = 0;
+  if(currentRadius !== 20) n++;
+  if(swipeModeFilter !== 'tous') n++;
+  if((myProfile.ageMin && myProfile.ageMin !== 18) || (myProfile.ageMax && myProfile.ageMax !== 99)) n++;
+  if(prioritizeSharedPassions) n++;
+  return n;
+}
+
+function updateDiscoverFiltersBadge(){
+  const el = document.getElementById('discover-filters-badge');
+  if(!el) return;
+  const n = countActiveDiscoverFilters();
+  el.textContent = n > 0 ? ` (${n})` : '';
+}
+
+function openDiscoverFilters(){
+  document.getElementById('df-radius-input').value = currentRadius;
+  document.getElementById('df-radius-value').textContent = currentRadius + ' km';
+  document.getElementById('df-age-min').value = myProfile.ageMin || 18;
+  document.getElementById('df-age-max').value = myProfile.ageMax || 99;
+  ['tous','friend','love'].forEach(m => document.getElementById('df-mode-'+m).classList.toggle('sel', swipeModeFilter === m));
+  document.getElementById('df-passions-switch').classList.toggle('on', prioritizeSharedPassions);
+  document.getElementById('df-passions-card').classList.toggle('on', prioritizeSharedPassions);
+  showScreen('discover-filters');
+}
+
+function onDiscoverRadiusChange(v){
+  document.getElementById('df-radius-value').textContent = v + ' km';
+  setRadius(v);
+  updateDiscoverFiltersBadge();
+}
+
+function setDiscoverModeFilter(m){
+  setSwipeModeFilter(m);
+  ['tous','friend','love'].forEach(mode => document.getElementById('df-mode-'+mode).classList.toggle('sel', mode === m));
+  updateDiscoverFiltersBadge();
+}
+
+function saveDiscoverAgeRange(){
+  const min = parseInt(document.getElementById('df-age-min').value, 10);
+  const max = parseInt(document.getElementById('df-age-max').value, 10);
+  if(!isNaN(min)) myProfile.ageMin = min;
+  if(!isNaN(max)) myProfile.ageMax = max;
+  saveProfileLocally();
+  swipeIndex = 0;
+  applyRadiusFilter();
+  renderSwipeStack();
+  updateDiscoverFiltersBadge();
+}
+
+function togglePrioritizeSharedPassions(){
+  prioritizeSharedPassions = !prioritizeSharedPassions;
+  document.getElementById('df-passions-switch').classList.toggle('on', prioritizeSharedPassions);
+  document.getElementById('df-passions-card').classList.toggle('on', prioritizeSharedPassions);
+  try{ localStorage.setItem('pm_prioritize_shared_passions', prioritizeSharedPassions ? '1' : '0'); } catch(e){}
+  swipeIndex = 0;
+  applyRadiusFilter();
+  renderSwipeStack();
+  updateDiscoverFiltersBadge();
+}
+
+function resetDiscoverFilters(){
+  setRadius(20);
+  document.getElementById('df-radius-input').value = 20;
+  document.getElementById('df-radius-value').textContent = '20 km';
+  myProfile.ageMin = 18; myProfile.ageMax = 99;
+  document.getElementById('df-age-min').value = 18;
+  document.getElementById('df-age-max').value = 99;
+  saveProfileLocally();
+  setDiscoverModeFilter('tous');
+  if(prioritizeSharedPassions) togglePrioritizeSharedPassions();
+  swipeIndex = 0;
+  applyRadiusFilter();
+  renderSwipeStack();
+  updateDiscoverFiltersBadge();
+  showToast('Filtres réinitialisés', '✅');
+}
+
+function applyDiscoverFiltersAndClose(){
+  saveDiscoverAgeRange();
+  showScreen('swipe');
+}
 
 function setSwipeModeFilter(m){
   swipeModeFilter = m;
@@ -4573,8 +4711,23 @@ async function loadRealSwipeProfiles(){
       return true;
     });
 
+    // Exclusion automatique des profils déjà traités (déjà likés ou déjà passés),
+    // indépendamment des filtres — ne concerne jamais les profils déjà matchés,
+    // qui restent visibles dans l'onglet Matchs séparément.
+    let alreadyActedIds = new Set();
+    if(myProfile.supabaseId){
+      try{
+        const { data: actedRows } = await supabaseClient
+          .from('swipe_actions').select('to_profile_id').eq('from_profile_id', myProfile.supabaseId);
+        alreadyActedIds = new Set((actedRows || []).map(r => r.to_profile_id));
+      } catch(e){
+        console.warn('[Découvrir] Impossible de vérifier les profils déjà traités :', e.message);
+      }
+    }
+    const remaining = deduped.filter(row => !alreadyActedIds.has(row.id));
+
     const mapped = [];
-    for(const row of deduped){
+    for(const row of remaining){
       const photo = await getMainPhotoForProfile(row.id);
       mapped.push(mapSupabaseRowToSwipeCard(row, photo));
     }
@@ -4599,6 +4752,17 @@ function applyRadiusFilter(){
     (p.age == null || (p.age >= myProfile.ageMin && p.age <= myProfile.ageMax)) &&
     (swipeModeFilter === 'tous' || p.modes.includes(swipeModeFilter))
   );
+
+  // Priorité aux passions communes, sans jamais exclure personne : on réordonne
+  // seulement, ceux qui partagent au moins une passion passent devant.
+  if(prioritizeSharedPassions){
+    const myInterests = (myProfile.interests || []).map(i => i.toLowerCase());
+    const sharedCount = (p) => (p.tags || []).filter(t => myInterests.some(i => i.includes(t.toLowerCase()) || t.toLowerCase().includes(i))).length;
+    filteredProfiles = filteredProfiles
+      .map((p, idx) => ({ p, idx, score: sharedCount(p) }))
+      .sort((a, b) => (b.score - a.score) || (a.idx - b.idx))
+      .map(x => x.p);
+  }
 }
 
 function initSwipe(){
@@ -5250,6 +5414,45 @@ async function getOrCreatePrivateConversation(matchId){
 }
 
 let currentActivitiesData = [];
+let activitySearchQuery = '';
+let activityCategoryFilter = 'tous';
+let activityDateFilter = 'toutes';
+
+function onActivityFiltersChanged(){
+  activitySearchQuery = document.getElementById('activity-search-input').value.trim().toLowerCase();
+  activityCategoryFilter = document.getElementById('activity-category-filter').value;
+  activityDateFilter = document.getElementById('activity-date-filter').value;
+  const active = activitySearchQuery || activityCategoryFilter !== 'tous' || activityDateFilter !== 'toutes';
+  document.getElementById('activity-filters-active').style.display = active ? 'block' : 'none';
+  renderActivitiesList();
+}
+
+function resetActivityFilters(){
+  document.getElementById('activity-search-input').value = '';
+  document.getElementById('activity-category-filter').value = 'tous';
+  document.getElementById('activity-date-filter').value = 'toutes';
+  activitySearchQuery = '';
+  activityCategoryFilter = 'tous';
+  activityDateFilter = 'toutes';
+  document.getElementById('activity-filters-active').style.display = 'none';
+  renderActivitiesList();
+}
+
+function matchesActivityDatePeriod(activityDate, period){
+  if(period === 'toutes') return true;
+  if(!activityDate) return period === 'later';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(activityDate + 'T00:00:00');
+  const diffDays = Math.round((d - today) / 86400000);
+  if(period === 'today') return diffDays === 0;
+  if(period === 'week') return diffDays >= 0 && diffDays <= 7;
+  if(period === 'weekend'){
+    const day = d.getDay(); // 0 = dimanche, 6 = samedi
+    return diffDays >= 0 && diffDays <= 7 && (day === 6 || day === 0);
+  }
+  if(period === 'later') return diffDays > 7;
+  return true;
+}
 
 function selectActivityMode(mode){
   document.getElementById('ract-form-mode-friend').className = 'mode-badge ' + (mode === 'friend' ? 'friend-on' : 'off');
@@ -5408,12 +5611,64 @@ async function renderActivitiesList(){
       .order('created_at', { ascending: false });
     if(error) throw error;
 
+    // Remplit le menu des catégories une seule fois, sans écraser le choix actuel
+    const catSelect = document.getElementById('activity-category-filter');
+    if(catSelect && catSelect.options.length <= 1){
+      categories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.key; opt.textContent = `${c.emoji} ${c.label}`;
+        catSelect.appendChild(opt);
+      });
+      catSelect.value = activityCategoryFilter;
+    }
+
     if(!data || data.length === 0){
       list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>🎉</span>Aucune activité pour l'instant.<br>Revenez bientôt, ou proposez la vôtre !</div>`;
       return;
     }
 
-    const cards = await Promise.all(data.map(async (a) => {
+    // Recherche + catégorie + date : ne masquent jamais brutalement tout,
+    // juste un état vide clair avec réinitialisation si rien ne correspond
+    const filteredData = data.filter(a => {
+      if(activityCategoryFilter !== 'tous' && a.category !== activityCategoryFilter) return false;
+      if(!matchesActivityDatePeriod(a.activity_date, activityDateFilter)) return false;
+      if(activitySearchQuery){
+        const catLabel = (categories.find(c => c.key === a.category) || {}).label || '';
+        const haystack = `${a.title || ''} ${a.description || ''} ${catLabel}`.toLowerCase();
+        if(!haystack.includes(activitySearchQuery)) return false;
+      }
+      return true;
+    });
+
+    if(filteredData.length === 0){
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>🔍</span>Aucune activité ne correspond à ces critères.<br><span class="report-link" style="cursor:pointer;" onclick="resetActivityFilters()">Réinitialiser les filtres</span></div>`;
+      return;
+    }
+
+    // Classement intelligent : passions communes, puis mode compatible, puis date
+    // la plus proche — jamais d'exclusion, seulement un réordonnancement.
+    const passionCategoryKeys = new Set(
+      categories.filter(c => (myProfile.interests || []).some(i => i.includes(c.label))).map(c => c.key)
+    );
+    const myModes = myProfile.modes || [];
+    const scored = filteredData.map(a => {
+      const passionScore = passionCategoryKeys.has(a.category) ? 1 : 0;
+      const modeScore = myModes.includes(a.mode) ? 1 : 0;
+      let dayDiff = 9999;
+      if(a.activity_date){
+        try{
+          const today = new Date(); today.setHours(0,0,0,0);
+          const d = new Date(a.activity_date + 'T00:00:00');
+          dayDiff = Math.round((d - today) / 86400000);
+          if(dayDiff < 0) dayDiff = 9999 + Math.abs(dayDiff);
+        } catch(e){}
+      }
+      return { a, passionScore, modeScore, dayDiff };
+    });
+    scored.sort((x,y) => (y.passionScore - x.passionScore) || (y.modeScore - x.modeScore) || (x.dayDiff - y.dayDiff));
+    const sortedData = scored.map(s => s.a);
+
+    const cards = await Promise.all(sortedData.map(async (a) => {
       const cat = categories.find(c => c.key === a.category);
       const emoji = cat ? cat.emoji : '🎉';
       const bg = cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
