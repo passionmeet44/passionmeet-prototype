@@ -5819,7 +5819,8 @@ async function renderPrivateConversationsList(){
   try{
     const { data: allMemberRows, error: memErr } = await supabaseClient
       .from('conversation_members')
-      .select('conversation_id, conversations!inner(id, type, match_id)');
+      .select('conversation_id, conversations!inner(id, type, match_id)')
+      .eq('profile_id', myProfile.supabaseId);
     if(memErr) throw memErr;
     const memberRows = (allMemberRows || []).filter(r => r.conversations && r.conversations.type === 'private');
 
@@ -5835,6 +5836,7 @@ async function renderPrivateConversationsList(){
       let name = match ? match.name : 'Membre';
       let photoUrl = match ? match.photoUrl : null;
       let mode = match ? match.mode : 'friend';
+      let otherId = match ? match.otherId : null;
 
       if(!match){
         // Le cache des matchs n'est pas forcément rempli (ex: ouverture directe de Messages) :
@@ -5843,7 +5845,7 @@ async function renderPrivateConversationsList(){
           const { data: matchRow } = await supabaseClient.from('matches').select('profile_a_id, profile_b_id, mode').eq('id', conv.match_id).maybeSingle();
           if(matchRow){
             mode = matchRow.mode;
-            const otherId = matchRow.profile_a_id === myProfile.supabaseId ? matchRow.profile_b_id : matchRow.profile_a_id;
+            otherId = matchRow.profile_a_id === myProfile.supabaseId ? matchRow.profile_b_id : matchRow.profile_a_id;
             const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', otherId).maybeSingle();
             if(p && p.first_name) name = p.first_name;
             photoUrl = await getMainPhotoForProfile(otherId);
@@ -5868,7 +5870,9 @@ async function renderPrivateConversationsList(){
       const tagHtml = mode === 'love' ? `<span class="msg-mode-tag love">Rencontre</span>` : `<span class="msg-mode-tag friend">Amitié</span>`;
       const badgeHtml = unreadCount ? `<span class="msg-unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>` : '';
 
-      return `
+      return {
+        otherId,
+        html: `
         <div class="msg-item" onclick="openMatchChat('${conv.match_id}', 'messages')">
           ${avatarHtml}
           <div class="msg-info">
@@ -5877,10 +5881,21 @@ async function renderPrivateConversationsList(){
             ${tagHtml}${badgeHtml}
           </div>
         </div>
-      `;
+      `
+      };
     }));
 
-    list.innerHTML = cards.join('');
+    // Déduplication défensive : jamais deux fois la même personne dans la liste,
+    // même si plusieurs lignes existaient pour une raison quelconque.
+    const seenOtherIds = new Set();
+    const dedupedCards = cards.filter(c => {
+      const key = c.otherId || Math.random(); // pas d'otherId connu : on ne filtre pas ce cas rare
+      if(seenOtherIds.has(key)) return false;
+      seenOtherIds.add(key);
+      return true;
+    });
+
+    list.innerHTML = dedupedCards.map(c => c.html).join('');
   } catch(e){
     console.warn('[Messages] Chargement des conversations privées impossible :', e.message);
     list.innerHTML = emptyMsgState('⚠️', 'Impossible de charger vos conversations pour le moment.', false);
@@ -5898,7 +5913,8 @@ async function renderActivityGroupsList(){
   try{
     const { data: allMemberRows, error: memErr } = await supabaseClient
       .from('conversation_members')
-      .select('conversation_id, conversations!inner(id, type, activity_id)');
+      .select('conversation_id, conversations!inner(id, type, activity_id)')
+      .eq('profile_id', myProfile.supabaseId);
     if(memErr) throw memErr;
     const memberRows = (allMemberRows || []).filter(r => r.conversations && r.conversations.type === 'activity_group');
 
