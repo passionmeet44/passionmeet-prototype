@@ -5285,9 +5285,47 @@ async function uploadActivityPhoto(file){
     const path = `${currentFirebaseUser.uid}/activity-${Date.now()}.${ext}`;
     const { error: upErr } = await supabaseClient.storage.from('avatars').upload(path, file, { upsert:true });
     if(upErr) throw upErr;
-    return await getSignedPhotoUrl(path);
+    return path; // chemin permanent, jamais une URL signée (qui expirerait)
   } catch(e){
     console.warn('[Activités] Upload de la photo impossible :', e.message);
+    return null;
+  }
+}
+
+// Résout n'importe quelle valeur de photo_url en une URL signée fraîche pour l'affichage.
+// Gère les trois cas : vide, déjà un chemin permanent, ou ancienne URL signée à migrer.
+async function resolveActivityPhotoUrl(rawValue, activityId){
+  if(!rawValue) return null;
+  try{
+    // Déjà un chemin permanent (jamais de "http" dans un chemin de stockage) :
+    // on génère juste une URL signée fraîche, sans rien modifier en base.
+    if(!rawValue.startsWith('http')){
+      return await getSignedPhotoUrl(rawValue);
+    }
+
+    // Ancien format : une URL signée complète, potentiellement expirée. On extrait
+    // le chemin réel du fichier (jamais supprimé, juste lu) pour affichage immédiat,
+    // puis on migre silencieusement photo_url vers ce chemin permanent — une seule
+    // fois, puisqu'au prochain chargement la valeur ne sera plus une URL "http".
+    const match = rawValue.match(/\/avatars\/([^?]+)/);
+    if(!match || !match[1]) return null; // URL imprévue : pas de photo affichable, rien de cassé
+    const extractedPath = decodeURIComponent(match[1]);
+
+    const freshUrl = await getSignedPhotoUrl(extractedPath);
+
+    if(supabaseClient && activityId){
+      supabaseClient.from('activities')
+        .update({ photo_url: extractedPath }) // uniquement cette colonne, rien d'autre
+        .eq('id', activityId)
+        .then(({error}) => {
+          if(error) console.warn('[Activités] Migration du chemin photo impossible :', error.message);
+          else console.info('[Activités] photo_url migré vers un chemin permanent pour', activityId);
+        });
+    }
+
+    return freshUrl;
+  } catch(e){
+    console.warn('[Activités] Résolution de la photo impossible :', e.message);
     return null;
   }
 }
@@ -5396,19 +5434,21 @@ async function renderActivitiesList(){
         if(org && org.first_name) organizerName = org.first_name;
       } catch(e){}
 
+      const resolvedPhotoUrl = await resolveActivityPhotoUrl(a.photo_url, a.id);
+
       currentActivitiesData.push({
         id: a.id, title: a.title, description: a.description, category: a.category,
         activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
         organizerName, organizerId: a.organizer_profile_id, emoji, bg,
-        maxParticipants: a.max_participants, photoUrl: a.photo_url, mode: a.mode
+        maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode
       });
 
       const dateLabel = a.activity_date
         ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long'})
         : 'Date à définir';
       const maxLabel = a.max_participants ? `/${a.max_participants}` : '';
-      const mediaStyle = a.photo_url
-        ? `background-image:url('${a.photo_url}'); background-size:cover; background-position:center;`
+      const mediaStyle = resolvedPhotoUrl
+        ? `background-image:url('${resolvedPhotoUrl}'); background-size:cover; background-position:center;`
         : `background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;`;
       const modeTagHtml = a.mode === 'love'
         ? `<span class="msg-mode-tag love">Rencontre</span>`
@@ -5416,7 +5456,7 @@ async function renderActivitiesList(){
 
       return `
         <div class="card" onclick="openActivityDetail('${a.id}')">
-          <div class="card-media" style="${mediaStyle}">${a.photo_url ? '' : emoji}</div>
+          <div class="card-media" style="${mediaStyle}">${resolvedPhotoUrl ? '' : emoji}</div>
           <div class="card-body">
             <h3>${a.title}</h3>
             <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
@@ -5445,29 +5485,32 @@ async function getOrCreateActivityGroup(activityId){
     let conversationId;
     const { data: existing, error: selErr } = await supabaseClient
       .from('conversations').select('id').eq('activity_id', activityId).eq('type','activity_group').maybeSingle();
-    if(selErr) throw selErr;
+    if(selErr){ showToast('Debug groupe (lecture) : '+selErr.message, '⚠️'); throw selErr; }
 
     if(existing){
       conversationId = existing.id;
     } else {
       const { data: created, error: insErr } = await supabaseClient
         .from('conversations').insert({ type:'activity_group', activity_id: activityId }).select().maybeSingle();
-      if(insErr) throw insErr;
-      if(!created) return null;
+      if(insErr){ showToast('Debug groupe (création conversation) : '+insErr.message, '⚠️'); throw insErr; }
+      if(!created){ showToast('Debug groupe : créé mais aucune ligne renvoyée (RLS select ?)', '⚠️'); return null; }
       conversationId = created.id;
     }
 
     // Synchronise les membres avec les vrais participants (n'ajoute que ceux qui manquent)
-    const { data: participants } = await supabaseClient
+    const { data: participants, error: partErr } = await supabaseClient
       .from('activity_participants').select('profile_id').eq('activity_id', activityId);
-    const { data: currentMembers } = await supabaseClient
+    if(partErr) showToast('Debug groupe (lecture participants) : '+partErr.message, '⚠️');
+    const { data: currentMembers, error: curErr } = await supabaseClient
       .from('conversation_members').select('profile_id').eq('conversation_id', conversationId);
+    if(curErr) showToast('Debug groupe (lecture membres actuels) : '+curErr.message, '⚠️');
     const currentIds = new Set((currentMembers || []).map(m => m.profile_id));
     const missing = (participants || []).filter(p => !currentIds.has(p.profile_id));
     if(missing.length){
-      await supabaseClient.from('conversation_members').insert(
+      const { error: syncErr } = await supabaseClient.from('conversation_members').insert(
         missing.map(p => ({ conversation_id: conversationId, profile_id: p.profile_id }))
       );
+      if(syncErr) showToast('Debug groupe (synchro membres) : '+syncErr.message, '⚠️');
     }
     return conversationId;
   } catch(e){
@@ -5576,11 +5619,12 @@ async function fetchSingleActivityForDetail(activityId){
       const { data: org } = await supabaseClient.from('profiles').select('first_name').eq('id', a.organizer_profile_id).maybeSingle();
       if(org && org.first_name) organizerName = org.first_name;
     } catch(e){}
+    const resolvedPhotoUrl = await resolveActivityPhotoUrl(a.photo_url, a.id);
     return {
       id: a.id, title: a.title, description: a.description, category: a.category,
       activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
       organizerName, organizerId: a.organizer_profile_id, emoji, bg,
-      maxParticipants: a.max_participants, photoUrl: a.photo_url, mode: a.mode
+      maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode
     };
   } catch(e){
     console.warn('[Activités] Récupération directe impossible :', e.message);
@@ -5710,7 +5754,8 @@ async function toggleActivityParticipation(){
         throw error;
       }
       showToast('Participation confirmée !', '🎉');
-      await getOrCreateActivityGroup(activityId);
+      const debugGroupId = await getOrCreateActivityGroup(activityId);
+      showToast('Debug groupe (résultat) : ' + (debugGroupId ? 'conversation '+debugGroupId : 'ÉCHEC, null renvoyé'), debugGroupId ? '✅' : '⚠️');
     }
     await refreshActivityParticipants(activityId);
   } catch(e){
