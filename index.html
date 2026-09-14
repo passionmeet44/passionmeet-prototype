@@ -1061,9 +1061,19 @@
   .bottom-nav.hidden{display:none;}
   .nav-item{
     flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:4px; font-size:10.5px; color:#B7ACBA; cursor:pointer; font-weight:600;
+    gap:4px; font-size:10.5px; color:#B7ACBA; cursor:pointer; font-weight:600; position:relative;
   }
   .nav-item.active{color:var(--orange-deep);}
+  .nav-badge{
+    position:absolute; top:0px; right:26%; background:#E0473F; color:#fff; font-size:9.5px; font-weight:800;
+    padding:1px 5px; border-radius:10px; min-width:15px; text-align:center; line-height:1.4;
+    box-shadow:0 2px 5px rgba(0,0,0,0.2);
+  }
+  .msg-unread-badge{
+    background:#E0473F; color:#fff; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:10px;
+    margin-left:6px; display:inline-block;
+  }
+  .msg-unread-badge.hidden{display:none;}
   .nav-icon{font-size:19px;}
   .nav-fab{
     position:fixed; left:50%; bottom:86px; transform:translateX(-50%);
@@ -1534,6 +1544,7 @@
         <div class="avatar-edit-badge" onclick="openPhotoManager()">✏️</div>
       </div>
       <h2 id="profile-name">Camille, 34 ans</h2>
+      <div class="profile-photo-hint" style="margin-top:2px;" onclick="openEditProfile()">✏️ Modifier mon profil</div>
       <div class="verified">✓ Identité vérifiée (KYC)</div>
       <div class="profile-badge-row">
         <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>
@@ -1621,6 +1632,27 @@
   <div class="screen" id="screen-matches">
     <div class="msg-header"><h1>Mes matchs</h1></div>
     <div id="matches-list"></div>
+  </div>
+
+  <!-- EDIT PROFILE -->
+  <div class="screen" id="screen-edit-profile" style="position:relative;">
+    <div class="detail-back" onclick="showScreen('profile')" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
+    <div class="ob-title">Modifier mon profil</div>
+    <div class="ob-sub">Ces informations seront visibles par les autres membres.</div>
+
+    <div class="form-label">Prénom</div>
+    <input class="form-input" id="edit-name" type="text" placeholder="Votre prénom">
+
+    <div class="form-label">Âge</div>
+    <input class="form-input" id="edit-age" type="number" placeholder="Votre âge" min="18" max="99">
+
+    <div class="form-label">Bio</div>
+    <textarea class="form-textarea" id="edit-bio" placeholder="Parlez un peu de vous, de ce que vous aimez faire…"></textarea>
+
+    <div class="section-label">Centres d'intérêt</div>
+    <div id="edit-passion-list"></div>
+
+    <button class="btn-primary" style="width:100%; margin-top:24px;" onclick="saveEditedProfile()">Enregistrer</button>
   </div>
 
   <!-- MESSAGES LIST -->
@@ -2759,6 +2791,42 @@ const passionTaglines = {
 };
 
 let passionsInitialized = false;
+function openEditProfile(){
+  document.getElementById('edit-name').value = myProfile.name || '';
+  document.getElementById('edit-age').value = myProfile.age || '';
+  document.getElementById('edit-bio').value = myProfile.bio || '';
+
+  const list = document.getElementById('edit-passion-list');
+  list.innerHTML = categories.map(c => `
+    <div class="passion-card ${(myProfile.interests||[]).some(i => i.includes(c.label)) ? 'sel' : ''}" data-label="${c.emoji} ${c.label}" onclick="this.classList.toggle('sel')">
+      <div class="passion-icon" style="background:${c.bg}">${c.emoji}</div>
+      <div class="passion-info"><h4>${c.label}</h4><p>${passionTaglines[c.key] || ''}</p></div>
+      <div class="passion-check">✓</div>
+    </div>
+  `).join('');
+
+  showScreen('edit-profile');
+}
+
+function saveEditedProfile(){
+  const name = document.getElementById('edit-name').value.trim();
+  const age = document.getElementById('edit-age').value.trim();
+  const bio = document.getElementById('edit-bio').value.trim();
+  const selected = Array.from(document.querySelectorAll('#edit-passion-list .passion-card.sel'))
+    .map(el => el.getAttribute('data-label'));
+
+  if(name) myProfile.name = name;
+  if(age) myProfile.age = age;
+  myProfile.bio = bio;
+  myProfile.interests = selected;
+
+  saveProfileLocally();
+  updateHomeGreeting();
+  renderProfileScreen();
+  showToast('Profil mis à jour', '✅');
+  showScreen('profile');
+}
+
 function renderPassionList(){
   const list = document.getElementById('passion-list');
   const preSelected = [];
@@ -3266,6 +3334,7 @@ try{
         console.info('[Auth] 4. Navigation vers l\'accueil');
         showScreen('home');
         window.__PM_AUTH_STEP = 'accueil affiché';
+        startUnreadPolling();
       } else {
         try{
           const nameInput = document.getElementById('signup-name');
@@ -3316,6 +3385,7 @@ function logOut(){
   }
   firebaseAuth.signOut().then(() => {
     currentFirebaseUser = null;
+    stopUnreadPolling();
     showScreen('login');
   }).catch((error) => {
     showToast("Déconnexion impossible : " + error.message, "⚠️");
@@ -4890,6 +4960,93 @@ let currentMatchesData = []; // cache des matchs affichés, pour retrouver les i
 
 // Récupère et affiche les vrais matchs (réciprocité confirmée) depuis Supabase.
 // Étape 1 : affichage uniquement, cartes pas encore cliquables.
+// --- Notifications internes (messages non lus) ---
+let unreadPollInterval = null;
+
+async function fetchUnreadCounts(){
+  if(!supabaseClient || !myProfile.supabaseId) return { total: 0, byMatch: {} };
+  try{
+    const { data, error } = await supabaseClient
+      .from('messages')
+      .select('match_id')
+      .is('read_at', null)
+      .neq('sender_profile_id', myProfile.supabaseId);
+    if(error) throw error;
+    const byMatch = {};
+    (data || []).forEach(m => { byMatch[m.match_id] = (byMatch[m.match_id] || 0) + 1; });
+    const total = Object.values(byMatch).reduce((a,b) => a+b, 0);
+    return { total, byMatch };
+  } catch(e){
+    console.warn('[Notifs] Impossible de récupérer les messages non lus :', e.message);
+    return { total: 0, byMatch: {} };
+  }
+}
+
+function updateMatchesNavBadge(count){
+  const navItem = document.getElementById('nav-matches');
+  if(!navItem) return;
+  let badge = document.getElementById('nav-matches-badge');
+  if(count > 0){
+    if(!badge){
+      badge = document.createElement('span');
+      badge.id = 'nav-matches-badge';
+      badge.className = 'nav-badge';
+      navItem.appendChild(badge);
+    }
+    badge.textContent = count > 9 ? '9+' : String(count);
+  } else if(badge){
+    badge.remove();
+  }
+}
+
+function applyPerMatchBadges(byMatch){
+  currentMatchesData.forEach(m => {
+    const el = document.getElementById(`match-badge-${m.matchId}`);
+    if(!el) return;
+    const count = byMatch[m.matchId] || 0;
+    if(count > 0){
+      el.textContent = count > 9 ? '9+' : String(count);
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  });
+}
+
+async function refreshUnreadBadges(){
+  if(!currentFirebaseUser || !myProfile.supabaseId) return;
+  const { total, byMatch } = await fetchUnreadCounts();
+  updateMatchesNavBadge(total);
+  applyPerMatchBadges(byMatch);
+}
+
+function startUnreadPolling(){
+  if(unreadPollInterval) return;
+  refreshUnreadBadges();
+  unreadPollInterval = setInterval(refreshUnreadBadges, 18000);
+}
+
+function stopUnreadPolling(){
+  if(unreadPollInterval){ clearInterval(unreadPollInterval); unreadPollInterval = null; }
+  updateMatchesNavBadge(0);
+}
+
+async function markMatchMessagesRead(matchId){
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { error } = await supabaseClient
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('match_id', matchId)
+      .neq('sender_profile_id', myProfile.supabaseId)
+      .is('read_at', null);
+    if(error) throw error;
+    refreshUnreadBadges();
+  } catch(e){
+    console.warn('[Notifs] Marquage comme lu impossible :', e.message);
+  }
+}
+
 async function renderMatchesList(){
   const list = document.getElementById('matches-list');
   currentMatchesData = [];
@@ -4939,13 +5096,14 @@ async function renderMatchesList(){
           ${avatarHtml}
           <div class="msg-info">
             <div class="msg-info-top"><h4>${name}${age}</h4></div>
-            ${tagHtml}
+            ${tagHtml}<span class="msg-unread-badge hidden" id="match-badge-${m.id}"></span>
           </div>
         </div>
       `;
     }));
 
     list.innerHTML = matchCards.join('');
+    refreshUnreadBadges();
   } catch(e){
     console.warn('[Matchs] Chargement impossible :', e.message);
     list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⚠️</span>Impossible de charger vos matchs pour le moment.</div>`;
@@ -5037,6 +5195,7 @@ async function openMatchChat(matchId){
     renderChatBody();
     renderChatStarters();
   }
+  markMatchMessagesRead(matchId);
 }
 
 function openChat(id){
