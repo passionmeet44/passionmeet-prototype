@@ -516,6 +516,9 @@
     background: linear-gradient(135deg, #B0A0B5, #6B5872);
     box-shadow: 0 8px 18px rgba(62,31,68,0.2);
   }
+  .btn-join:disabled{
+    background: #D8D0DA; color:#9584A0; box-shadow:none; cursor:not-allowed;
+  }
   .report-link{text-align:center; font-size:11.5px; color:#B0A0B5; margin-top:14px; text-decoration:underline; cursor:pointer;}
   .btn-safety{
     width:100%; margin-top:12px; padding:13px; border:2px solid var(--line); border-radius:18px;
@@ -1661,6 +1664,12 @@
       <div class="form-label">Nombre maximum de participants (facultatif)</div>
       <input class="form-input" id="ract-form-max" type="number" min="1" placeholder="Ex : 8">
 
+      <div class="form-label">Mode</div>
+      <div class="mode-badge-row">
+        <div class="mode-badge friend-on" id="ract-form-mode-friend" onclick="selectActivityMode('friend')">🤝 Amitié</div>
+        <div class="mode-badge off" id="ract-form-mode-love" onclick="selectActivityMode('love')">💜 Rencontre</div>
+      </div>
+
       <div class="form-label">Photo (facultative)</div>
       <input class="form-input" id="ract-form-photo" type="file" accept="image/*">
 
@@ -1681,6 +1690,7 @@
       <div class="detail-row" id="ract-when"></div>
       <div class="detail-row" id="ract-where"></div>
       <div class="detail-row" id="ract-organizer"></div>
+      <div class="detail-row" id="ract-mode"></div>
       <div class="detail-desc" id="ract-desc"></div>
       <div class="detail-why" id="ract-participants-wrap">
         <div class="detail-why-title" id="ract-participants-title">👥 Participants</div>
@@ -5194,6 +5204,11 @@ async function markMatchMessagesRead(matchId){
 
 let currentActivitiesData = [];
 
+function selectActivityMode(mode){
+  document.getElementById('ract-form-mode-friend').className = 'mode-badge ' + (mode === 'friend' ? 'friend-on' : 'off');
+  document.getElementById('ract-form-mode-love').className = 'mode-badge ' + (mode === 'love' ? 'love-on' : 'off');
+}
+
 function openCreateActivityReal(){
   document.getElementById('ract-form-title').value = '';
   document.getElementById('ract-form-desc').value = '';
@@ -5202,6 +5217,7 @@ function openCreateActivityReal(){
   document.getElementById('ract-form-location').value = '';
   document.getElementById('ract-form-max').value = '';
   document.getElementById('ract-form-photo').value = '';
+  selectActivityMode('friend');
   const errBox = document.getElementById('ract-form-error');
   errBox.style.display = 'none';
   errBox.textContent = '';
@@ -5243,6 +5259,7 @@ async function submitRealActivity(){
   const maxRaw = document.getElementById('ract-form-max').value;
   const maxParticipants = maxRaw ? parseInt(maxRaw, 10) : null;
   const photoFile = document.getElementById('ract-form-photo').files[0] || null;
+  const mode = document.getElementById('ract-form-mode-love').classList.contains('love-on') ? 'love' : 'friend';
 
   // Validation des champs obligatoires
   if(!title || !category || !date || !location){
@@ -5275,7 +5292,7 @@ async function submitRealActivity(){
       activity_time: time || null,
       location,
       max_participants: maxParticipants,
-      mode: 'friend'
+      mode: mode
     });
     if(error) throw error;
 
@@ -5302,7 +5319,7 @@ async function renderActivitiesList(){
   try{
     const { data, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode')
       .order('created_at', { ascending: false });
     if(error) throw error;
 
@@ -5336,7 +5353,7 @@ async function renderActivitiesList(){
         id: a.id, title: a.title, description: a.description, category: a.category,
         activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
         organizerName, organizerId: a.organizer_profile_id, emoji, bg,
-        maxParticipants: a.max_participants, photoUrl: a.photo_url
+        maxParticipants: a.max_participants, photoUrl: a.photo_url, mode: a.mode
       });
 
       const dateLabel = a.activity_date
@@ -5346,6 +5363,9 @@ async function renderActivitiesList(){
       const mediaStyle = a.photo_url
         ? `background-image:url('${a.photo_url}'); background-size:cover; background-position:center;`
         : `background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;`;
+      const modeTagHtml = a.mode === 'love'
+        ? `<span class="msg-mode-tag love">Rencontre</span>`
+        : `<span class="msg-mode-tag friend">Amitié</span>`;
 
       return `
         <div class="card" onclick="openActivityDetail('${a.id}')">
@@ -5355,6 +5375,7 @@ async function renderActivitiesList(){
             <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
             <div class="card-meta"><span>📍 ${a.location || 'Lieu à définir'}</span></div>
             <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${organizerName}</span></div>
+            <div style="margin-top:6px;">${modeTagHtml}</div>
           </div>
         </div>
       `;
@@ -5374,7 +5395,7 @@ async function fetchSingleActivityForDetail(activityId){
   try{
     const { data: a, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode')
       .eq('id', activityId).maybeSingle();
     if(error || !a) throw (error || new Error('introuvable'));
     const cat = categories.find(c => c.key === a.category);
@@ -5389,7 +5410,7 @@ async function fetchSingleActivityForDetail(activityId){
       id: a.id, title: a.title, description: a.description, category: a.category,
       activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
       organizerName, organizerId: a.organizer_profile_id, emoji, bg,
-      maxParticipants: a.max_participants, photoUrl: a.photo_url
+      maxParticipants: a.max_participants, photoUrl: a.photo_url, mode: a.mode
     };
   } catch(e){
     console.warn('[Activités] Récupération directe impossible :', e.message);
@@ -5426,6 +5447,7 @@ async function openActivityDetail(activityId){
   document.getElementById('ract-when').textContent = `📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}`;
   document.getElementById('ract-where').textContent = `📍 ${a.location || 'Lieu à définir'}`;
   document.getElementById('ract-organizer').textContent = `🙋 Organisée par ${a.organizerName}`;
+  document.getElementById('ract-mode').textContent = a.mode === 'love' ? '💜 Mode : Rencontre' : '🤝 Mode : Amitié';
   document.getElementById('ract-desc').textContent = a.description || '';
 
   showScreen('activity-detail-real');
@@ -5459,8 +5481,18 @@ async function refreshActivityParticipants(activityId){
       : `<p style="font-size:12.5px; color:#9584A0;">Personne pour l'instant — soyez le premier !</p>`;
 
     const alreadyJoined = participantIds.includes(myProfile.supabaseId);
-    ctaBtn.textContent = alreadyJoined ? 'Annuler ma participation' : 'Je participe';
-    ctaBtn.classList.toggle('cancel', alreadyJoined);
+    const maxReached = currentActivityDetail && currentActivityDetail.maxParticipants
+      && participantIds.length >= currentActivityDetail.maxParticipants;
+
+    if(!alreadyJoined && maxReached){
+      ctaBtn.textContent = 'Activité complète';
+      ctaBtn.classList.remove('cancel');
+      ctaBtn.disabled = true;
+    } else {
+      ctaBtn.disabled = false;
+      ctaBtn.textContent = alreadyJoined ? 'Annuler ma participation' : 'Je participe';
+      ctaBtn.classList.toggle('cancel', alreadyJoined);
+    }
   } catch(e){
     console.warn('[Activités] Chargement des participants impossible :', e.message);
   }
@@ -5482,10 +5514,30 @@ async function toggleActivityParticipation(){
       if(error) throw error;
       showToast('Participation annulée', '👋');
     } else {
+      // Vérification côté application avant d'écrire, pour un retour rapide —
+      // mais la vraie protection contre les inscriptions simultanées vient
+      // du déclencheur Supabase (voir SQL), qui refuse toujours en dernier ressort.
+      const { count } = await supabaseClient
+        .from('activity_participants')
+        .select('id', { count: 'exact', head: true })
+        .eq('activity_id', activityId);
+      if(currentActivityDetail.maxParticipants && (count || 0) >= currentActivityDetail.maxParticipants){
+        showToast("Cette activité est complète, plus de place disponible", "🚫");
+        await refreshActivityParticipants(activityId);
+        return;
+      }
+
       const { error } = await supabaseClient
         .from('activity_participants')
         .insert({ activity_id: activityId, profile_id: myProfile.supabaseId });
-      if(error) throw error;
+      if(error){
+        if(error.message && error.message.includes('ACTIVITY_FULL')){
+          showToast("Cette activité est complète, plus de place disponible", "🚫");
+          await refreshActivityParticipants(activityId);
+          return;
+        }
+        throw error;
+      }
       showToast('Participation confirmée !', '🎉');
     }
     await refreshActivityParticipants(activityId);
