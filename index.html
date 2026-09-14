@@ -5123,12 +5123,16 @@ async function fetchUnreadCounts(){
   try{
     const { data, error } = await supabaseClient
       .from('messages')
-      .select('match_id')
+      .select('conversation_id, conversations(match_id)')
       .is('read_at', null)
       .neq('sender_profile_id', myProfile.supabaseId);
     if(error) throw error;
     const byMatch = {};
-    (data || []).forEach(m => { byMatch[m.match_id] = (byMatch[m.match_id] || 0) + 1; });
+    (data || []).forEach(m => {
+      const matchId = m.conversations ? m.conversations.match_id : null;
+      if(!matchId) return; // message de groupe : pas encore utilisé dans ce lot
+      byMatch[matchId] = (byMatch[matchId] || 0) + 1;
+    });
     const total = Object.values(byMatch).reduce((a,b) => a+b, 0);
     return { total, byMatch };
   } catch(e){
@@ -5186,19 +5190,49 @@ function stopUnreadPolling(){
   updateMatchesNavBadge(0);
 }
 
-async function markMatchMessagesRead(matchId){
-  if(!supabaseClient || !myProfile.supabaseId) return;
+async function markConversationMessagesRead(conversationId){
+  if(!supabaseClient || !myProfile.supabaseId || !conversationId) return;
   try{
     const { error } = await supabaseClient
       .from('messages')
       .update({ read_at: new Date().toISOString() })
-      .eq('match_id', matchId)
+      .eq('conversation_id', conversationId)
       .neq('sender_profile_id', myProfile.supabaseId)
       .is('read_at', null);
     if(error) throw error;
     refreshUnreadBadges();
   } catch(e){
     console.warn('[Notifs] Marquage comme lu impossible :', e.message);
+  }
+}
+
+// Retrouve la conversation privée liée à un match, ou la crée (avec les deux
+// participants) si c'est la toute première fois qu'elle est ouverte.
+async function getOrCreatePrivateConversation(matchId){
+  if(!supabaseClient) return null;
+  try{
+    const { data: existing, error: selErr } = await supabaseClient
+      .from('conversations').select('id').eq('match_id', matchId).eq('type','private').maybeSingle();
+    if(selErr) throw selErr;
+    if(existing) return existing.id;
+
+    const { data: matchRow, error: matchErr } = await supabaseClient
+      .from('matches').select('profile_a_id, profile_b_id').eq('id', matchId).maybeSingle();
+    if(matchErr || !matchRow) throw (matchErr || new Error('match introuvable'));
+
+    const { data: created, error: insErr } = await supabaseClient
+      .from('conversations').insert({ type:'private', match_id: matchId }).select().maybeSingle();
+    if(insErr) throw insErr;
+    if(!created) return null;
+
+    await supabaseClient.from('conversation_members').insert([
+      { conversation_id: created.id, profile_id: matchRow.profile_a_id },
+      { conversation_id: created.id, profile_id: matchRow.profile_b_id }
+    ]);
+    return created.id;
+  } catch(e){
+    console.warn('[Messages] Récupération/création de la conversation impossible :', e.message);
+    return null;
   }
 }
 
@@ -5647,13 +5681,13 @@ function renderMessagesList(){
 }
 
 // Charge les vrais messages d'un match depuis Supabase
-async function loadRealMessages(matchId){
-  if(!supabaseClient) return [];
+async function loadRealMessages(conversationId){
+  if(!supabaseClient || !conversationId) return [];
   try{
     const { data, error } = await supabaseClient
       .from('messages')
       .select('sender_profile_id, content, created_at')
-      .eq('match_id', matchId)
+      .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
     if(error) throw error;
     return (data || []).map(m => ({
@@ -5672,6 +5706,7 @@ async function openMatchChat(matchId){
   chatReturnScreen = 'matches';
   currentConversation = {
     id: m.matchId,
+    conversationId: null,
     type: 'duo',
     mode: m.mode,
     name: m.name,
@@ -5688,14 +5723,19 @@ async function openMatchChat(matchId){
   renderChatStarters();
   showScreen('chat');
 
-  // Chargement des vrais messages, affiché dès qu'ils arrivent
-  const realMessages = await loadRealMessages(matchId);
+  // Récupère (ou crée) la conversation privée liée à ce match, puis charge les vrais messages
+  const conversationId = await getOrCreatePrivateConversation(matchId);
+  if(!currentConversation || currentConversation.id !== matchId) return;
+  currentConversation.conversationId = conversationId;
+  if(!conversationId) return;
+
+  const realMessages = await loadRealMessages(conversationId);
   if(currentConversation && currentConversation.id === matchId){
     currentConversation.messages = realMessages;
     renderChatBody();
     renderChatStarters();
   }
-  markMatchMessagesRead(matchId);
+  markConversationMessagesRead(conversationId);
 }
 
 function openChat(id){
@@ -5812,10 +5852,10 @@ function sendMessage(){
 
   // Pour un vrai match, on sauvegarde aussi le message dans Supabase (en arrière-plan,
   // l'affichage est déjà à jour). Les conversations de démonstration ne sont pas concernées.
-  if(currentConversation.isRealMatch && supabaseClient && myProfile.supabaseId){
-    const matchId = currentConversation.id;
+  if(currentConversation.isRealMatch && supabaseClient && myProfile.supabaseId && currentConversation.conversationId){
     supabaseClient.from('messages').insert({
-      match_id: matchId,
+      conversation_id: currentConversation.conversationId,
+      match_id: currentConversation.id,
       sender_profile_id: myProfile.supabaseId,
       content: text
     }).then(({error}) => {
