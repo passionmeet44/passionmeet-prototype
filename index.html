@@ -5485,32 +5485,30 @@ async function getOrCreateActivityGroup(activityId){
     let conversationId;
     const { data: existing, error: selErr } = await supabaseClient
       .from('conversations').select('id').eq('activity_id', activityId).eq('type','activity_group').maybeSingle();
-    if(selErr){ showToast('Debug groupe (lecture) : '+selErr.message, '⚠️'); throw selErr; }
+    if(selErr) throw selErr;
 
     if(existing){
       conversationId = existing.id;
     } else {
       const { data: created, error: insErr } = await supabaseClient
         .from('conversations').insert({ type:'activity_group', activity_id: activityId }).select().maybeSingle();
-      if(insErr){ showToast('Debug groupe (création conversation) : '+insErr.message, '⚠️'); throw insErr; }
-      if(!created){ showToast('Debug groupe : créé mais aucune ligne renvoyée (RLS select ?)', '⚠️'); return null; }
+      if(insErr) throw insErr;
+      if(!created) return null;
       conversationId = created.id;
     }
 
     // Synchronise les membres avec les vrais participants (n'ajoute que ceux qui manquent)
-    const { data: participants, error: partErr } = await supabaseClient
+    const { data: participants } = await supabaseClient
       .from('activity_participants').select('profile_id').eq('activity_id', activityId);
-    if(partErr) showToast('Debug groupe (lecture participants) : '+partErr.message, '⚠️');
-    const { data: currentMembers, error: curErr } = await supabaseClient
+    const { data: currentMembers } = await supabaseClient
       .from('conversation_members').select('profile_id').eq('conversation_id', conversationId);
-    if(curErr) showToast('Debug groupe (lecture membres actuels) : '+curErr.message, '⚠️');
     const currentIds = new Set((currentMembers || []).map(m => m.profile_id));
     const missing = (participants || []).filter(p => !currentIds.has(p.profile_id));
     if(missing.length){
       const { error: syncErr } = await supabaseClient.from('conversation_members').insert(
         missing.map(p => ({ conversation_id: conversationId, profile_id: p.profile_id }))
       );
-      if(syncErr) showToast('Debug groupe (synchro membres) : '+syncErr.message, '⚠️');
+      if(syncErr) console.warn('[Groupes] Synchronisation des membres impossible :', syncErr.message);
     }
     return conversationId;
   } catch(e){
@@ -5754,8 +5752,7 @@ async function toggleActivityParticipation(){
         throw error;
       }
       showToast('Participation confirmée !', '🎉');
-      const debugGroupId = await getOrCreateActivityGroup(activityId);
-      showToast('Debug groupe (résultat) : ' + (debugGroupId ? 'conversation '+debugGroupId : 'ÉCHEC, null renvoyé'), debugGroupId ? '✅' : '⚠️');
+      await getOrCreateActivityGroup(activityId);
     }
     await refreshActivityParticipants(activityId);
   } catch(e){
