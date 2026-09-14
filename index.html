@@ -1649,8 +1649,32 @@
     <div class="form-label">Bio</div>
     <textarea class="form-textarea" id="edit-bio" placeholder="Parlez un peu de vous, de ce que vous aimez faire…"></textarea>
 
+    <div class="section-label">Mes modes actifs</div>
+    <div class="mode-card" id="edit-card-friend">
+      <div class="mode-icon friend">🤝</div>
+      <div class="mode-info"><h3>Amitié</h3><p>Sorties, activités, entraide</p></div>
+      <div class="switch" id="edit-switch-friend" onclick="this.classList.toggle('on'); document.getElementById('edit-card-friend').classList.toggle('on');"></div>
+    </div>
+    <div class="mode-card" id="edit-card-love">
+      <div class="mode-icon love">💜</div>
+      <div class="mode-info"><h3>Rencontre</h3><p>Faire une rencontre amoureuse</p></div>
+      <div class="switch" id="edit-switch-love" onclick="this.classList.toggle('on'); document.getElementById('edit-card-love').classList.toggle('on');"></div>
+    </div>
+    <div class="mode-card" id="edit-card-couple">
+      <div class="mode-icon couple">👫</div>
+      <div class="mode-info"><h3>Sorties en couple</h3><p>Rencontrer d'autres couples pour sortir ensemble</p></div>
+      <div class="switch" id="edit-switch-couple" onclick="this.classList.toggle('on'); document.getElementById('edit-card-couple').classList.toggle('on');"></div>
+    </div>
+
     <div class="section-label">Centres d'intérêt</div>
     <div id="edit-passion-list"></div>
+
+    <div class="form-label" style="margin-top:26px;">Tranche d'âge recherchée</div>
+    <div class="age-inputs">
+      <input type="number" id="edit-age-min" min="18" max="99">
+      <span>à</span>
+      <input type="number" id="edit-age-max" min="18" max="99">
+    </div>
 
     <button class="btn-primary" style="width:100%; margin-top:24px;" onclick="saveEditedProfile()">Enregistrer</button>
   </div>
@@ -2795,6 +2819,14 @@ function openEditProfile(){
   document.getElementById('edit-name').value = myProfile.name || '';
   document.getElementById('edit-age').value = myProfile.age || '';
   document.getElementById('edit-bio').value = myProfile.bio || '';
+  document.getElementById('edit-age-min').value = myProfile.ageMin || 18;
+  document.getElementById('edit-age-max').value = myProfile.ageMax || 99;
+
+  ['friend','love','couple'].forEach(mode => {
+    const isOn = (myProfile.modes || []).includes(mode);
+    document.getElementById('edit-switch-'+mode).classList.toggle('on', isOn);
+    document.getElementById('edit-card-'+mode).classList.toggle('on', isOn);
+  });
 
   const list = document.getElementById('edit-passion-list');
   list.innerHTML = categories.map(c => `
@@ -2812,13 +2844,21 @@ function saveEditedProfile(){
   const name = document.getElementById('edit-name').value.trim();
   const age = document.getElementById('edit-age').value.trim();
   const bio = document.getElementById('edit-bio').value.trim();
+  const ageMin = parseInt(document.getElementById('edit-age-min').value, 10);
+  const ageMax = parseInt(document.getElementById('edit-age-max').value, 10);
   const selected = Array.from(document.querySelectorAll('#edit-passion-list .passion-card.sel'))
     .map(el => el.getAttribute('data-label'));
+  const modes = ['friend','love','couple'].filter(mode =>
+    document.getElementById('edit-switch-'+mode).classList.contains('on')
+  );
 
   if(name) myProfile.name = name;
   if(age) myProfile.age = age;
   myProfile.bio = bio;
   myProfile.interests = selected;
+  myProfile.modes = modes;
+  if(!isNaN(ageMin)) myProfile.ageMin = ageMin;
+  if(!isNaN(ageMax)) myProfile.ageMax = ageMax;
 
   saveProfileLocally();
   updateHomeGreeting();
