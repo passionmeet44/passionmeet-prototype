@@ -1632,6 +1632,44 @@
     </div>
   </div>
 
+  <!-- CREATE ACTIVITY (réelle, Supabase) -->
+  <div class="screen" id="screen-create-activity-real">
+    <div class="legal-top" style="padding-top:50px;">
+      <div class="detail-back" onclick="showScreen('activities-list')" style="position:absolute; top:20px; left:16px; background:rgba(255,255,255,0.2); color:#fff;">←</div>
+      <h2>Créer une activité</h2>
+      <p>Proposez une vraie sortie à toute la communauté</p>
+    </div>
+    <div style="padding:20px 22px 100px;">
+      <div class="form-label">Titre</div>
+      <input class="form-input" id="ract-form-title" type="text" placeholder="Ex : Randonnée au bord de l'Erdre">
+
+      <div class="form-label">Description</div>
+      <textarea class="form-textarea" id="ract-form-desc" placeholder="Décrivez l'activité, ce qui vous attend…"></textarea>
+
+      <div class="form-label">Catégorie</div>
+      <select class="form-input" id="ract-form-category"></select>
+
+      <div class="form-label">Date</div>
+      <input class="form-input" id="ract-form-date" type="date">
+
+      <div class="form-label">Heure</div>
+      <input class="form-input" id="ract-form-time" type="time">
+
+      <div class="form-label">Lieu</div>
+      <input class="form-input" id="ract-form-location" type="text" placeholder="Ex : Nantes, Parc de la Beaujoire">
+
+      <div class="form-label">Nombre maximum de participants (facultatif)</div>
+      <input class="form-input" id="ract-form-max" type="number" min="1" placeholder="Ex : 8">
+
+      <div class="form-label">Photo (facultative)</div>
+      <input class="form-input" id="ract-form-photo" type="file" accept="image/*">
+
+      <div class="form-hint" id="ract-form-error" style="color:#B24B4B; display:none; margin-top:10px;"></div>
+
+      <button class="btn-primary" style="width:100%; margin-top:22px;" id="ract-form-submit" onclick="submitRealActivity()">Publier l'activité</button>
+    </div>
+  </div>
+
   <!-- ACTIVITY DETAIL (réelle, Supabase) -->
   <div class="screen" id="screen-activity-detail-real">
     <div class="detail-media" id="ract-media">
@@ -1655,6 +1693,9 @@
   <!-- ACTIVITIES LIST (réelles, Supabase) -->
   <div class="screen" id="screen-activities-list">
     <div class="msg-header"><h1>Activités</h1></div>
+    <div style="padding:0 20px 14px;">
+      <button class="btn-primary" style="width:100%;" onclick="openCreateActivityReal()">➕ Créer une activité</button>
+    </div>
     <div id="activities-real-list" style="padding:0 20px;"></div>
   </div>
 
@@ -5124,6 +5165,103 @@ async function markMatchMessagesRead(matchId){
 
 let currentActivitiesData = [];
 
+function openCreateActivityReal(){
+  document.getElementById('ract-form-title').value = '';
+  document.getElementById('ract-form-desc').value = '';
+  document.getElementById('ract-form-date').value = '';
+  document.getElementById('ract-form-time').value = '';
+  document.getElementById('ract-form-location').value = '';
+  document.getElementById('ract-form-max').value = '';
+  document.getElementById('ract-form-photo').value = '';
+  const errBox = document.getElementById('ract-form-error');
+  errBox.style.display = 'none';
+  errBox.textContent = '';
+
+  const select = document.getElementById('ract-form-category');
+  select.innerHTML = categories.map(c => `<option value="${c.key}">${c.emoji} ${c.label}</option>`).join('');
+
+  showScreen('create-activity-real');
+}
+
+// Réutilise exactement le même bucket et la même convention de dossier que les
+// photos de profil (<firebase_uid>/...), pour respecter les règles de sécurité
+// déjà en place, sans en créer de nouvelles.
+async function uploadActivityPhoto(file){
+  if(!supabaseClient || !currentFirebaseUser) return null;
+  try{
+    const ext = (file.name && file.name.includes('.')) ? file.name.split('.').pop() : 'jpg';
+    const path = `${currentFirebaseUser.uid}/activity-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabaseClient.storage.from('avatars').upload(path, file, { upsert:true });
+    if(upErr) throw upErr;
+    return await getSignedPhotoUrl(path);
+  } catch(e){
+    console.warn('[Activités] Upload de la photo impossible :', e.message);
+    return null;
+  }
+}
+
+async function submitRealActivity(){
+  const errBox = document.getElementById('ract-form-error');
+  const submitBtn = document.getElementById('ract-form-submit');
+  errBox.style.display = 'none';
+
+  const title = document.getElementById('ract-form-title').value.trim();
+  const description = document.getElementById('ract-form-desc').value.trim();
+  const category = document.getElementById('ract-form-category').value;
+  const date = document.getElementById('ract-form-date').value;
+  const time = document.getElementById('ract-form-time').value;
+  const location = document.getElementById('ract-form-location').value.trim();
+  const maxRaw = document.getElementById('ract-form-max').value;
+  const maxParticipants = maxRaw ? parseInt(maxRaw, 10) : null;
+  const photoFile = document.getElementById('ract-form-photo').files[0] || null;
+
+  // Validation des champs obligatoires
+  if(!title || !category || !date || !location){
+    errBox.textContent = "Merci de renseigner au moins le titre, la catégorie, la date et le lieu.";
+    errBox.style.display = 'block';
+    return;
+  }
+  if(!supabaseClient || !myProfile.supabaseId){
+    errBox.textContent = "Impossible de publier pour le moment : connexion à Supabase indisponible.";
+    errBox.style.display = 'block';
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Publication en cours…';
+
+  try{
+    let photoUrl = null;
+    if(photoFile){
+      photoUrl = await uploadActivityPhoto(photoFile);
+    }
+
+    const { error } = await supabaseClient.from('activities').insert({
+      organizer_profile_id: myProfile.supabaseId,
+      title,
+      description: description || null,
+      category,
+      photo_url: photoUrl,
+      activity_date: date,
+      activity_time: time || null,
+      location,
+      max_participants: maxParticipants,
+      mode: 'friend'
+    });
+    if(error) throw error;
+
+    showToast('Activité publiée !', '🎉');
+    showScreen('activities-list');
+  } catch(e){
+    console.warn('[Activités] Publication impossible :', e.message);
+    errBox.textContent = "La publication a échoué : " + e.message;
+    errBox.style.display = 'block';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Publier l'activité";
+  }
+}
+
 async function renderActivitiesList(){
   const list = document.getElementById('activities-real-list');
   currentActivitiesData = [];
@@ -5135,7 +5273,7 @@ async function renderActivitiesList(){
   try{
     const { data, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url')
       .order('created_at', { ascending: false });
     if(error) throw error;
 
@@ -5168,21 +5306,26 @@ async function renderActivitiesList(){
       currentActivitiesData.push({
         id: a.id, title: a.title, description: a.description, category: a.category,
         activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
-        organizerName, organizerId: a.organizer_profile_id, emoji, bg
+        organizerName, organizerId: a.organizer_profile_id, emoji, bg,
+        maxParticipants: a.max_participants, photoUrl: a.photo_url
       });
 
       const dateLabel = a.activity_date
         ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long'})
         : 'Date à définir';
+      const maxLabel = a.max_participants ? `/${a.max_participants}` : '';
+      const mediaStyle = a.photo_url
+        ? `background-image:url('${a.photo_url}'); background-size:cover; background-position:center;`
+        : `background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;`;
 
       return `
         <div class="card" onclick="openActivityDetail('${a.id}')">
-          <div class="card-media" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;">${emoji}</div>
+          <div class="card-media" style="${mediaStyle}">${a.photo_url ? '' : emoji}</div>
           <div class="card-body">
             <h3>${a.title}</h3>
             <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
             <div class="card-meta"><span>📍 ${a.location || 'Lieu à définir'}</span></div>
-            <div class="card-meta"><span>👥 ${participantCount} participant${participantCount>1?'s':''} · Organisé par ${organizerName}</span></div>
+            <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${organizerName}</span></div>
           </div>
         </div>
       `;
@@ -5205,6 +5348,15 @@ async function openActivityDetail(activityId){
   document.getElementById('ract-media').style.background = a.bg;
   document.getElementById('ract-emoji').textContent = a.emoji;
   document.getElementById('ract-emoji').style.fontSize = '56px';
+  if(a.photoUrl){
+    document.getElementById('ract-media').style.backgroundImage = `url('${a.photoUrl}')`;
+    document.getElementById('ract-media').style.backgroundSize = 'cover';
+    document.getElementById('ract-media').style.backgroundPosition = 'center';
+    document.getElementById('ract-emoji').style.display = 'none';
+  } else {
+    document.getElementById('ract-media').style.backgroundImage = '';
+    document.getElementById('ract-emoji').style.display = '';
+  }
   document.getElementById('ract-title').textContent = a.title;
   const dateLabel = a.activity_date
     ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})
@@ -5231,7 +5383,8 @@ async function refreshActivityParticipants(activityId){
     if(error) throw error;
 
     const participantIds = (data || []).map(p => p.profile_id);
-    titleEl.textContent = `👥 ${participantIds.length} participant${participantIds.length>1?'s':''}`;
+    const maxLabel = currentActivityDetail && currentActivityDetail.maxParticipants ? `/${currentActivityDetail.maxParticipants}` : '';
+    titleEl.textContent = `👥 ${participantIds.length}${maxLabel} participant${participantIds.length>1?'s':''}`;
 
     const names = await Promise.all(participantIds.map(async (pid) => {
       try{
