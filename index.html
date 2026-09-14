@@ -5216,23 +5216,29 @@ async function markConversationMessagesRead(conversationId){
 async function getOrCreatePrivateConversation(matchId){
   if(!supabaseClient) return null;
   try{
-    const { data: existing, error: selErr } = await supabaseClient
-      .from('conversations').select('id').eq('match_id', matchId).eq('type','private').maybeSingle();
-    if(selErr) throw selErr;
-    if(existing) return existing.id;
-
     const { data: matchRow, error: matchErr } = await supabaseClient
       .from('matches').select('profile_a_id, profile_b_id').eq('id', matchId).maybeSingle();
     if(matchErr || !matchRow) throw (matchErr || new Error('match introuvable'));
 
+    // La conversation est liée à la PAIRE de personnes, pas à ce match précis —
+    // si un autre match (mode différent) existe déjà entre elles, on retrouve
+    // la même conversation, jamais une nouvelle.
+    const [pairA, pairB] = [matchRow.profile_a_id, matchRow.profile_b_id].sort();
+
+    const { data: existing, error: selErr } = await supabaseClient
+      .from('conversations').select('id')
+      .eq('type','private').eq('profile_a_id', pairA).eq('profile_b_id', pairB).maybeSingle();
+    if(selErr) throw selErr;
+    if(existing) return existing.id;
+
     const { data: created, error: insErr } = await supabaseClient
-      .from('conversations').insert({ type:'private', match_id: matchId }).select().maybeSingle();
+      .from('conversations').insert({ type:'private', match_id: matchId, profile_a_id: pairA, profile_b_id: pairB }).select().maybeSingle();
     if(insErr) throw insErr;
     if(!created) return null;
 
     const { error: memErr } = await supabaseClient.from('conversation_members').insert([
-      { conversation_id: created.id, profile_id: matchRow.profile_a_id },
-      { conversation_id: created.id, profile_id: matchRow.profile_b_id }
+      { conversation_id: created.id, profile_id: pairA },
+      { conversation_id: created.id, profile_id: pairB }
     ]);
     if(memErr) console.warn('[Messages] Ajout des membres impossible :', memErr.message);
     return created.id;
