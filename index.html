@@ -1771,14 +1771,19 @@
       </div>
       <div class="premium-lock">🔒</div>
     </div>
-    <div id="msg-list"></div>
+    <div class="tier-tabs">
+      <div class="tier-tab active" id="msg-tab-private" onclick="switchMessagesTab('private')">Conversations privées</div>
+      <div class="tier-tab gold" id="msg-tab-groups" onclick="switchMessagesTab('groups')">Groupes d'activités</div>
+    </div>
+    <div id="msg-list-private" style="padding:0 20px;"></div>
+    <div id="msg-list-groups" class="hidden" style="padding:0 20px;"></div>
   </div>
 
   <!-- CHAT -->
   <div class="screen" id="screen-chat" style="flex-direction:column; padding-bottom:0;">
     <div class="chat-header">
       <div class="chat-back" onclick="showScreen(chatReturnScreen)">←</div>
-      <div style="flex:1;">
+      <div style="flex:1;" onclick="openGroupDetailsFromChat()">
         <h3 id="chat-title"></h3>
         <p id="chat-subtitle"></p>
       </div>
@@ -5425,6 +5430,129 @@ async function renderActivitiesList(){
 
 let currentActivityDetail = null;
 
+// Retrouve (ou crée) le groupe lié à une activité, et s'assure que ses membres
+// correspondent exactement aux vrais participants de activity_participants.
+async function getOrCreateActivityGroup(activityId){
+  if(!supabaseClient || !myProfile.supabaseId) return null;
+  try{
+    let conversationId;
+    const { data: existing, error: selErr } = await supabaseClient
+      .from('conversations').select('id').eq('activity_id', activityId).eq('type','activity_group').maybeSingle();
+    if(selErr) throw selErr;
+
+    if(existing){
+      conversationId = existing.id;
+    } else {
+      const { data: created, error: insErr } = await supabaseClient
+        .from('conversations').insert({ type:'activity_group', activity_id: activityId }).select().maybeSingle();
+      if(insErr) throw insErr;
+      if(!created) return null;
+      conversationId = created.id;
+    }
+
+    // Synchronise les membres avec les vrais participants (n'ajoute que ceux qui manquent)
+    const { data: participants } = await supabaseClient
+      .from('activity_participants').select('profile_id').eq('activity_id', activityId);
+    const { data: currentMembers } = await supabaseClient
+      .from('conversation_members').select('profile_id').eq('conversation_id', conversationId);
+    const currentIds = new Set((currentMembers || []).map(m => m.profile_id));
+    const missing = (participants || []).filter(p => !currentIds.has(p.profile_id));
+    if(missing.length){
+      await supabaseClient.from('conversation_members').insert(
+        missing.map(p => ({ conversation_id: conversationId, profile_id: p.profile_id }))
+      );
+    }
+    return conversationId;
+  } catch(e){
+    console.warn('[Groupes] Récupération/création du groupe impossible :', e.message);
+    return null;
+  }
+}
+
+// Retire l'utilisateur connecté du groupe d'une activité qu'il vient de quitter
+async function leaveActivityGroup(activityId){
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { data: conv } = await supabaseClient
+      .from('conversations').select('id').eq('activity_id', activityId).eq('type','activity_group').maybeSingle();
+    if(!conv) return;
+    await supabaseClient.from('conversation_members').delete()
+      .eq('conversation_id', conv.id).eq('profile_id', myProfile.supabaseId);
+  } catch(e){
+    console.warn('[Groupes] Sortie du groupe impossible :', e.message);
+  }
+}
+
+async function loadRealGroupMessages(conversationId){
+  if(!supabaseClient || !conversationId) return [];
+  try{
+    const { data, error } = await supabaseClient
+      .from('messages')
+      .select('sender_profile_id, content, created_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+    if(error) throw error;
+
+    const senderNames = {};
+    return await Promise.all((data || []).map(async (m) => {
+      if(m.sender_profile_id === myProfile.supabaseId) return { from:'me', text:m.content };
+      if(!senderNames[m.sender_profile_id]){
+        try{
+          const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', m.sender_profile_id).maybeSingle();
+          senderNames[m.sender_profile_id] = p && p.first_name ? p.first_name : 'Membre';
+        } catch(e){ senderNames[m.sender_profile_id] = 'Membre'; }
+      }
+      return { from: senderNames[m.sender_profile_id], text: m.content };
+    }));
+  } catch(e){
+    console.warn('[Groupes] Chargement des messages impossible :', e.message);
+    return [];
+  }
+}
+
+async function openActivityGroupChat(activityId){
+  let activity = currentActivitiesData.find(a => a.id === activityId);
+  if(!activity) activity = await fetchSingleActivityForDetail(activityId);
+  if(!activity) return;
+
+  chatReturnScreen = 'messages';
+  currentConversation = {
+    id: activityId,
+    conversationId: null,
+    type: 'group',
+    mode: activity.mode,
+    name: activity.title,
+    members: [],
+    sharedTags: [],
+    messages: [],
+    isRealConversation: true,
+    activityId: activityId
+  };
+  document.getElementById('chat-title').textContent = activity.title;
+  updateChatSubtitle();
+  renderChatBody();
+  renderChatStarters();
+  showScreen('chat');
+
+  const conversationId = await getOrCreateActivityGroup(activityId);
+  if(!currentConversation || currentConversation.id !== activityId) return;
+  currentConversation.conversationId = conversationId;
+  if(!conversationId) return;
+
+  const { count: memberCount } = await supabaseClient
+    .from('conversation_members').select('id', { count:'exact', head:true }).eq('conversation_id', conversationId);
+  if(currentConversation) currentConversation.members = new Array(Math.max((memberCount||1) - 1, 0)).fill({});
+  updateChatSubtitle();
+
+  const realMessages = await loadRealGroupMessages(conversationId);
+  if(currentConversation && currentConversation.id === activityId){
+    currentConversation.messages = realMessages;
+    renderChatBody();
+    renderChatStarters();
+  }
+  markConversationMessagesRead(conversationId);
+}
+
 async function fetchSingleActivityForDetail(activityId){
   if(!supabaseClient) return null;
   try{
@@ -5548,6 +5676,7 @@ async function toggleActivityParticipation(){
         .eq('profile_id', myProfile.supabaseId);
       if(error) throw error;
       showToast('Participation annulée', '👋');
+      await leaveActivityGroup(activityId);
     } else {
       // Vérification côté application avant d'écrire, pour un retour rapide —
       // mais la vraie protection contre les inscriptions simultanées vient
@@ -5574,6 +5703,7 @@ async function toggleActivityParticipation(){
         throw error;
       }
       showToast('Participation confirmée !', '🎉');
+      await getOrCreateActivityGroup(activityId);
     }
     await refreshActivityParticipants(activityId);
   } catch(e){
@@ -5645,40 +5775,185 @@ async function renderMatchesList(){
   }
 }
 
+let messagesActiveTab = 'private';
+
+function switchMessagesTab(tab){
+  messagesActiveTab = tab;
+  document.getElementById('msg-tab-private').classList.toggle('active', tab === 'private');
+  document.getElementById('msg-tab-groups').classList.toggle('active', tab === 'groups');
+  document.getElementById('msg-list-private').classList.toggle('hidden', tab !== 'private');
+  document.getElementById('msg-list-groups').classList.toggle('hidden', tab !== 'groups');
+  if(tab === 'private') renderPrivateConversationsList();
+  else renderActivityGroupsList();
+}
+
 function renderMessagesList(){
   document.getElementById('liked-count-text').textContent = `${likedYouCount} personnes vous ont déjà liké`;
   document.getElementById('premium-blur').innerHTML = likedYouColors.slice(0,4).map(c =>
     `<div class="avatar" style="background:${c}"></div>`
   ).join('');
+  switchMessagesTab(messagesActiveTab);
+}
 
-  const list = document.getElementById('msg-list');
-  if(conversations.length === 0){
-    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💬</span>Pas encore de conversation.<br>Likez une activité ou un profil pour démarrer un échange !
-      <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
-    </div>`;
+function emptyMsgState(icon, text, showDiscoverBtn){
+  return `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>${icon}</span>${text}
+    ${showDiscoverBtn ? `<button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>` : ''}
+  </div>`;
+}
+
+// --- Conversations privées réelles (issues d'un vrai match) ---
+async function renderPrivateConversationsList(){
+  const list = document.getElementById('msg-list-private');
+  if(!supabaseClient || !myProfile.supabaseId){
+    list.innerHTML = emptyMsgState('💬', 'Connectez-vous pour voir vos conversations.', false);
     return;
   }
-  list.innerHTML = conversations.map(c => {
-    const lastMsg = c.messages[c.messages.length - 1];
-    const preview = (lastMsg.from === 'me' ? 'Vous : ' : (c.type==='group' ? lastMsg.from + ' : ' : '')) + lastMsg.text;
-    const avatarHtml = c.type === 'duo'
-      ? `<div class="msg-avatar-single" style="background:${c.color}">${c.initial}</div>`
-      : `<div class="msg-avatar-group">${c.members.slice(0,3).map((m,i)=>`<div class="mini" style="background:${m.color}; top:${i===2?18:0}px; left:${i*11}px;">${m.initial}</div>`).join('')}</div>`;
-    const tagHtml = c.mode === 'love' ? `<span class="msg-mode-tag love">Rencontre</span>`
-      : c.mode === 'friend' ? `<span class="msg-mode-tag friend">Amitié</span>`
-      : `<span class="msg-mode-tag group">Groupe</span>`;
-    const expiryHtml = c.expiresInHours ? `<span class="msg-expiry">⏳ Répondez sous ${c.expiresInHours}h</span>` : '';
-    return `
-      <div class="msg-item ${c.expiresInHours ? 'new-match' : ''}" onclick="openChat('${c.id}')">
-        ${avatarHtml}
-        <div class="msg-info">
-          <div class="msg-info-top"><h4>${c.name}</h4><span class="msg-time">${c.time}</span></div>
-          <div class="msg-preview">${preview}</div>
-          ${tagHtml}${expiryHtml}
+  list.innerHTML = emptyMsgState('⏳', 'Chargement…', false);
+  try{
+    const { data: memberRows, error: memErr } = await supabaseClient
+      .from('conversation_members')
+      .select('conversation_id, conversations!inner(id, type, match_id)')
+      .eq('conversations.type', 'private');
+    if(memErr) throw memErr;
+
+    const myConvIds = (memberRows || []).map(r => r.conversation_id);
+    if(myConvIds.length === 0){
+      list.innerHTML = emptyMsgState('💬', "Pas encore de conversation.<br>Un match, et vous pourrez discuter ici !", true);
+      return;
+    }
+
+    const cards = await Promise.all((memberRows || []).map(async (row) => {
+      const conv = row.conversations;
+      const match = currentMatchesData.find(m => m.matchId === conv.match_id);
+      let name = match ? match.name : 'Membre';
+      let photoUrl = match ? match.photoUrl : null;
+      let mode = match ? match.mode : 'friend';
+
+      if(!match){
+        // Le cache des matchs n'est pas forcément rempli (ex: ouverture directe de Messages) :
+        // on va chercher les infos nécessaires directement.
+        try{
+          const { data: matchRow } = await supabaseClient.from('matches').select('profile_a_id, profile_b_id, mode').eq('id', conv.match_id).maybeSingle();
+          if(matchRow){
+            mode = matchRow.mode;
+            const otherId = matchRow.profile_a_id === myProfile.supabaseId ? matchRow.profile_b_id : matchRow.profile_a_id;
+            const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', otherId).maybeSingle();
+            if(p && p.first_name) name = p.first_name;
+            photoUrl = await getMainPhotoForProfile(otherId);
+          }
+        } catch(e){}
+      }
+
+      const { data: lastMsgRows } = await supabaseClient
+        .from('messages').select('content, created_at, sender_profile_id')
+        .eq('conversation_id', conv.id).order('created_at', { ascending:false }).limit(1);
+      const lastMsg = lastMsgRows && lastMsgRows[0];
+
+      const { count: unreadCount } = await supabaseClient
+        .from('messages').select('id', { count:'exact', head:true })
+        .eq('conversation_id', conv.id).is('read_at', null).neq('sender_profile_id', myProfile.supabaseId);
+
+      const preview = lastMsg ? ((lastMsg.sender_profile_id === myProfile.supabaseId ? 'Vous : ' : '') + lastMsg.content) : 'Dites bonjour !';
+      const timeLabel = lastMsg ? new Date(lastMsg.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) : '';
+      const avatarHtml = photoUrl
+        ? `<div class="msg-avatar-single" style="background-image:url('${photoUrl}'); background-size:cover; background-position:center;"></div>`
+        : `<div class="msg-avatar-single" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);">${name.charAt(0).toUpperCase()}</div>`;
+      const tagHtml = mode === 'love' ? `<span class="msg-mode-tag love">Rencontre</span>` : `<span class="msg-mode-tag friend">Amitié</span>`;
+      const badgeHtml = unreadCount ? `<span class="msg-unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>` : '';
+
+      return `
+        <div class="msg-item" onclick="openMatchChat('${conv.match_id}')">
+          ${avatarHtml}
+          <div class="msg-info">
+            <div class="msg-info-top"><h4>${name}</h4><span class="msg-time">${timeLabel}</span></div>
+            <div class="msg-preview">${preview}</div>
+            ${tagHtml}${badgeHtml}
+          </div>
         </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }));
+
+    list.innerHTML = cards.join('');
+  } catch(e){
+    console.warn('[Messages] Chargement des conversations privées impossible :', e.message);
+    list.innerHTML = emptyMsgState('⚠️', 'Impossible de charger vos conversations pour le moment.', false);
+  }
+}
+
+// --- Groupes d'activités réels ---
+async function renderActivityGroupsList(){
+  const list = document.getElementById('msg-list-groups');
+  if(!supabaseClient || !myProfile.supabaseId){
+    list.innerHTML = emptyMsgState('🎉', 'Connectez-vous pour voir vos groupes.', false);
+    return;
+  }
+  list.innerHTML = emptyMsgState('⏳', 'Chargement…', false);
+  try{
+    const { data: memberRows, error: memErr } = await supabaseClient
+      .from('conversation_members')
+      .select('conversation_id, conversations!inner(id, type, activity_id)')
+      .eq('conversations.type', 'activity_group');
+    if(memErr) throw memErr;
+
+    if(!memberRows || memberRows.length === 0){
+      list.innerHTML = emptyMsgState('🎉', "Pas encore de groupe.<br>Rejoignez une activité pour retrouver son groupe ici !", false);
+      return;
+    }
+
+    const cards = await Promise.all(memberRows.map(async (row) => {
+      const conv = row.conversations;
+      let activity = currentActivitiesData.find(a => a.id === conv.activity_id);
+      if(!activity){
+        activity = await fetchSingleActivityForDetail(conv.activity_id);
+      }
+      const title = activity ? activity.title : 'Activité';
+      const emoji = activity ? activity.emoji : '🎉';
+      const bg = activity ? activity.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
+      const photoUrl = activity ? activity.photoUrl : null;
+
+      const { data: lastMsgRows } = await supabaseClient
+        .from('messages').select('content, created_at, sender_profile_id')
+        .eq('conversation_id', conv.id).order('created_at', { ascending:false }).limit(1);
+      const lastMsg = lastMsgRows && lastMsgRows[0];
+
+      const { count: unreadCount } = await supabaseClient
+        .from('messages').select('id', { count:'exact', head:true })
+        .eq('conversation_id', conv.id).is('read_at', null).neq('sender_profile_id', myProfile.supabaseId);
+
+      let preview = 'Aucun message pour l\'instant';
+      if(lastMsg){
+        let senderLabel = 'Vous';
+        if(lastMsg.sender_profile_id !== myProfile.supabaseId){
+          try{
+            const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', lastMsg.sender_profile_id).maybeSingle();
+            senderLabel = p && p.first_name ? p.first_name : 'Membre';
+          } catch(e){ senderLabel = 'Membre'; }
+        }
+        preview = `${senderLabel} : ${lastMsg.content}`;
+      }
+      const timeLabel = lastMsg ? new Date(lastMsg.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) : '';
+      const avatarHtml = photoUrl
+        ? `<div class="msg-avatar-single" style="background-image:url('${photoUrl}'); background-size:cover; background-position:center;"></div>`
+        : `<div class="msg-avatar-single" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:20px;">${emoji}</div>`;
+      const badgeHtml = unreadCount ? `<span class="msg-unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>` : '';
+
+      return `
+        <div class="msg-item" onclick="openActivityGroupChat('${conv.activity_id}')">
+          ${avatarHtml}
+          <div class="msg-info">
+            <div class="msg-info-top"><h4>${title}</h4><span class="msg-time">${timeLabel}</span></div>
+            <div class="msg-preview">${preview}</div>
+            ${badgeHtml}
+          </div>
+        </div>
+      `;
+    }));
+
+    list.innerHTML = cards.join('');
+  } catch(e){
+    console.warn('[Messages] Chargement des groupes impossible :', e.message);
+    list.innerHTML = emptyMsgState('⚠️', 'Impossible de charger vos groupes pour le moment.', false);
+  }
 }
 
 // Charge les vrais messages d'un match depuis Supabase
@@ -5841,25 +6116,35 @@ function renderChatBody(){
   body.scrollTop = body.scrollHeight;
 }
 
+function openGroupDetailsFromChat(){
+  if(currentConversation && currentConversation.type === 'group' && currentConversation.activityId){
+    openActivityDetail(currentConversation.activityId);
+  }
+}
+
 function sendMessage(){
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if(!text || !currentConversation) return;
+  const isGroup = currentConversation.type === 'group';
   currentConversation.messages.push({from:'me', text});
   if(currentConversation.expiresInHours){ delete currentConversation.expiresInHours; }
   input.value = '';
   renderChatBody();
   renderChatStarters();
 
-  // Pour un vrai match, on sauvegarde aussi le message dans Supabase (en arrière-plan,
-  // l'affichage est déjà à jour). Les conversations de démonstration ne sont pas concernées.
-  if(currentConversation.isRealMatch && supabaseClient && myProfile.supabaseId && currentConversation.conversationId){
-    supabaseClient.from('messages').insert({
+  // Pour une vraie conversation (privée ou groupe), on sauvegarde aussi le message
+  // dans Supabase en arrière-plan — l'affichage est déjà à jour. Les conversations
+  // de démonstration ne sont pas concernées.
+  const isReal = currentConversation.isRealMatch || currentConversation.isRealConversation;
+  if(isReal && supabaseClient && myProfile.supabaseId && currentConversation.conversationId){
+    const payload = {
       conversation_id: currentConversation.conversationId,
-      match_id: currentConversation.id,
       sender_profile_id: myProfile.supabaseId,
       content: text
-    }).then(({error}) => {
+    };
+    if(!isGroup) payload.match_id = currentConversation.id;
+    supabaseClient.from('messages').insert(payload).then(({error}) => {
       if(error) console.warn('[Messages] Envoi impossible :', error.message);
       else console.info('[Messages] Message enregistré dans Supabase');
     });
