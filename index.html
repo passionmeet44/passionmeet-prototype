@@ -5810,11 +5810,11 @@ async function renderPrivateConversationsList(){
   }
   list.innerHTML = emptyMsgState('⏳', 'Chargement…', false);
   try{
-    const { data: memberRows, error: memErr } = await supabaseClient
+    const { data: allMemberRows, error: memErr } = await supabaseClient
       .from('conversation_members')
-      .select('conversation_id, conversations!inner(id, type, match_id)')
-      .eq('conversations.type', 'private');
+      .select('conversation_id, conversations!inner(id, type, match_id)');
     if(memErr) throw memErr;
+    const memberRows = (allMemberRows || []).filter(r => r.conversations && r.conversations.type === 'private');
 
     const myConvIds = (memberRows || []).map(r => r.conversation_id);
     if(myConvIds.length === 0){
@@ -5862,7 +5862,7 @@ async function renderPrivateConversationsList(){
       const badgeHtml = unreadCount ? `<span class="msg-unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>` : '';
 
       return `
-        <div class="msg-item" onclick="openMatchChat('${conv.match_id}')">
+        <div class="msg-item" onclick="openMatchChat('${conv.match_id}', 'messages')">
           ${avatarHtml}
           <div class="msg-info">
             <div class="msg-info-top"><h4>${name}</h4><span class="msg-time">${timeLabel}</span></div>
@@ -5889,11 +5889,11 @@ async function renderActivityGroupsList(){
   }
   list.innerHTML = emptyMsgState('⏳', 'Chargement…', false);
   try{
-    const { data: memberRows, error: memErr } = await supabaseClient
+    const { data: allMemberRows, error: memErr } = await supabaseClient
       .from('conversation_members')
-      .select('conversation_id, conversations!inner(id, type, activity_id)')
-      .eq('conversations.type', 'activity_group');
+      .select('conversation_id, conversations!inner(id, type, activity_id)');
     if(memErr) throw memErr;
+    const memberRows = (allMemberRows || []).filter(r => r.conversations && r.conversations.type === 'activity_group');
 
     if(!memberRows || memberRows.length === 0){
       list.innerHTML = emptyMsgState('🎉', "Pas encore de groupe.<br>Rejoignez une activité pour retrouver son groupe ici !", false);
@@ -5976,10 +5976,23 @@ async function loadRealMessages(conversationId){
   }
 }
 
-async function openMatchChat(matchId){
-  const m = currentMatchesData.find(x => x.matchId === matchId);
+async function openMatchChat(matchId, returnTo){
+  chatReturnScreen = returnTo || 'matches';
+  let m = currentMatchesData.find(x => x.matchId === matchId);
+  if(!m){
+    // Pas encore en cache (ex : ouverte depuis Messages sans être passé par Matchs) :
+    // on va chercher directement les infos nécessaires.
+    try{
+      const { data: matchRow } = await supabaseClient
+        .from('matches').select('profile_a_id, profile_b_id, mode').eq('id', matchId).maybeSingle();
+      if(matchRow){
+        const otherId = matchRow.profile_a_id === myProfile.supabaseId ? matchRow.profile_b_id : matchRow.profile_a_id;
+        const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', otherId).maybeSingle();
+        m = { matchId, name: p && p.first_name ? p.first_name : 'Membre', mode: matchRow.mode, otherId };
+      }
+    } catch(e){ console.warn('[Messages] Récupération du match impossible :', e.message); }
+  }
   if(!m) return;
-  chatReturnScreen = 'matches';
   currentConversation = {
     id: m.matchId,
     conversationId: null,
