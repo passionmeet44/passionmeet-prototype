@@ -3713,22 +3713,51 @@ function renderProfileScreen(){
   renderUpcomingActivities();
 }
 
-function renderUpcomingActivities(){
+async function renderUpcomingActivities(){
   const el = document.getElementById('profile-upcoming');
   if(!el) return;
-  if(myUpcomingActivities.length === 0){
-    el.innerHTML = '<p style="font-size:12px; color:#B7ACBA;">Aucune sortie prévue pour le moment.</p>';
+  if(!supabaseClient || !myProfile.supabaseId){
+    el.innerHTML = '<p style="font-size:12px; color:#B7ACBA;">Connectez-vous pour voir vos sorties.</p>';
     return;
   }
-  el.innerHTML = myUpcomingActivities.map(a => `
-    <div class="card" onclick="openDetail('${a.key}')">
-      <div class="card-body" style="padding-top:16px;">
-        <h3>${a.title}</h3>
-        <div class="card-meta"><span>${a.when}</span><span>${a.status}</span></div>
-        ${a.past ? renderRatingRow(a) : ''}
-      </div>
-    </div>
-  `).join('');
+  el.innerHTML = '<p style="font-size:12px; color:#B7ACBA;">Chargement…</p>';
+  try{
+    const { data, error } = await supabaseClient
+      .from('activity_participants')
+      .select('activity_id, activities(id, title, activity_date, activity_time, location)')
+      .eq('profile_id', myProfile.supabaseId);
+    if(error) throw error;
+
+    const rows = (data || []).filter(r => r.activities);
+    if(rows.length === 0){
+      el.innerHTML = '<p style="font-size:12px; color:#B7ACBA;">Aucune sortie prévue pour le moment.</p>';
+      return;
+    }
+
+    rows.sort((a,b) => {
+      const da = a.activities.activity_date || '9999-12-31';
+      const db = b.activities.activity_date || '9999-12-31';
+      return da.localeCompare(db);
+    });
+
+    el.innerHTML = rows.map(r => {
+      const a = r.activities;
+      const dateLabel = a.activity_date
+        ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long'})
+        : 'Date à définir';
+      return `
+        <div class="card" onclick="openActivityDetail('${a.id}')">
+          <div class="card-body" style="padding-top:16px;">
+            <h3>${a.title}</h3>
+            <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span><span>📍 ${a.location || ''}</span></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch(e){
+    console.warn('[Profil] Chargement des sorties impossible :', e.message);
+    el.innerHTML = '<p style="font-size:12px; color:#B7ACBA;">Impossible de charger vos sorties pour le moment.</p>';
+  }
 }
 
 function renderRatingRow(a){
@@ -5340,8 +5369,41 @@ async function renderActivitiesList(){
 
 let currentActivityDetail = null;
 
+async function fetchSingleActivityForDetail(activityId){
+  if(!supabaseClient) return null;
+  try{
+    const { data: a, error } = await supabaseClient
+      .from('activities')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url')
+      .eq('id', activityId).maybeSingle();
+    if(error || !a) throw (error || new Error('introuvable'));
+    const cat = categories.find(c => c.key === a.category);
+    const emoji = cat ? cat.emoji : '🎉';
+    const bg = cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
+    let organizerName = 'Membre';
+    try{
+      const { data: org } = await supabaseClient.from('profiles').select('first_name').eq('id', a.organizer_profile_id).maybeSingle();
+      if(org && org.first_name) organizerName = org.first_name;
+    } catch(e){}
+    return {
+      id: a.id, title: a.title, description: a.description, category: a.category,
+      activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
+      organizerName, organizerId: a.organizer_profile_id, emoji, bg,
+      maxParticipants: a.max_participants, photoUrl: a.photo_url
+    };
+  } catch(e){
+    console.warn('[Activités] Récupération directe impossible :', e.message);
+    return null;
+  }
+}
+
 async function openActivityDetail(activityId){
-  const a = currentActivitiesData.find(x => x.id === activityId);
+  let a = currentActivitiesData.find(x => x.id === activityId);
+  if(!a){
+    // Pas encore en cache (ex : ouverte depuis "Mes sorties à venir" sans être
+    // passé par l'onglet Activités) : on va la chercher directement.
+    a = await fetchSingleActivityForDetail(activityId);
+  }
   if(!a) return;
   currentActivityDetail = a;
 
