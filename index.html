@@ -1628,6 +1628,12 @@
     </div>
   </div>
 
+  <!-- ACTIVITIES LIST (réelles, Supabase) -->
+  <div class="screen" id="screen-activities-list">
+    <div class="msg-header"><h1>Activités</h1></div>
+    <div id="activities-real-list" style="padding:0 20px;"></div>
+  </div>
+
   <!-- MATCHES LIST -->
   <div class="screen" id="screen-matches">
     <div class="msg-header"><h1>Mes matchs</h1></div>
@@ -1800,6 +1806,9 @@
   <div class="bottom-nav hidden" id="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="showScreen('home')">
       <div class="nav-icon">🧭</div>Découvrir
+    </div>
+    <div class="nav-item" id="nav-activities" onclick="showScreen('activities-list')">
+      <div class="nav-icon">🎉</div>Activités
     </div>
     <div class="nav-item" id="nav-matches" onclick="showScreen('matches')">
       <div class="nav-icon">💜</div>Matchs
@@ -2747,17 +2756,19 @@ function showScreen(name){
   const nav = document.getElementById('bottom-nav');
   const fab = document.getElementById('nav-fab');
   const fabPlate = document.getElementById('nav-fab-plate');
-  if(name==='home' || name==='profile' || name==='swipe' || name==='messages' || name==='matches'){
+  if(name==='home' || name==='profile' || name==='swipe' || name==='messages' || name==='matches' || name==='activities-list'){
     nav.classList.remove('hidden');
     const showFab = name !== 'swipe';
     if(fab) fab.classList.toggle('hidden', !showFab);
     if(fabPlate) fabPlate.classList.toggle('hidden', !showFab);
     document.getElementById('nav-home').classList.toggle('active', name==='home' || name==='swipe');
+    document.getElementById('nav-activities').classList.toggle('active', name==='activities-list');
     document.getElementById('nav-matches').classList.toggle('active', name==='matches');
     document.getElementById('nav-messages').classList.toggle('active', name==='messages');
     document.getElementById('nav-profile').classList.toggle('active', name==='profile');
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
+    if(name==='activities-list'){ renderActivitiesList(); }
     if(name==='matches'){ renderMatchesList(); }
     if(name==='messages'){ renderMessagesList(); }
     if(name==='profile'){ renderProfileScreen(); }
@@ -5085,6 +5096,83 @@ async function markMatchMessagesRead(matchId){
   } catch(e){
     console.warn('[Notifs] Marquage comme lu impossible :', e.message);
   }
+}
+
+let currentActivitiesData = [];
+
+async function renderActivitiesList(){
+  const list = document.getElementById('activities-real-list');
+  currentActivitiesData = [];
+  if(!supabaseClient){
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>🎉</span>Fonctionnalité indisponible hors connexion.</div>`;
+    return;
+  }
+  list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⏳</span>Chargement des activités…</div>`;
+  try{
+    const { data, error } = await supabaseClient
+      .from('activities')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id')
+      .order('created_at', { ascending: false });
+    if(error) throw error;
+
+    if(!data || data.length === 0){
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>🎉</span>Aucune activité pour l'instant.<br>Revenez bientôt, ou proposez la vôtre !</div>`;
+      return;
+    }
+
+    const cards = await Promise.all(data.map(async (a) => {
+      const cat = categories.find(c => c.key === a.category);
+      const emoji = cat ? cat.emoji : '🎉';
+      const bg = cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
+
+      let participantCount = 0;
+      try{
+        const { count } = await supabaseClient
+          .from('activity_participants')
+          .select('id', { count: 'exact', head: true })
+          .eq('activity_id', a.id);
+        participantCount = count || 0;
+      } catch(e){}
+
+      let organizerName = 'Membre';
+      try{
+        const { data: org } = await supabaseClient
+          .from('profiles').select('first_name').eq('id', a.organizer_profile_id).maybeSingle();
+        if(org && org.first_name) organizerName = org.first_name;
+      } catch(e){}
+
+      currentActivitiesData.push({
+        id: a.id, title: a.title, description: a.description, category: a.category,
+        activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
+        organizerName, organizerId: a.organizer_profile_id, emoji, bg
+      });
+
+      const dateLabel = a.activity_date
+        ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long'})
+        : 'Date à définir';
+
+      return `
+        <div class="card" onclick="openActivityDetail('${a.id}')">
+          <div class="card-media" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;">${emoji}</div>
+          <div class="card-body">
+            <h3>${a.title}</h3>
+            <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
+            <div class="card-meta"><span>📍 ${a.location || 'Lieu à définir'}</span></div>
+            <div class="card-meta"><span>👥 ${participantCount} participant${participantCount>1?'s':''} · Organisé par ${organizerName}</span></div>
+          </div>
+        </div>
+      `;
+    }));
+
+    list.innerHTML = cards.join('');
+  } catch(e){
+    console.warn('[Activités] Chargement impossible :', e.message);
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⚠️</span>Impossible de charger les activités pour le moment.</div>`;
+  }
+}
+
+function openActivityDetail(activityId){
+  showToast('Fiche détaillée bientôt disponible (étape suivante)', '🚧');
 }
 
 async function renderMatchesList(){
