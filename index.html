@@ -512,6 +512,10 @@
     background: linear-gradient(135deg, var(--orange), var(--orange-deep));
     box-shadow: 0 8px 18px rgba(229,114,42,0.35);
   }
+  .btn-join.cancel{
+    background: linear-gradient(135deg, #B0A0B5, #6B5872);
+    box-shadow: 0 8px 18px rgba(62,31,68,0.2);
+  }
   .report-link{text-align:center; font-size:11.5px; color:#B0A0B5; margin-top:14px; text-decoration:underline; cursor:pointer;}
   .btn-safety{
     width:100%; margin-top:12px; padding:13px; border:2px solid var(--line); border-radius:18px;
@@ -1625,6 +1629,26 @@
 
     <div class="profile-card danger-card">
       <div class="settings-link danger" onclick="showToast('Profil supprimé (démo)', '🗑️')">Supprimer mon compte</div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY DETAIL (réelle, Supabase) -->
+  <div class="screen" id="screen-activity-detail-real">
+    <div class="detail-media" id="ract-media">
+      <div class="detail-back" onclick="showScreen('activities-list')">←</div>
+      <span id="ract-emoji"></span>
+    </div>
+    <div class="detail-body">
+      <h2 id="ract-title"></h2>
+      <div class="detail-row" id="ract-when"></div>
+      <div class="detail-row" id="ract-where"></div>
+      <div class="detail-row" id="ract-organizer"></div>
+      <div class="detail-desc" id="ract-desc"></div>
+      <div class="detail-why" id="ract-participants-wrap">
+        <div class="detail-why-title" id="ract-participants-title">👥 Participants</div>
+        <div id="ract-participants-list"></div>
+      </div>
+      <button class="btn-join" id="ract-cta" onclick="toggleActivityParticipation()">Je participe</button>
     </div>
   </div>
 
@@ -5171,8 +5195,89 @@ async function renderActivitiesList(){
   }
 }
 
-function openActivityDetail(activityId){
-  showToast('Fiche détaillée bientôt disponible (étape suivante)', '🚧');
+let currentActivityDetail = null;
+
+async function openActivityDetail(activityId){
+  const a = currentActivitiesData.find(x => x.id === activityId);
+  if(!a) return;
+  currentActivityDetail = a;
+
+  document.getElementById('ract-media').style.background = a.bg;
+  document.getElementById('ract-emoji').textContent = a.emoji;
+  document.getElementById('ract-emoji').style.fontSize = '56px';
+  document.getElementById('ract-title').textContent = a.title;
+  const dateLabel = a.activity_date
+    ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})
+    : 'Date à définir';
+  document.getElementById('ract-when').textContent = `📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}`;
+  document.getElementById('ract-where').textContent = `📍 ${a.location || 'Lieu à définir'}`;
+  document.getElementById('ract-organizer').textContent = `🙋 Organisée par ${a.organizerName}`;
+  document.getElementById('ract-desc').textContent = a.description || '';
+
+  showScreen('activity-detail-real');
+  await refreshActivityParticipants(activityId);
+}
+
+async function refreshActivityParticipants(activityId){
+  const listEl = document.getElementById('ract-participants-list');
+  const titleEl = document.getElementById('ract-participants-title');
+  const ctaBtn = document.getElementById('ract-cta');
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { data, error } = await supabaseClient
+      .from('activity_participants')
+      .select('profile_id')
+      .eq('activity_id', activityId);
+    if(error) throw error;
+
+    const participantIds = (data || []).map(p => p.profile_id);
+    titleEl.textContent = `👥 ${participantIds.length} participant${participantIds.length>1?'s':''}`;
+
+    const names = await Promise.all(participantIds.map(async (pid) => {
+      try{
+        const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', pid).maybeSingle();
+        return p && p.first_name ? p.first_name : 'Membre';
+      } catch(e){ return 'Membre'; }
+    }));
+    listEl.innerHTML = names.length
+      ? names.map(n => `<span class="msg-mode-tag friend" style="margin-right:6px; margin-bottom:6px; display:inline-block;">${n}</span>`).join('')
+      : `<p style="font-size:12.5px; color:#9584A0;">Personne pour l'instant — soyez le premier !</p>`;
+
+    const alreadyJoined = participantIds.includes(myProfile.supabaseId);
+    ctaBtn.textContent = alreadyJoined ? 'Annuler ma participation' : 'Je participe';
+    ctaBtn.classList.toggle('cancel', alreadyJoined);
+  } catch(e){
+    console.warn('[Activités] Chargement des participants impossible :', e.message);
+  }
+}
+
+async function toggleActivityParticipation(){
+  if(!currentActivityDetail || !supabaseClient || !myProfile.supabaseId) return;
+  const activityId = currentActivityDetail.id;
+  const ctaBtn = document.getElementById('ract-cta');
+  const alreadyJoined = ctaBtn.textContent.includes('Annuler');
+
+  try{
+    if(alreadyJoined){
+      const { error } = await supabaseClient
+        .from('activity_participants')
+        .delete()
+        .eq('activity_id', activityId)
+        .eq('profile_id', myProfile.supabaseId);
+      if(error) throw error;
+      showToast('Participation annulée', '👋');
+    } else {
+      const { error } = await supabaseClient
+        .from('activity_participants')
+        .insert({ activity_id: activityId, profile_id: myProfile.supabaseId });
+      if(error) throw error;
+      showToast('Participation confirmée !', '🎉');
+    }
+    await refreshActivityParticipants(activityId);
+  } catch(e){
+    console.warn('[Activités] Action impossible :', e.message);
+    showToast("Une erreur est survenue, réessayez", "⚠️");
+  }
 }
 
 async function renderMatchesList(){
