@@ -6200,13 +6200,25 @@ function openGroupDetailsFromChat(){
   }
 }
 
-function sendMessage(){
+// Attend que la conversation (privée ou groupe) ait fini sa préparation côté Supabase,
+// sans bloquer l'affichage local du message — utile pour les groupes, plus longs à
+// préparer (plusieurs étapes) qu'une conversation privée.
+async function waitForConversationReady(conv, timeoutMs){
+  const start = Date.now();
+  while(!conv.conversationId && currentConversation === conv && (Date.now() - start) < timeoutMs){
+    await new Promise(r => setTimeout(r, 150));
+  }
+  return conv.conversationId;
+}
+
+async function sendMessage(){
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if(!text || !currentConversation) return;
-  const isGroup = currentConversation.type === 'group';
-  currentConversation.messages.push({from:'me', text});
-  if(currentConversation.expiresInHours){ delete currentConversation.expiresInHours; }
+  const conv = currentConversation;
+  const isGroup = conv.type === 'group';
+  conv.messages.push({from:'me', text});
+  if(conv.expiresInHours){ delete conv.expiresInHours; }
   input.value = '';
   renderChatBody();
   renderChatStarters();
@@ -6214,14 +6226,26 @@ function sendMessage(){
   // Pour une vraie conversation (privée ou groupe), on sauvegarde aussi le message
   // dans Supabase en arrière-plan — l'affichage est déjà à jour. Les conversations
   // de démonstration ne sont pas concernées.
-  const isReal = currentConversation.isRealMatch || currentConversation.isRealConversation;
-  if(isReal && supabaseClient && myProfile.supabaseId && currentConversation.conversationId){
+  const isReal = conv.isRealMatch || conv.isRealConversation;
+  if(isReal && supabaseClient && myProfile.supabaseId){
+    let conversationId = conv.conversationId;
+    if(!conversationId){
+      // La conversation est peut-être encore en cours de préparation (surtout pour
+      // un groupe, qui demande plusieurs étapes) : on attend qu'elle soit prête
+      // plutôt que d'abandonner l'enregistrement du message.
+      conversationId = await waitForConversationReady(conv, 8000);
+    }
+    if(!conversationId){
+      console.warn('[Messages] Conversation jamais prête, message non sauvegardé');
+      return;
+    }
+    if(currentConversation !== conv) return; // l'utilisateur a changé d'écran entre-temps
     const payload = {
-      conversation_id: currentConversation.conversationId,
+      conversation_id: conversationId,
       sender_profile_id: myProfile.supabaseId,
       content: text
     };
-    if(!isGroup) payload.match_id = currentConversation.id;
+    if(!isGroup) payload.match_id = conv.id;
     supabaseClient.from('messages').insert(payload).then(({error}) => {
       if(error) console.warn('[Messages] Envoi impossible :', error.message);
       else console.info('[Messages] Message enregistré dans Supabase');
