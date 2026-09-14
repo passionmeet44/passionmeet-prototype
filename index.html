@@ -4988,7 +4988,27 @@ function renderMessagesList(){
   }).join('');
 }
 
-function openMatchChat(matchId){
+// Charge les vrais messages d'un match depuis Supabase
+async function loadRealMessages(matchId){
+  if(!supabaseClient) return [];
+  try{
+    const { data, error } = await supabaseClient
+      .from('messages')
+      .select('sender_profile_id, content, created_at')
+      .eq('match_id', matchId)
+      .order('created_at', { ascending: true });
+    if(error) throw error;
+    return (data || []).map(m => ({
+      from: m.sender_profile_id === myProfile.supabaseId ? 'me' : 'them',
+      text: m.content
+    }));
+  } catch(e){
+    console.warn('[Messages] Chargement impossible :', e.message);
+    return [];
+  }
+}
+
+async function openMatchChat(matchId){
   const m = currentMatchesData.find(x => x.matchId === matchId);
   if(!m) return;
   chatReturnScreen = 'matches';
@@ -5000,7 +5020,7 @@ function openMatchChat(matchId){
     initial: m.name.charAt(0).toUpperCase(),
     color: 'linear-gradient(135deg,#8B5A8C,#C98BA8)',
     sharedTags: [],
-    messages: [], // pas encore de vrais messages : arrive à l'étape suivante
+    messages: [],
     isRealMatch: true,
     otherProfileId: m.otherId
   };
@@ -5009,6 +5029,14 @@ function openMatchChat(matchId){
   renderChatBody();
   renderChatStarters();
   showScreen('chat');
+
+  // Chargement des vrais messages, affiché dès qu'ils arrivent
+  const realMessages = await loadRealMessages(matchId);
+  if(currentConversation && currentConversation.id === matchId){
+    currentConversation.messages = realMessages;
+    renderChatBody();
+    renderChatStarters();
+  }
 }
 
 function openChat(id){
@@ -5122,6 +5150,20 @@ function sendMessage(){
   input.value = '';
   renderChatBody();
   renderChatStarters();
+
+  // Pour un vrai match, on sauvegarde aussi le message dans Supabase (en arrière-plan,
+  // l'affichage est déjà à jour). Les conversations de démonstration ne sont pas concernées.
+  if(currentConversation.isRealMatch && supabaseClient && myProfile.supabaseId){
+    const matchId = currentConversation.id;
+    supabaseClient.from('messages').insert({
+      match_id: matchId,
+      sender_profile_id: myProfile.supabaseId,
+      content: text
+    }).then(({error}) => {
+      if(error) console.warn('[Messages] Envoi impossible :', error.message);
+      else console.info('[Messages] Message enregistré dans Supabase');
+    });
+  }
 }
 
 /* ---------- PREMIUM TIERS ---------- */
