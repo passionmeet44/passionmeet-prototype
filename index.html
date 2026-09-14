@@ -1617,6 +1617,12 @@
     </div>
   </div>
 
+  <!-- MATCHES LIST -->
+  <div class="screen" id="screen-matches">
+    <div class="msg-header"><h1>Mes matchs</h1></div>
+    <div id="matches-list"></div>
+  </div>
+
   <!-- MESSAGES LIST -->
   <div class="screen" id="screen-messages">
     <div class="msg-header"><h1>Messages</h1></div>
@@ -1738,6 +1744,9 @@
   <div class="bottom-nav hidden" id="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="showScreen('home')">
       <div class="nav-icon">🧭</div>Découvrir
+    </div>
+    <div class="nav-item" id="nav-matches" onclick="showScreen('matches')">
+      <div class="nav-icon">💜</div>Matchs
     </div>
     <div class="nav-item" id="nav-messages" onclick="showScreen('messages')">
       <div class="nav-icon">💬</div>Messages
@@ -2682,16 +2691,18 @@ function showScreen(name){
   const nav = document.getElementById('bottom-nav');
   const fab = document.getElementById('nav-fab');
   const fabPlate = document.getElementById('nav-fab-plate');
-  if(name==='home' || name==='profile' || name==='swipe' || name==='messages'){
+  if(name==='home' || name==='profile' || name==='swipe' || name==='messages' || name==='matches'){
     nav.classList.remove('hidden');
     const showFab = name !== 'swipe';
     if(fab) fab.classList.toggle('hidden', !showFab);
     if(fabPlate) fabPlate.classList.toggle('hidden', !showFab);
     document.getElementById('nav-home').classList.toggle('active', name==='home' || name==='swipe');
+    document.getElementById('nav-matches').classList.toggle('active', name==='matches');
     document.getElementById('nav-messages').classList.toggle('active', name==='messages');
     document.getElementById('nav-profile').classList.toggle('active', name==='profile');
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
+    if(name==='matches'){ renderMatchesList(); }
     if(name==='messages'){ renderMessagesList(); }
     if(name==='profile'){ renderProfileScreen(); }
   } else {
@@ -4491,10 +4502,7 @@ function swipeAction(type){
 // Enregistrement réel de l'action (pass / amitié / rencontre) dans Supabase.
 // Étape 1 uniquement : n'enregistre que l'action, ne crée aucun match pour l'instant.
 async function recordSwipeAction(toProfileId, action){
-  if(!supabaseClient || !myProfile.supabaseId || !toProfileId){
-    showToast(`Debug: enregistrement annulé (supabaseClient=${!!supabaseClient}, monId=${myProfile.supabaseId||'absent'}, cibleId=${toProfileId||'absente'})`, "⚠️");
-    return;
-  }
+  if(!supabaseClient || !myProfile.supabaseId || !toProfileId) return;
   try{
     // .select() est indispensable ici : sans lui, Supabase peut renvoyer "aucune erreur"
     // même si la ligne a été silencieusement bloquée par les règles de sécurité (RLS).
@@ -4511,14 +4519,11 @@ async function recordSwipeAction(toProfileId, action){
     if(error) throw error;
     if(!data || data.length === 0){
       console.warn('[Swipe] Aucune ligne renvoyée après upsert — probablement bloqué par une règle RLS.');
-      showToast(`Debug: écriture bloquée silencieusement (RLS ?) — 0 ligne renvoyée`, "⚠️");
       return;
     }
     console.info('[Swipe] Action enregistrée dans Supabase :', action, '→', toProfileId, data);
-    showToast(`Debug: action "${action}" enregistrée OK (${data.length} ligne)`, "✅");
   } catch(e){
     console.warn('[Swipe] Enregistrement de l\'action impossible :', e.message);
-    showToast(`Debug erreur: ${e.message}`, "⚠️");
   }
 }
 
@@ -4572,9 +4577,6 @@ function flyOut(card, type){
   }
 
   const isRealSwipe = !!(likedProfile && likedProfile.isRealProfile && likedProfile.supabaseId);
-  if(!isRealSwipe){
-    showToast(`Debug: profil non reconnu comme réel (isRealProfile=${likedProfile?likedProfile.isRealProfile:'profil absent'}, id=${likedProfile?likedProfile.supabaseId:'-'})`, "⚠️");
-  }
   if(isRealSwipe){
     recordSwipeAction(likedProfile.supabaseId, type);
   }
@@ -4883,6 +4885,66 @@ const conversations = [
 ];
 
 let currentConversation = null;
+
+// Récupère et affiche les vrais matchs (réciprocité confirmée) depuis Supabase.
+// Étape 1 : affichage uniquement, cartes pas encore cliquables.
+async function renderMatchesList(){
+  const list = document.getElementById('matches-list');
+  if(!supabaseClient || !myProfile.supabaseId){
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Connectez-vous pour voir vos matchs.</div>`;
+    return;
+  }
+  list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⏳</span>Chargement de vos matchs…</div>`;
+  try{
+    const myId = myProfile.supabaseId;
+    const { data, error } = await supabaseClient
+      .from('matches')
+      .select('id, profile_a_id, profile_b_id, mode, created_at')
+      .or(`profile_a_id.eq.${myId},profile_b_id.eq.${myId}`)
+      .order('created_at', { ascending: false });
+    if(error) throw error;
+
+    if(!data || data.length === 0){
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match.<br>Continuez à swiper, ça ne saurait tarder !
+        <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
+      </div>`;
+      return;
+    }
+
+    const matchCards = await Promise.all(data.map(async (m) => {
+      const otherId = m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id;
+      let otherProfile = null;
+      try{
+        const { data: p } = await supabaseClient
+          .from('profiles').select('first_name, age').eq('id', otherId).maybeSingle();
+        otherProfile = p;
+      } catch(e){}
+      const photoUrl = await getMainPhotoForProfile(otherId);
+      const name = otherProfile && otherProfile.first_name ? otherProfile.first_name : 'Membre';
+      const age = otherProfile && otherProfile.age ? `, ${otherProfile.age}` : '';
+      const tagHtml = m.mode === 'love'
+        ? `<span class="msg-mode-tag love">Rencontre</span>`
+        : `<span class="msg-mode-tag friend">Amitié</span>`;
+      const avatarHtml = photoUrl
+        ? `<div class="msg-avatar-single" style="background-image:url('${photoUrl}'); background-size:cover; background-position:center;"></div>`
+        : `<div class="msg-avatar-single" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);">${name.charAt(0).toUpperCase()}</div>`;
+      return `
+        <div class="msg-item">
+          ${avatarHtml}
+          <div class="msg-info">
+            <div class="msg-info-top"><h4>${name}${age}</h4></div>
+            ${tagHtml}
+          </div>
+        </div>
+      `;
+    }));
+
+    list.innerHTML = matchCards.join('');
+  } catch(e){
+    console.warn('[Matchs] Chargement impossible :', e.message);
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⚠️</span>Impossible de charger vos matchs pour le moment.</div>`;
+  }
+}
 
 function renderMessagesList(){
   document.getElementById('liked-count-text').textContent = `${likedYouCount} personnes vous ont déjà liké`;
