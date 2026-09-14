@@ -1640,7 +1640,7 @@
   <!-- CHAT -->
   <div class="screen" id="screen-chat" style="flex-direction:column; padding-bottom:0;">
     <div class="chat-header">
-      <div class="chat-back" onclick="showScreen('messages')">←</div>
+      <div class="chat-back" onclick="showScreen(chatReturnScreen)">←</div>
       <div style="flex:1;">
         <h3 id="chat-title"></h3>
         <p id="chat-subtitle"></p>
@@ -3866,6 +3866,7 @@ function openDetail(key){
 
 let detailReturnScreen = 'home';
 let premiumReturnScreen = 'messages';
+let chatReturnScreen = 'messages';
 
 // ---------- LEGAL ----------
 let legalReturnScreen = 'login';
@@ -4885,11 +4886,13 @@ const conversations = [
 ];
 
 let currentConversation = null;
+let currentMatchesData = []; // cache des matchs affichés, pour retrouver les infos au clic sans les redemander
 
 // Récupère et affiche les vrais matchs (réciprocité confirmée) depuis Supabase.
 // Étape 1 : affichage uniquement, cartes pas encore cliquables.
 async function renderMatchesList(){
   const list = document.getElementById('matches-list');
+  currentMatchesData = [];
   if(!supabaseClient || !myProfile.supabaseId){
     list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Connectez-vous pour voir vos matchs.</div>`;
     return;
@@ -4922,6 +4925,9 @@ async function renderMatchesList(){
       const photoUrl = await getMainPhotoForProfile(otherId);
       const name = otherProfile && otherProfile.first_name ? otherProfile.first_name : 'Membre';
       const age = otherProfile && otherProfile.age ? `, ${otherProfile.age}` : '';
+
+      currentMatchesData.push({ matchId: m.id, otherId, name, mode: m.mode, photoUrl });
+
       const tagHtml = m.mode === 'love'
         ? `<span class="msg-mode-tag love">Rencontre</span>`
         : `<span class="msg-mode-tag friend">Amitié</span>`;
@@ -4929,7 +4935,7 @@ async function renderMatchesList(){
         ? `<div class="msg-avatar-single" style="background-image:url('${photoUrl}'); background-size:cover; background-position:center;"></div>`
         : `<div class="msg-avatar-single" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);">${name.charAt(0).toUpperCase()}</div>`;
       return `
-        <div class="msg-item">
+        <div class="msg-item" onclick="openMatchChat('${m.id}')">
           ${avatarHtml}
           <div class="msg-info">
             <div class="msg-info-top"><h4>${name}${age}</h4></div>
@@ -4982,7 +4988,31 @@ function renderMessagesList(){
   }).join('');
 }
 
+function openMatchChat(matchId){
+  const m = currentMatchesData.find(x => x.matchId === matchId);
+  if(!m) return;
+  chatReturnScreen = 'matches';
+  currentConversation = {
+    id: m.matchId,
+    type: 'duo',
+    mode: m.mode,
+    name: m.name,
+    initial: m.name.charAt(0).toUpperCase(),
+    color: 'linear-gradient(135deg,#8B5A8C,#C98BA8)',
+    sharedTags: [],
+    messages: [], // pas encore de vrais messages : arrive à l'étape suivante
+    isRealMatch: true,
+    otherProfileId: m.otherId
+  };
+  document.getElementById('chat-title').textContent = m.name;
+  updateChatSubtitle();
+  renderChatBody();
+  renderChatStarters();
+  showScreen('chat');
+}
+
 function openChat(id){
+  chatReturnScreen = 'messages';
   currentConversation = conversations.find(c => c.id === id);
   const c = currentConversation;
   document.getElementById('chat-title').textContent = c.name;
