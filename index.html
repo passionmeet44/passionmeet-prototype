@@ -4496,17 +4496,26 @@ async function recordSwipeAction(toProfileId, action){
     return;
   }
   try{
-    const { error } = await supabaseClient
+    // .select() est indispensable ici : sans lui, Supabase peut renvoyer "aucune erreur"
+    // même si la ligne a été silencieusement bloquée par les règles de sécurité (RLS).
+    // On vérifie donc explicitement qu'une ligne a bien été renvoyée (donc réellement écrite).
+    const { data, error } = await supabaseClient
       .from('swipe_actions')
       .upsert({
         from_profile_id: myProfile.supabaseId,
         to_profile_id: toProfileId,
         action: action,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'from_profile_id,to_profile_id' });
+      }, { onConflict: 'from_profile_id,to_profile_id' })
+      .select();
     if(error) throw error;
-    console.info('[Swipe] Action enregistrée dans Supabase :', action, '→', toProfileId);
-    showToast(`Debug: action "${action}" enregistrée OK`, "✅");
+    if(!data || data.length === 0){
+      console.warn('[Swipe] Aucune ligne renvoyée après upsert — probablement bloqué par une règle RLS.');
+      showToast(`Debug: écriture bloquée silencieusement (RLS ?) — 0 ligne renvoyée`, "⚠️");
+      return;
+    }
+    console.info('[Swipe] Action enregistrée dans Supabase :', action, '→', toProfileId, data);
+    showToast(`Debug: action "${action}" enregistrée OK (${data.length} ligne)`, "✅");
   } catch(e){
     console.warn('[Swipe] Enregistrement de l\'action impossible :', e.message);
     showToast(`Debug erreur: ${e.message}`, "⚠️");
