@@ -5213,22 +5213,23 @@ async function getOrCreatePrivateConversation(matchId){
   try{
     const { data: existing, error: selErr } = await supabaseClient
       .from('conversations').select('id').eq('match_id', matchId).eq('type','private').maybeSingle();
-    if(selErr) throw selErr;
+    if(selErr){ showToast('Debug conv (lecture) : '+selErr.message, '⚠️'); throw selErr; }
     if(existing) return existing.id;
 
     const { data: matchRow, error: matchErr } = await supabaseClient
       .from('matches').select('profile_a_id, profile_b_id').eq('id', matchId).maybeSingle();
-    if(matchErr || !matchRow) throw (matchErr || new Error('match introuvable'));
+    if(matchErr || !matchRow){ showToast('Debug conv (match introuvable) : '+(matchErr?matchErr.message:'aucune donnée'), '⚠️'); throw (matchErr || new Error('match introuvable')); }
 
     const { data: created, error: insErr } = await supabaseClient
       .from('conversations').insert({ type:'private', match_id: matchId }).select().maybeSingle();
-    if(insErr) throw insErr;
-    if(!created) return null;
+    if(insErr){ showToast('Debug conv (création) : '+insErr.message, '⚠️'); throw insErr; }
+    if(!created){ showToast('Debug conv : créée mais aucune ligne renvoyée (RLS ?)', '⚠️'); return null; }
 
-    await supabaseClient.from('conversation_members').insert([
+    const { error: memErr } = await supabaseClient.from('conversation_members').insert([
       { conversation_id: created.id, profile_id: matchRow.profile_a_id },
       { conversation_id: created.id, profile_id: matchRow.profile_b_id }
     ]);
+    if(memErr){ showToast('Debug conv (membres) : '+memErr.message, '⚠️'); }
     return created.id;
   } catch(e){
     console.warn('[Messages] Récupération/création de la conversation impossible :', e.message);
@@ -5852,6 +5853,9 @@ function sendMessage(){
 
   // Pour un vrai match, on sauvegarde aussi le message dans Supabase (en arrière-plan,
   // l'affichage est déjà à jour). Les conversations de démonstration ne sont pas concernées.
+  if(currentConversation.isRealMatch && supabaseClient && myProfile.supabaseId && !currentConversation.conversationId){
+    showToast('Debug envoi : conversationId absent, message non sauvegardé', '⚠️');
+  }
   if(currentConversation.isRealMatch && supabaseClient && myProfile.supabaseId && currentConversation.conversationId){
     supabaseClient.from('messages').insert({
       conversation_id: currentConversation.conversationId,
@@ -5859,7 +5863,7 @@ function sendMessage(){
       sender_profile_id: myProfile.supabaseId,
       content: text
     }).then(({error}) => {
-      if(error) console.warn('[Messages] Envoi impossible :', error.message);
+      if(error){ console.warn('[Messages] Envoi impossible :', error.message); showToast('Debug envoi : '+error.message, '⚠️'); }
       else console.info('[Messages] Message enregistré dans Supabase');
     });
   }
