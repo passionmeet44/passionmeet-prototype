@@ -5583,7 +5583,6 @@ async function openActivityGroupChat(activityId){
   showScreen('chat');
 
   const conversationId = await getOrCreateActivityGroup(activityId);
-  showToast('Debug ouverture groupe : conversationId='+(conversationId||'ÉCHEC null'), conversationId ? 'ℹ️' : '⚠️');
   if(!currentConversation || currentConversation.id !== activityId) return;
   currentConversation.conversationId = conversationId;
   if(!conversationId) return;
@@ -5594,7 +5593,6 @@ async function openActivityGroupChat(activityId){
   updateChatSubtitle();
 
   const realMessages = await loadRealGroupMessages(conversationId);
-  showToast('Debug ouverture groupe : '+realMessages.length+' message(s) chargé(s)', 'ℹ️');
   if(currentConversation && currentConversation.id === activityId){
     currentConversation.messages = realMessages;
     renderChatBody();
@@ -6229,7 +6227,6 @@ async function sendMessage(){
   // dans Supabase en arrière-plan — l'affichage est déjà à jour. Les conversations
   // de démonstration ne sont pas concernées.
   const isReal = conv.isRealMatch || conv.isRealConversation;
-  if(isGroup) showToast('Debug envoi groupe : isRealConversation='+conv.isRealConversation+', conversationId au départ='+(conv.conversationId||'absent'), 'ℹ️');
   if(isReal && supabaseClient && myProfile.supabaseId){
     let conversationId = conv.conversationId;
     if(!conversationId){
@@ -6237,7 +6234,6 @@ async function sendMessage(){
       // un groupe, qui demande plusieurs étapes) : on attend qu'elle soit prête
       // plutôt que d'abandonner l'enregistrement du message.
       conversationId = await waitForConversationReady(conv, 8000);
-      if(isGroup) showToast('Debug envoi groupe : après attente, conversationId='+(conversationId||'TOUJOURS ABSENT'), conversationId ? 'ℹ️' : '⚠️');
     }
     if(!conversationId){
       console.warn('[Messages] Conversation jamais prête, message non sauvegardé');
@@ -6251,7 +6247,6 @@ async function sendMessage(){
     };
     if(!isGroup) payload.match_id = conv.id;
     supabaseClient.from('messages').insert(payload).then(({error}) => {
-      if(isGroup) showToast('Debug envoi groupe : ' + (error ? 'ERREUR '+error.message : 'insertion OK'), error ? '⚠️' : '✅');
       if(error) console.warn('[Messages] Envoi impossible :', error.message);
       else console.info('[Messages] Message enregistré dans Supabase');
     });
