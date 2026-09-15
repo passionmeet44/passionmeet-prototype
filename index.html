@@ -1683,6 +1683,15 @@
     </div>
   </div>
 
+  <!-- QUI VOUS A LIKÉ -->
+  <div class="screen" id="screen-who-liked-me">
+    <div class="msg-header">
+      <div class="detail-back" onclick="showScreen('messages')" style="position:absolute; top:20px; left:16px;">←</div>
+      <h1 style="padding-left:44px;">Qui vous a liké</h1>
+    </div>
+    <div id="who-liked-me-content" style="padding:0 20px;"></div>
+  </div>
+
   <!-- MES SIGNALEMENTS -->
   <div class="screen" id="screen-my-reports">
     <div class="msg-header">
@@ -1856,7 +1865,7 @@
   <!-- MESSAGES LIST -->
   <div class="screen" id="screen-messages">
     <div class="msg-header"><h1>Messages</h1></div>
-    <div class="premium-teaser" onclick="showScreen('premium')">
+    <div class="premium-teaser" onclick="openWhoLikedMe()">
       <div class="premium-blur" id="premium-blur"></div>
       <div class="premium-text">
         <h3 id="liked-count-text">7 personnes vous ont déjà liké</h3>
@@ -5401,8 +5410,6 @@ function sendSuggestedMessage(chipEl){
 }
 
 /* ---------- MESSAGES / CHAT SYSTEM ---------- */
-const likedYouCount = 7;
-const likedYouColors = ['#E5722A','#6B4472','#4E9A6E','#F6B94D','#C98BA8'];
 
 const conversations = [
   {
@@ -6476,11 +6483,88 @@ function switchMessagesTab(tab){
   else renderActivityGroupsList();
 }
 
+// Compte réel (jamais un chiffre inventé) des personnes ayant liké l'utilisateur,
+// affiché en aperçu sur l'écran Messages.
+async function updateLikedYouTeaser(){
+  const textEl = document.getElementById('liked-count-text');
+  const blurEl = document.getElementById('premium-blur');
+  if(!textEl || !supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { data, error } = await supabaseClient.from('who_liked_me').select('mode');
+    if(error) throw error;
+    const count = data ? data.length : 0;
+    textEl.textContent = count > 0
+      ? `${count} personne${count>1?'s':''} vous ${count>1?'ont':'a'} déjà liké`
+      : "Personne ne vous a encore liké — continuez à explorer !";
+    if(blurEl){
+      const dots = ['#E5722A','#6B4472','#4E9A6E','#F6B94D','#C98BA8'];
+      blurEl.innerHTML = dots.slice(0, Math.min(4, count)).map(c => `<div class="avatar" style="background:${c}"></div>`).join('');
+    }
+  } catch(e){
+    console.warn('[Premium] Impossible de récupérer le compteur de likes reçus :', e.message);
+    if(textEl) textEl.textContent = 'Voir qui vous a liké';
+  }
+}
+
+async function openWhoLikedMe(){
+  showScreen('who-liked-me');
+  const content = document.getElementById('who-liked-me-content');
+  if(!supabaseClient || !myProfile.supabaseId){
+    content.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>👀</span>Connectez-vous pour voir qui vous a liké.</div>`;
+    return;
+  }
+  content.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⏳</span>Chargement…</div>`;
+  try{
+    const { data, error } = await supabaseClient
+      .from('who_liked_me').select('liker_profile_id, mode, created_at, first_name, age')
+      .order('created_at', { ascending: false });
+    if(error) throw error;
+
+    if(!data || data.length === 0){
+      content.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>👀</span>Personne ne vous a encore liké.<br>Continuez à swiper, ça ne saurait tarder !</div>`;
+      return;
+    }
+
+    if(!myProfile.isPremiumActive){
+      // Compte gratuit : la vue elle-même ne renvoie aucune identité exploitable —
+      // on ne peut donc afficher qu'un aperçu chiffré, jamais une vraie liste.
+      const loveCount = data.filter(r => r.mode === 'love').length;
+      const friendCount = data.filter(r => r.mode === 'friend').length;
+      content.innerHTML = `
+        <div class="swipe-empty" style="height:auto; padding:40px 20px; flex-direction:column;">
+          <span>🔒</span>
+          <div style="font-family:var(--font-display); font-size:22px; color:var(--plum); margin:8px 0;">${data.length} personne${data.length>1?'s':''}</div>
+          <p>vous ${data.length>1?'ont':'a'} déjà liké — dont ${loveCount} en Rencontre et ${friendCount} en Amitié.</p>
+          <p style="margin-top:8px;">Passez à PassionMeet+ pour découvrir qui c'est.</p>
+          <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('premium')">Découvrir Premium</button>
+        </div>`;
+      return;
+    }
+
+    const cards = await Promise.all(data.map(async (r) => {
+      const photoUrl = await getMainPhotoForProfile(r.liker_profile_id);
+      const avatarHtml = photoUrl
+        ? `<div class="msg-avatar-single" style="background-image:url('${photoUrl}'); background-size:cover; background-position:center;"></div>`
+        : `<div class="msg-avatar-single" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);">${escapeHtml((r.first_name||'?').charAt(0).toUpperCase())}</div>`;
+      const tagHtml = r.mode === 'love' ? `<span class="msg-mode-tag love">Rencontre</span>` : `<span class="msg-mode-tag friend">Amitié</span>`;
+      return `
+        <div class="msg-item">
+          ${avatarHtml}
+          <div class="msg-info">
+            <div class="msg-info-top"><h4>${escapeHtml(r.first_name || 'Membre')}${r.age ? ', '+r.age : ''}</h4></div>
+            ${tagHtml}
+          </div>
+        </div>`;
+    }));
+    content.innerHTML = cards.join('');
+  } catch(e){
+    console.warn('[Premium] Chargement de "Qui vous a liké" impossible :', e.message);
+    content.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⚠️</span>Impossible de charger cette liste pour le moment.</div>`;
+  }
+}
+
 function renderMessagesList(){
-  document.getElementById('liked-count-text').textContent = `${likedYouCount} personnes vous ont déjà liké`;
-  document.getElementById('premium-blur').innerHTML = likedYouColors.slice(0,4).map(c =>
-    `<div class="avatar" style="background:${c}"></div>`
-  ).join('');
+  updateLikedYouTeaser();
   switchMessagesTab(messagesActiveTab);
 }
 
