@@ -1555,7 +1555,6 @@
       <h2 id="profile-name">Camille, 34 ans</h2>
       <div class="profile-photo-hint" style="margin-top:2px;" onclick="openEditProfile()">✏️ Modifier mon profil</div>
       <div class="profile-photo-hint" onclick="openMyReports()">🚩 Mes signalements</div>
-      <div class="profile-photo-hint" onclick="runSecurityTest()">🔒 Tester la sécurité (temporaire)</div>
       <div class="profile-photo-hint" id="admin-access-link" style="display:none;" onclick="openAdminReports()">🛠️ Signalements à traiter (admin)</div>
       <div class="verified">✓ Identité vérifiée (KYC)</div>
       <div class="profile-badge-row">
@@ -3003,35 +3002,6 @@ const passionTaglines = {
 let passionsInitialized = false;
 // --- Mes signalements (utilisateur normal) ---
 // --- Test de sécurité temporaire, à retirer une fois confirmé ---
-async function runSecurityTest(){
-  if(!supabaseClient){
-    showToast('Debug sécurité : Supabase indisponible', '⚠️');
-    return;
-  }
-  try{
-    const { data: viewData, error: viewErr } = await supabaseClient.from('my_activity_reports').select('*');
-    if(viewErr){
-      showToast('Debug vue (erreur) : ' + viewErr.message, '⚠️');
-    } else {
-      const cols = viewData && viewData.length ? Object.keys(viewData[0]).join(', ') : '(0 ligne, mais requête réussie)';
-      showToast('Debug vue my_activity_reports : ' + viewData.length + ' ligne(s) — colonnes : ' + cols, 'ℹ️');
-    }
-  } catch(e){
-    showToast('Debug vue : exception ' + e.message, '⚠️');
-  }
-
-  try{
-    const { data: baseData, error: baseErr } = await supabaseClient.from('activity_reports').select('*');
-    if(baseErr){
-      showToast('Debug table de base (erreur, attendu si bloqué) : ' + baseErr.message, 'ℹ️');
-    } else {
-      showToast('Debug table de base activity_reports : ' + baseData.length + ' ligne(s) renvoyée(s)', baseData.length === 0 ? '✅' : '⚠️');
-    }
-  } catch(e){
-    showToast('Debug table de base : exception ' + e.message, '⚠️');
-  }
-}
-
 async function openMyReports(){
   showScreen('my-reports');
   const list = document.getElementById('my-reports-list');
