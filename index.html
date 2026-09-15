@@ -6045,6 +6045,10 @@ async function openActivityReportModal(){
     showToast("Connectez-vous pour signaler une activité.", "⚠️");
     return;
   }
+  if(currentActivityDetail.organizerId === myProfile.supabaseId){
+    showToast("Vous ne pouvez pas signaler votre propre activité.", "ℹ️");
+    return;
+  }
   selectedReportReason = null;
   document.querySelectorAll('#report-reason-options .pill').forEach(p => p.classList.remove('sel'));
   document.getElementById('report-details-input').value = '';
