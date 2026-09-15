@@ -6213,12 +6213,13 @@ async function openActivityReportModal(){
   document.querySelectorAll('#report-reason-options .pill').forEach(p => p.classList.remove('sel'));
   document.getElementById('report-details-input').value = '';
 
-  // Vérifie si un signalement existe déjà — la contrainte unique en base reste
-  // la vraie garantie en dernier ressort, ceci n'est qu'un confort d'affichage.
+  // Vérifie si un signalement existe déjà — via la vue accessible aux utilisateurs
+  // normaux (la table de base n'est plus lisible directement) ; la contrainte
+  // unique en base reste de toute façon la vraie garantie en dernier ressort.
   try{
     const { data: existing } = await supabaseClient
-      .from('activity_reports').select('id')
-      .eq('activity_id', currentActivityDetail.id).eq('reporter_id', myProfile.supabaseId).maybeSingle();
+      .from('my_activity_reports').select('id')
+      .eq('activity_id', currentActivityDetail.id).maybeSingle();
     if(existing){
       showToast('Vous avez déjà signalé cette activité.', 'ℹ️');
       return;
