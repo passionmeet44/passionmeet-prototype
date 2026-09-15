@@ -1916,7 +1916,7 @@
     <div class="premium-top">
       <div class="detail-back" onclick="showScreen(premiumReturnScreen)" style="position:absolute; top:20px; left:16px; background:rgba(255,255,255,0.2); color:#fff;">←</div>
       <h2>PassionMeet Premium</h2>
-      <p>Choisissez la formule qui vous correspond</p>
+      <p id="premium-real-status">Choisissez la formule qui vous correspond</p>
     </div>
     <div class="tier-tabs">
       <div class="tier-tab" id="tab-tier-free" onclick="switchTier('free')">Gratuit</div>
@@ -2905,7 +2905,7 @@ function showScreen(name){
   incoming.classList.add('screen-anim');
   if(name==='passions' && !passionsInitialized){ renderPassionList(); }
   if(name==='signup-photos'){ renderPhotoGrid(); }
-  if(name==='premium'){ renderTierPanel(); }
+  if(name==='premium'){ renderTierPanel(); updatePremiumStatusDisplay(); }
   const nav = document.getElementById('bottom-nav');
   const fab = document.getElementById('nav-fab');
   const fabPlate = document.getElementById('nav-fab-plate');
@@ -3249,6 +3249,9 @@ function mapSupabaseProfileToMyProfile(row){
   if(row.max_age != null) myProfile.ageMax = row.max_age;
   if(row.max_distance != null) myProfile.radiusKm = row.max_distance;
   isPremiumUser = !!row.is_premium;
+  // Même formule exacte que le trigger SQL côté serveur : jamais de logique différente.
+  myProfile.premiumUntil = row.premium_until || null;
+  myProfile.isPremiumActive = !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date());
 }
 
 async function saveProfileToSupabase(){
@@ -5613,10 +5616,36 @@ function moderateActivityContent(title, description, location){
   return { status: 'active', reason: null };
 }
 
+// Compte rapide, côté client, uniquement pour un retour immédiat à l'utilisateur —
+// ne remplace jamais la vraie protection, qui est appliquée par le trigger Supabase.
+async function getActiveOwnActivitiesCount(){
+  if(!supabaseClient || !myProfile.supabaseId) return 0;
+  try{
+    const { count } = await supabaseClient
+      .from('activities')
+      .select('id', { count: 'exact', head: true })
+      .eq('organizer_profile_id', myProfile.supabaseId)
+      .in('moderation_status', ['active', 'pending_review']);
+    return count || 0;
+  } catch(e){
+    return 0;
+  }
+}
+
+function showPremiumLimitMessage(errBox){
+  errBox.innerHTML = "Votre compte gratuit permet actuellement une seule activité active ou en attente de validation. " +
+    "<span class=\"report-link\" style=\"display:inline; cursor:pointer;\" onclick=\"showScreen('premium')\">Passer à Premium</span> pour créer davantage d'activités.";
+  errBox.style.display = 'block';
+}
+
 async function submitRealActivity(){
   const errBox = document.getElementById('ract-form-error');
   const submitBtn = document.getElementById('ract-form-submit');
   errBox.style.display = 'none';
+
+  // Désactivé dès le tout premier instant, pour empêcher un double-clic ou deux
+  // tentatives rapprochées — réactivé explicitement à chaque sortie anticipée.
+  submitBtn.disabled = true;
 
   const title = document.getElementById('ract-form-title').value.trim();
   const description = document.getElementById('ract-form-desc').value.trim();
@@ -5633,11 +5662,13 @@ async function submitRealActivity(){
   if(!title || !category || !date || !location){
     errBox.textContent = "Merci de renseigner au moins le titre, la catégorie, la date et le lieu.";
     errBox.style.display = 'block';
+    submitBtn.disabled = false;
     return;
   }
   if(!supabaseClient || !myProfile.supabaseId){
     errBox.textContent = "Impossible de publier pour le moment : connexion à Supabase indisponible.";
     errBox.style.display = 'block';
+    submitBtn.disabled = false;
     return;
   }
 
@@ -5647,10 +5678,21 @@ async function submitRealActivity(){
   if(moderation.status === 'rejected'){
     errBox.textContent = moderation.reason;
     errBox.style.display = 'block';
+    submitBtn.disabled = false;
     return;
   }
 
-  submitBtn.disabled = true;
+  // Vérification rapide côté client, pour un retour immédiat — la vraie
+  // protection est de toute façon appliquée par Supabase juste après.
+  if(!myProfile.isPremiumActive){
+    const activeCount = await getActiveOwnActivitiesCount();
+    if(activeCount >= 1){
+      showPremiumLimitMessage(errBox);
+      submitBtn.disabled = false;
+      return;
+    }
+  }
+
   submitBtn.textContent = 'Publication en cours…';
 
   try{
@@ -5682,9 +5724,13 @@ async function submitRealActivity(){
     }
     showScreen('activities-list');
   } catch(e){
-    console.warn('[Activités] Publication impossible :', e.message);
-    errBox.textContent = "La publication a échoué : " + e.message;
-    errBox.style.display = 'block';
+    if(e.message && e.message.includes('FREE_ACTIVITY_LIMIT_REACHED')){
+      showPremiumLimitMessage(errBox);
+    } else {
+      console.warn('[Activités] Publication impossible :', e.message);
+      errBox.textContent = "La publication a échoué, réessayez.";
+      errBox.style.display = 'block';
+    }
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = "Publier l'activité";
@@ -6736,9 +6782,22 @@ function renderTierPanel(){
 
 function subscribeTier(key){
   if(key === 'free') return;
-  isPremiumUser = true;
-  const btn = document.querySelector('.tier-cta.' + tiers[key].cta.class);
-  if(btn) btn.textContent = "Abonnement activé ✓ (paiement à connecter)";
+  // Le paiement réel n'est pas encore connecté : on ne simule jamais un faux
+  // abonnement — is_premium/premium_until ne peuvent de toute façon plus être
+  // modifiés depuis le navigateur (protégés côté Supabase).
+  showToast("Le paiement arrive bientôt — cette formule n'est pas encore activable.", "🔧");
+}
+
+function updatePremiumStatusDisplay(){
+  const el = document.getElementById('premium-real-status');
+  if(!el) return;
+  if(myProfile.isPremiumActive){
+    el.textContent = myProfile.premiumUntil
+      ? `Premium actif jusqu'au ${new Date(myProfile.premiumUntil).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'})}`
+      : 'Premium actif (sans date d\'expiration)';
+  } else {
+    el.textContent = 'Compte gratuit — choisissez la formule qui vous correspond';
+  }
 }
 
 switchTier('plus');
