@@ -1554,6 +1554,8 @@
       </div>
       <h2 id="profile-name">Camille, 34 ans</h2>
       <div class="profile-photo-hint" style="margin-top:2px;" onclick="openEditProfile()">✏️ Modifier mon profil</div>
+      <div class="profile-photo-hint" onclick="openMyReports()">🚩 Mes signalements</div>
+      <div class="profile-photo-hint" id="admin-access-link" style="display:none;" onclick="openAdminReports()">🛠️ Signalements à traiter (admin)</div>
       <div class="verified">✓ Identité vérifiée (KYC)</div>
       <div class="profile-badge-row">
         <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>
@@ -1679,6 +1681,24 @@
 
       <button class="btn-primary" style="width:100%; margin-top:22px;" id="ract-form-submit" onclick="submitRealActivity()">Publier l'activité</button>
     </div>
+  </div>
+
+  <!-- MES SIGNALEMENTS -->
+  <div class="screen" id="screen-my-reports">
+    <div class="msg-header">
+      <div class="detail-back" onclick="showScreen('profile')" style="position:absolute; top:20px; left:16px;">←</div>
+      <h1 style="padding-left:44px;">Mes signalements</h1>
+    </div>
+    <div id="my-reports-list" style="padding:0 20px;"></div>
+  </div>
+
+  <!-- ADMIN : SIGNALEMENTS À TRAITER -->
+  <div class="screen" id="screen-admin-reports">
+    <div class="msg-header">
+      <div class="detail-back" onclick="showScreen('profile')" style="position:absolute; top:20px; left:16px;">←</div>
+      <h1 style="padding-left:44px;">Signalements à traiter</h1>
+    </div>
+    <div id="admin-reports-list" style="padding:0 20px;"></div>
   </div>
 
   <!-- ACTIVITY DETAIL (réelle, Supabase) -->
@@ -2980,6 +3000,142 @@ const passionTaglines = {
 };
 
 let passionsInitialized = false;
+// --- Mes signalements (utilisateur normal) ---
+async function openMyReports(){
+  showScreen('my-reports');
+  const list = document.getElementById('my-reports-list');
+  if(!supabaseClient || !myProfile.supabaseId){
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>🚩</span>Connectez-vous pour voir vos signalements.</div>`;
+    return;
+  }
+  list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⏳</span>Chargement…</div>`;
+  try{
+    const { data, error } = await supabaseClient
+      .from('my_activity_reports')
+      .select('id, activity_id, reason, status, created_at')
+      .order('created_at', { ascending: false });
+    if(error) throw error;
+
+    if(!data || data.length === 0){
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>🚩</span>Vous n'avez signalé aucune activité pour l'instant.</div>`;
+      return;
+    }
+
+    const statusLabels = { pending: 'En attente', reviewed: 'Examiné', dismissed: 'Classé sans suite', action_taken: 'Action prise' };
+
+    const cards = await Promise.all(data.map(async (r) => {
+      let title = 'Activité';
+      try{
+        const { data: a } = await supabaseClient.from('activities').select('title').eq('id', r.activity_id).maybeSingle();
+        if(a && a.title) title = a.title;
+      } catch(e){}
+      const dateLabel = new Date(r.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+      return `
+        <div class="card"><div class="card-body" style="padding-top:16px;">
+          <h3>${escapeHtml(title)}</h3>
+          <div class="card-meta"><span>📅 ${dateLabel}</span></div>
+          <div class="card-meta"><span>Motif : ${escapeHtml(r.reason)}</span></div>
+          <div style="margin-top:6px;"><span class="msg-mode-tag friend">${statusLabels[r.status] || r.status}</span></div>
+        </div></div>
+      `;
+    }));
+    list.innerHTML = cards.join('');
+  } catch(e){
+    console.warn('[Signalements] Chargement impossible :', e.message);
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⚠️</span>Impossible de charger vos signalements pour le moment.</div>`;
+  }
+}
+
+// --- Signalements à traiter (administrateur) ---
+async function openAdminReports(){
+  if(!myProfile.isAdmin){
+    showToast("Accès réservé aux administrateurs.", "⚠️");
+    return;
+  }
+  showScreen('admin-reports');
+  await renderAdminReportsList();
+}
+
+async function renderAdminReportsList(){
+  const list = document.getElementById('admin-reports-list');
+  if(!supabaseClient){
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>🛠️</span>Indisponible hors connexion.</div>`;
+    return;
+  }
+  list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⏳</span>Chargement…</div>`;
+  try{
+    const { data, error } = await supabaseClient
+      .from('activity_reports')
+      .select('id, activity_id, reporter_id, reason, details, status, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    if(error) throw error;
+
+    if(!data || data.length === 0){
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>✅</span>Aucun signalement en attente.</div>`;
+      return;
+    }
+
+    const cards = await Promise.all(data.map(async (r) => {
+      let activityTitle = 'Activité';
+      try{
+        const { data: a } = await supabaseClient.from('activities').select('title').eq('id', r.activity_id).maybeSingle();
+        if(a && a.title) activityTitle = a.title;
+      } catch(e){}
+      let reporterName = 'Membre';
+      try{
+        const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', r.reporter_id).maybeSingle();
+        if(p && p.first_name) reporterName = p.first_name;
+      } catch(e){}
+      const dateLabel = new Date(r.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+
+      return `
+        <div class="card"><div class="card-body" style="padding-top:16px;">
+          <h3>${escapeHtml(activityTitle)}</h3>
+          <div class="card-meta"><span>📅 ${dateLabel} · Par ${escapeHtml(reporterName)}</span></div>
+          <div class="card-meta"><span>Motif : ${escapeHtml(r.reason)}</span></div>
+          ${r.details ? `<div class="card-meta"><span>Précisions : ${escapeHtml(r.details)}</span></div>` : ''}
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
+            <button class="btn-primary" style="padding:8px 12px; font-size:12px;" onclick="resolveActivityReport('${r.id}','${r.activity_id}','hide')">Masquer</button>
+            <button class="btn-primary" style="padding:8px 12px; font-size:12px; background:linear-gradient(135deg,#B24B4B,#7A2E2E);" onclick="resolveActivityReport('${r.id}','${r.activity_id}','reject')">Rejeter</button>
+            <button class="btn-primary" style="padding:8px 12px; font-size:12px; background:linear-gradient(135deg,#B0A0B5,#6B5872);" onclick="resolveActivityReport('${r.id}','${r.activity_id}','dismiss')">Classer sans suite</button>
+          </div>
+        </div></div>
+      `;
+    }));
+    list.innerHTML = cards.join('');
+  } catch(e){
+    console.warn('[Admin] Chargement des signalements impossible :', e.message);
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⚠️</span>Impossible de charger les signalements.</div>`;
+  }
+}
+
+async function resolveActivityReport(reportId, activityId, decision){
+  if(!myProfile.isAdmin || !supabaseClient) return;
+  try{
+    if(decision === 'hide' || decision === 'reject'){
+      const { error: actErr } = await supabaseClient.from('activities').update({
+        moderation_status: decision === 'hide' ? 'hidden' : 'rejected',
+        moderated_at: new Date().toISOString(),
+        moderated_by: myProfile.supabaseId
+      }).eq('id', activityId);
+      if(actErr) throw actErr;
+    }
+    const { error: repErr } = await supabaseClient.from('activity_reports').update({
+      status: decision === 'dismiss' ? 'dismissed' : 'action_taken',
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: myProfile.supabaseId
+    }).eq('id', reportId);
+    if(repErr) throw repErr;
+
+    showToast('Signalement traité', '✅');
+    renderAdminReportsList();
+  } catch(e){
+    console.warn('[Admin] Traitement impossible :', e.message);
+    showToast("Le traitement a échoué, réessayez.", "⚠️");
+  }
+}
+
 function openEditProfile(){
   document.getElementById('edit-name').value = myProfile.name || '';
   document.getElementById('edit-age').value = myProfile.age || '';
@@ -3252,6 +3408,7 @@ function mapSupabaseProfileToMyProfile(row){
   // Même formule exacte que le trigger SQL côté serveur : jamais de logique différente.
   myProfile.premiumUntil = row.premium_until || null;
   myProfile.isPremiumActive = !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date());
+  myProfile.isAdmin = !!row.is_admin;
 }
 
 async function saveProfileToSupabase(){
@@ -3750,6 +3907,8 @@ function computeProfileCompletion(){
 function renderProfileScreen(){
   const nameEl = document.getElementById('profile-name');
   if(nameEl) nameEl.textContent = myProfile.name + (myProfile.age ? ', ' + myProfile.age + ' ans' : '');
+  const adminLinkEl = document.getElementById('admin-access-link');
+  if(adminLinkEl) adminLinkEl.style.display = myProfile.isAdmin ? 'block' : 'none';
   const bioEl = document.getElementById('profile-bio');
   if(bioEl) bioEl.textContent = myProfile.bio || 'Aucune bio renseignée pour le moment.';
   const kidsEl = document.getElementById('profile-kids-badge');
