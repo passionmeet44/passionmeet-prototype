@@ -1666,7 +1666,10 @@
       <input class="form-input" id="ract-form-time" type="time">
 
       <div class="form-label">Lieu</div>
-      <input class="form-input" id="ract-form-location" type="text" placeholder="Ex : Nantes, Parc de la Beaujoire">
+      <div style="position:relative;">
+        <input class="form-input" id="ract-form-location" type="text" placeholder="Ex : Nantes, Parc de la Beaujoire" oninput="onActivityLocationInput(this.value)" autocomplete="off">
+        <div id="ract-location-suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:14px; box-shadow:0 8px 20px rgba(62,31,68,0.18); z-index:20; max-height:220px; overflow-y:auto; margin-top:4px;"></div>
+      </div>
 
       <div class="form-label">Nombre maximum de participants (facultatif)</div>
       <input class="form-input" id="ract-form-max" type="number" min="1" placeholder="Ex : 8">
@@ -5812,9 +5815,48 @@ function selectActivityMode(mode){
   document.getElementById('ract-form-mode-love').className = 'mode-badge ' + (mode === 'love' ? 'love-on' : 'off');
 }
 
+let selectedLocationCoords = null;
+let locationSuggestTimer = null;
+
+function onActivityLocationInput(value){
+  selectedLocationCoords = null; // toute frappe manuelle invalide une suggestion précédente
+  clearTimeout(locationSuggestTimer);
+  const box = document.getElementById('ract-location-suggestions');
+  if(!value || value.trim().length < 3){
+    box.style.display = 'none';
+    return;
+  }
+  locationSuggestTimer = setTimeout(async () => {
+    try{
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=fr&q=${encodeURIComponent(value)}`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'fr' } });
+      if(!res.ok) return;
+      const results = await res.json();
+      if(!results || results.length === 0){
+        box.style.display = 'none';
+        return;
+      }
+      box.innerHTML = results.map((r, i) =>
+        `<div style="padding:10px 14px; border-bottom:1px solid #F0E9F0; cursor:pointer;" onclick="selectActivityLocationSuggestion(${i})">${escapeHtml(r.display_name)}</div>`
+      ).join('');
+      window.__locationSuggestionResults = results;
+      box.style.display = 'block';
+    } catch(e){ /* pas grave, l'utilisateur peut continuer à taper librement */ }
+  }, 400);
+}
+
+function selectActivityLocationSuggestion(index){
+  const r = (window.__locationSuggestionResults || [])[index];
+  if(!r) return;
+  document.getElementById('ract-form-location').value = r.display_name;
+  selectedLocationCoords = { lat: parseFloat(r.lat), lng: parseFloat(r.lon) };
+  document.getElementById('ract-location-suggestions').style.display = 'none';
+}
+
 // Traduit un texte de lieu ("Nantes, Parc de la Beaujoire") en coordonnées GPS
 // réelles, via un service de géocodage gratuit (OpenStreetMap/Nominatim) — ne
 // devine jamais, renvoie simplement null si le lieu n'est pas reconnu.
+// Utilisé uniquement en secours si l'utilisateur n'a pas choisi de suggestion.
 async function geocodeLocation(query){
   if(!query || !query.trim()) return null;
   try{
@@ -5831,6 +5873,8 @@ async function geocodeLocation(query){
 }
 
 function openCreateActivityReal(){
+  selectedLocationCoords = null;
+  document.getElementById('ract-location-suggestions').style.display = 'none';
   document.getElementById('ract-form-title').value = '';
   document.getElementById('ract-form-desc').value = '';
   document.getElementById('ract-form-date').value = '';
@@ -6041,7 +6085,7 @@ async function submitRealActivity(){
   }
 
   submitBtn.textContent = 'Localisation du lieu…';
-  const geo = await geocodeLocation(location);
+  const geo = selectedLocationCoords || await geocodeLocation(location);
   submitBtn.textContent = 'Publication en cours…';
 
   try{
