@@ -4823,7 +4823,8 @@ function mapSupabaseRowToSwipeCard(row, photoUrl){
     longitude: row.longitude,
     photo: photoUrl,
     isRealProfile: true,
-    supabaseId: row.id
+    supabaseId: row.id,
+    isPremiumActive: !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date())
   };
 }
 
@@ -4850,7 +4851,7 @@ async function loadRealSwipeProfiles(){
     // pour voir absolument toutes les lignes que Supabase accepte de nous renvoyer.
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed')
+      .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, is_premium, premium_until')
       .neq('firebase_uid', excludeUid);
     if(error) throw error;
 
@@ -4947,16 +4948,18 @@ function applyRadiusFilter(){
     (swipeModeFilter === 'tous' || p.modes.includes(swipeModeFilter))
   );
 
-  // Priorité aux passions communes, sans jamais exclure personne : on réordonne
-  // seulement, ceux qui partagent au moins une passion passent devant.
-  if(prioritizeSharedPassions){
-    const myInterests = (myProfile.interests || []).map(i => i.toLowerCase());
-    const sharedCount = (p) => (p.tags || []).filter(t => myInterests.some(i => i.includes(t.toLowerCase()) || t.toLowerCase().includes(i))).length;
-    filteredProfiles = filteredProfiles
-      .map((p, idx) => ({ p, idx, score: sharedCount(p) }))
-      .sort((a, b) => (b.score - a.score) || (a.idx - b.idx))
-      .map(x => x.p);
-  }
+  // Deux critères de réordonnancement, jamais d'exclusion : d'abord les passions
+  // communes si ce réglage est activé, puis une meilleure visibilité pour les
+  // profils Premium — un profil non-Premium reste toujours visible, juste plus loin.
+  const myInterests = (myProfile.interests || []).map(i => i.toLowerCase());
+  const sharedCount = (p) => prioritizeSharedPassions
+    ? (p.tags || []).filter(t => myInterests.some(i => i.includes(t.toLowerCase()) || t.toLowerCase().includes(i))).length
+    : 0;
+
+  filteredProfiles = filteredProfiles
+    .map((p, idx) => ({ p, idx, passionScore: sharedCount(p), premiumScore: p.isPremiumActive ? 1 : 0 }))
+    .sort((a, b) => (b.passionScore - a.passionScore) || (b.premiumScore - a.premiumScore) || (a.idx - b.idx))
+    .map(x => x.p);
 }
 
 function initSwipe(){
