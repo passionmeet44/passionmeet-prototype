@@ -1667,7 +1667,7 @@
 
       <div class="form-label">Lieu</div>
       <div style="position:relative;">
-        <input class="form-input" id="ract-form-location" type="text" placeholder="Ex : Nantes, Parc de la Beaujoire" oninput="onActivityLocationInput(this.value)" autocomplete="off">
+        <input class="form-input" id="ract-form-location" type="text" placeholder="Ex : Le Comptoir Nantes, ou juste Nantes" oninput="onActivityLocationInput(this.value)" autocomplete="off">
         <div id="ract-location-suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:14px; box-shadow:0 8px 20px rgba(62,31,68,0.18); z-index:20; max-height:220px; overflow-y:auto; margin-top:4px;"></div>
       </div>
 
@@ -5828,7 +5828,7 @@ function onActivityLocationInput(value){
   }
   locationSuggestTimer = setTimeout(async () => {
     try{
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=fr&q=${encodeURIComponent(value)}`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=fr&addressdetails=1&q=${encodeURIComponent(value)}`;
       const res = await fetch(url, { headers: { 'Accept-Language': 'fr' } });
       if(!res.ok) return;
       const results = await res.json();
@@ -5836,8 +5836,13 @@ function onActivityLocationInput(value){
         box.style.display = 'none';
         return;
       }
+      const typeEmoji = (r) => {
+        const map = { restaurant:'🍽️', bar:'🍷', cafe:'☕', pub:'🍺', fast_food:'🍔',
+          city:'🏙️', town:'🏘️', village:'🏘️', park:'🌳', cinema:'🎬', theatre:'🎭' };
+        return map[r.type] || (r.class === 'amenity' || r.class === 'leisure' || r.class === 'shop' ? '📍' : '🏙️');
+      };
       box.innerHTML = results.map((r, i) =>
-        `<div style="padding:10px 14px; border-bottom:1px solid #F0E9F0; cursor:pointer;" onclick="selectActivityLocationSuggestion(${i})">${escapeHtml(r.display_name)}</div>`
+        `<div style="padding:10px 14px; border-bottom:1px solid #F0E9F0; cursor:pointer;" onclick="selectActivityLocationSuggestion(${i})">${typeEmoji(r)} ${escapeHtml(r.display_name)}</div>`
       ).join('');
       window.__locationSuggestionResults = results;
       box.style.display = 'block';
