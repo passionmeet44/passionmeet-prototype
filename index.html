@@ -1667,7 +1667,6 @@
 
       <div class="form-label">Lieu</div>
       <input class="form-input" id="ract-form-location" type="text" placeholder="Ex : Nantes, Parc de la Beaujoire">
-      <div class="report-link" id="ract-form-geo-status" style="text-align:left; margin-top:6px; cursor:pointer;" onclick="useCurrentLocationForActivity()">📍 Utiliser ma position actuelle (facultatif, pour le filtre de distance)</div>
 
       <div class="form-label">Nombre maximum de participants (facultatif)</div>
       <input class="form-input" id="ract-form-max" type="number" min="1" placeholder="Ex : 8">
@@ -5813,31 +5812,25 @@ function selectActivityMode(mode){
   document.getElementById('ract-form-mode-love').className = 'mode-badge ' + (mode === 'love' ? 'love-on' : 'off');
 }
 
-let pendingActivityCoords = null;
-
-function useCurrentLocationForActivity(){
-  if(!navigator.geolocation){
-    showToast("La localisation n'est pas disponible sur cet appareil.", "⚠️");
-    return;
+// Traduit un texte de lieu ("Nantes, Parc de la Beaujoire") en coordonnées GPS
+// réelles, via un service de géocodage gratuit (OpenStreetMap/Nominatim) — ne
+// devine jamais, renvoie simplement null si le lieu n'est pas reconnu.
+async function geocodeLocation(query){
+  if(!query || !query.trim()) return null;
+  try{
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=fr&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'fr' } });
+    if(!res.ok) return null;
+    const results = await res.json();
+    if(!results || results.length === 0) return null;
+    return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+  } catch(e){
+    console.warn('[Activités] Géocodage impossible :', e.message);
+    return null;
   }
-  const statusEl = document.getElementById('ract-form-geo-status');
-  statusEl.textContent = '📍 Récupération de votre position…';
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      pendingActivityCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      statusEl.textContent = '✅ Position actuelle enregistrée pour cette activité';
-    },
-    (err) => {
-      pendingActivityCoords = null;
-      statusEl.textContent = '📍 Utiliser ma position actuelle (facultatif, pour le filtre de distance)';
-      showToast("Position non disponible : " + err.message, "⚠️");
-    }
-  );
 }
 
 function openCreateActivityReal(){
-  pendingActivityCoords = null;
-  document.getElementById('ract-form-geo-status').textContent = '📍 Utiliser ma position actuelle (facultatif, pour le filtre de distance)';
   document.getElementById('ract-form-title').value = '';
   document.getElementById('ract-form-desc').value = '';
   document.getElementById('ract-form-date').value = '';
@@ -6047,6 +6040,8 @@ async function submitRealActivity(){
     }
   }
 
+  submitBtn.textContent = 'Localisation du lieu…';
+  const geo = await geocodeLocation(location);
   submitBtn.textContent = 'Publication en cours…';
 
   try{
@@ -6064,8 +6059,8 @@ async function submitRealActivity(){
       activity_date: date,
       activity_time: time || null,
       location,
-      latitude: pendingActivityCoords ? pendingActivityCoords.lat : null,
-      longitude: pendingActivityCoords ? pendingActivityCoords.lng : null,
+      latitude: geo ? geo.lat : null,
+      longitude: geo ? geo.lng : null,
       max_participants: maxParticipants,
       mode: mode,
       moderation_status: moderation.status,
