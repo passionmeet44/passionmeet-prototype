@@ -1667,6 +1667,7 @@
 
       <div class="form-label">Lieu</div>
       <input class="form-input" id="ract-form-location" type="text" placeholder="Ex : Nantes, Parc de la Beaujoire">
+      <div class="report-link" id="ract-form-geo-status" style="text-align:left; margin-top:6px; cursor:pointer;" onclick="useCurrentLocationForActivity()">📍 Utiliser ma position actuelle (facultatif, pour le filtre de distance)</div>
 
       <div class="form-label">Nombre maximum de participants (facultatif)</div>
       <input class="form-input" id="ract-form-max" type="number" min="1" placeholder="Ex : 8">
@@ -1798,6 +1799,7 @@
         </select>
       </div>
       <div id="activity-filters-active" class="report-link" style="display:none; text-align:left; margin-top:8px;" onclick="resetActivityFilters()">✕ Réinitialiser les filtres</div>
+      <div class="form-hint" style="margin-top:8px;">📍 Distance : dans un rayon de <span id="activity-radius-label"></span> (réglable depuis Découvrir)</div>
     </div>
     <div id="activity-suggestions-section" style="padding:0 20px;"></div>
     <div id="activities-real-list" style="padding:0 20px;"></div>
@@ -5811,7 +5813,31 @@ function selectActivityMode(mode){
   document.getElementById('ract-form-mode-love').className = 'mode-badge ' + (mode === 'love' ? 'love-on' : 'off');
 }
 
+let pendingActivityCoords = null;
+
+function useCurrentLocationForActivity(){
+  if(!navigator.geolocation){
+    showToast("La localisation n'est pas disponible sur cet appareil.", "⚠️");
+    return;
+  }
+  const statusEl = document.getElementById('ract-form-geo-status');
+  statusEl.textContent = '📍 Récupération de votre position…';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      pendingActivityCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      statusEl.textContent = '✅ Position actuelle enregistrée pour cette activité';
+    },
+    (err) => {
+      pendingActivityCoords = null;
+      statusEl.textContent = '📍 Utiliser ma position actuelle (facultatif, pour le filtre de distance)';
+      showToast("Position non disponible : " + err.message, "⚠️");
+    }
+  );
+}
+
 function openCreateActivityReal(){
+  pendingActivityCoords = null;
+  document.getElementById('ract-form-geo-status').textContent = '📍 Utiliser ma position actuelle (facultatif, pour le filtre de distance)';
   document.getElementById('ract-form-title').value = '';
   document.getElementById('ract-form-desc').value = '';
   document.getElementById('ract-form-date').value = '';
@@ -6038,6 +6064,8 @@ async function submitRealActivity(){
       activity_date: date,
       activity_time: time || null,
       location,
+      latitude: pendingActivityCoords ? pendingActivityCoords.lat : null,
+      longitude: pendingActivityCoords ? pendingActivityCoords.lng : null,
       max_participants: maxParticipants,
       mode: mode,
       moderation_status: moderation.status,
@@ -6123,10 +6151,12 @@ async function renderActivitiesList(){
     return;
   }
   list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⏳</span>Chargement des activités…</div>`;
+  const radiusLabelEl = document.getElementById('activity-radius-label');
+  if(radiusLabelEl) radiusLabelEl.textContent = currentRadius + ' km';
   try{
     const { data: rawData, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude')
       .order('created_at', { ascending: false });
     if(error) throw error;
 
@@ -6150,11 +6180,21 @@ async function renderActivitiesList(){
       return;
     }
 
-    // Recherche + catégorie + date : ne masquent jamais brutalement tout,
-    // juste un état vide clair avec réinitialisation si rien ne correspond
+    // Distance à l'utilisateur : calculée uniquement pour les activités qui ont
+    // des coordonnées. Réutilise le même rayon que Découvrir (currentRadius) —
+    // pas de nouveau réglage séparé. Une activité sans coordonnées n'est jamais
+    // exclue, juste affichée sans distance connue.
+    const getActivityDistance = (a) => (a.latitude != null && a.longitude != null)
+      ? haversineKm(userCoords[0], userCoords[1], a.latitude, a.longitude)
+      : null;
+
+    // Recherche + catégorie + date + distance : ne masquent jamais brutalement
+    // tout, juste un état vide clair avec réinitialisation si rien ne correspond
     const filteredData = data.filter(a => {
       if(activityCategoryFilter !== 'tous' && a.category !== activityCategoryFilter) return false;
       if(!matchesActivityDatePeriod(a.activity_date, activityDateFilter)) return false;
+      const dist = getActivityDistance(a);
+      if(dist != null && dist > currentRadius) return false; // filtre uniquement si la distance est connue
       if(activitySearchQuery){
         const catLabel = (categories.find(c => c.key === a.category) || {}).label || '';
         const haystack = `${a.title || ''} ${a.description || ''} ${catLabel}`.toLowerCase();
@@ -6168,8 +6208,9 @@ async function renderActivitiesList(){
       return;
     }
 
-    // Classement intelligent : passions communes, puis mode compatible, puis date
-    // la plus proche — jamais d'exclusion, seulement un réordonnancement.
+    // Classement intelligent : passions communes, puis mode compatible, puis
+    // distance connue la plus proche, puis date la plus proche — jamais
+    // d'exclusion, seulement un réordonnancement.
     const passionCategoryKeys = new Set(
       categories.filter(c => (myProfile.interests || []).some(i => i.includes(c.label))).map(c => c.key)
     );
@@ -6177,6 +6218,8 @@ async function renderActivitiesList(){
     const scored = filteredData.map(a => {
       const passionScore = passionCategoryKeys.has(a.category) ? 1 : 0;
       const modeScore = myModes.includes(a.mode) ? 1 : 0;
+      const dist = getActivityDistance(a);
+      const distanceValue = dist != null ? dist : Infinity; // distance inconnue = jamais prioritaire, jamais exclue
       let dayDiff = 9999;
       if(a.activity_date){
         try{
@@ -6186,10 +6229,10 @@ async function renderActivitiesList(){
           if(dayDiff < 0) dayDiff = 9999 + Math.abs(dayDiff);
         } catch(e){}
       }
-      return { a, passionScore, modeScore, dayDiff };
+      return { a, passionScore, modeScore, distanceValue, dayDiff, distanceKm: dist };
     });
-    scored.sort((x,y) => (y.passionScore - x.passionScore) || (y.modeScore - x.modeScore) || (x.dayDiff - y.dayDiff));
-    const sortedData = scored.map(s => s.a);
+    scored.sort((x,y) => (y.passionScore - x.passionScore) || (y.modeScore - x.modeScore) || (x.distanceValue - y.distanceValue) || (x.dayDiff - y.dayDiff));
+    const sortedData = scored.map(s => ({ ...s.a, distanceKm: s.distanceKm }));
 
     const cards = await Promise.all(sortedData.map(async (a) => {
       const cat = categories.find(c => c.key === a.category);
@@ -6238,7 +6281,7 @@ async function renderActivitiesList(){
           <div class="card-body">
             <h3>${escapeHtml(a.title)}</h3>
             <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
-            <div class="card-meta"><span>📍 ${escapeHtml(a.location) || 'Lieu à définir'}</span></div>
+            <div class="card-meta"><span>📍 ${escapeHtml(a.location) || 'Lieu à définir'}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm)+' km' : ' · distance non disponible'}</span></div>
             <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${escapeHtml(organizerName)}</span></div>
             <div style="margin-top:6px;">${modeTagHtml}</div>
           </div>
@@ -6384,7 +6427,7 @@ async function fetchSingleActivityForDetail(activityId){
   try{
     const { data: a, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude')
       .eq('id', activityId).maybeSingle();
     if(error || !a) throw (error || new Error('introuvable'));
     const cat = categories.find(c => c.key === a.category);
@@ -6396,12 +6439,15 @@ async function fetchSingleActivityForDetail(activityId){
       if(org && org.first_name) organizerName = org.first_name;
     } catch(e){}
     const resolvedPhotoUrl = await resolveActivityPhotoUrl(a.photo_url, a.id);
+    const distanceKm = (a.latitude != null && a.longitude != null)
+      ? haversineKm(userCoords[0], userCoords[1], a.latitude, a.longitude)
+      : null;
     return {
       id: a.id, title: a.title, description: a.description, category: a.category,
       activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
       organizerName, organizerId: a.organizer_profile_id, emoji, bg,
       maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode,
-      moderationStatus: a.moderation_status || 'active'
+      moderationStatus: a.moderation_status || 'active', distanceKm
     };
   } catch(e){
     console.warn('[Activités] Récupération directe impossible :', e.message);
@@ -6515,7 +6561,7 @@ async function openActivityDetail(activityId){
     ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})
     : 'Date à définir';
   document.getElementById('ract-when').textContent = `📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}`;
-  document.getElementById('ract-where').textContent = `📍 ${a.location || 'Lieu à définir'}`;
+  document.getElementById('ract-where').textContent = `📍 ${a.location || 'Lieu à définir'}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm)+' km' : ' · distance non disponible'}`;
   document.getElementById('ract-organizer').textContent = `🙋 Organisée par ${a.organizerName}`;
   document.getElementById('ract-mode').textContent = a.mode === 'love' ? '💜 Mode : Rencontre' : '🤝 Mode : Amitié';
   document.getElementById('ract-desc').textContent = a.description || '';
