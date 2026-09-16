@@ -1539,6 +1539,7 @@
     </div>
     <div class="swipe-stack" id="swipe-stack"></div>
     <div class="swipe-actions">
+      <button class="swipe-btn" id="swipe-undo-btn" style="background:linear-gradient(135deg,#B0A0B5,#6B5872); font-size:18px;" onclick="undoLastSwipe()">⏪</button>
       <button class="swipe-btn pass" onclick="swipeAction('pass')">✕</button>
       <button class="swipe-btn friend" onclick="swipeAction('friend')">🤝</button>
       <button class="swipe-btn love" onclick="swipeAction('love')">💜</button>
@@ -4961,6 +4962,9 @@ function applyRadiusFilter(){
 function initSwipe(){
   swipeInitialized = true;
   swipeIndex = 0;
+  lastSwipedProfile = null;
+  lastSwipedWasReal = false;
+  updateUndoButtonState();
   if(supabaseClient){
     loadRealSwipeProfiles();
   } else {
@@ -5082,6 +5086,55 @@ function onPointerUp(){
   dragState = null;
 }
 
+let lastSwipedProfile = null;
+let lastSwipedWasReal = false;
+
+function updateUndoButtonState(){
+  const btn = document.getElementById('swipe-undo-btn');
+  if(!btn) return;
+  const canUndo = !!(lastSwipedProfile && lastSwipedWasReal);
+  btn.style.opacity = canUndo ? '1' : '0.35';
+  btn.style.pointerEvents = canUndo ? 'auto' : 'none';
+}
+
+async function undoLastSwipe(){
+  if(!lastSwipedProfile || !lastSwipedWasReal){
+    return;
+  }
+  if(!myProfile.isPremiumActive){
+    showToast("Le retour en arrière est réservé aux membres Premium.", "🔒");
+    showScreen('premium');
+    return;
+  }
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { error } = await supabaseClient
+      .from('swipe_actions')
+      .delete()
+      .eq('from_profile_id', myProfile.supabaseId)
+      .eq('to_profile_id', lastSwipedProfile.supabaseId);
+    if(error){
+      if(error.message && error.message.includes('PREMIUM_REQUIRED_FOR_UNDO')){
+        showToast("Le retour en arrière est réservé aux membres Premium.", "🔒");
+        showScreen('premium');
+      } else {
+        console.warn('[Swipe] Annulation impossible :', error.message);
+        showToast("Impossible d'annuler ce swipe pour le moment.", "⚠️");
+      }
+      return;
+    }
+    swipeIndex = Math.max(swipeIndex - 1, 0);
+    renderSwipeStack();
+    showToast('Swipe annulé', '↩️');
+    lastSwipedProfile = null;
+    lastSwipedWasReal = false;
+    updateUndoButtonState();
+  } catch(e){
+    console.warn('[Swipe] Annulation impossible :', e.message);
+    showToast("Impossible d'annuler ce swipe pour le moment.", "⚠️");
+  }
+}
+
 function swipeAction(type){
   const card = document.querySelector('.swipe-card.top');
   if(!card) return;
@@ -5169,6 +5222,9 @@ function flyOut(card, type){
   if(isRealSwipe){
     recordSwipeAction(likedProfile.supabaseId, type);
   }
+  lastSwipedProfile = likedProfile || null;
+  lastSwipedWasReal = isRealSwipe;
+  updateUndoButtonState();
 
   setTimeout(async ()=>{
     swipeIndex++;
