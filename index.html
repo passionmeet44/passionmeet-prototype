@@ -1671,6 +1671,9 @@
         <div id="ract-location-suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:14px; box-shadow:0 8px 20px rgba(62,31,68,0.18); z-index:20; max-height:220px; overflow-y:auto; margin-top:4px;"></div>
       </div>
 
+      <div class="form-label">Point de rendez-vous précis (facultatif)</div>
+      <textarea class="form-textarea" id="ract-form-meeting-point" placeholder="Ex : devant l'entrée principale, Le Comptoir au 5 rue de la Paix…"></textarea>
+
       <div class="form-label">Nombre maximum de participants (facultatif)</div>
       <input class="form-input" id="ract-form-max" type="number" min="1" placeholder="Ex : 8">
 
@@ -1729,6 +1732,7 @@
       <h2 id="ract-title"></h2>
       <div class="detail-row" id="ract-when"></div>
       <div class="detail-row" id="ract-where"></div>
+      <div class="detail-row" id="ract-meeting-point" style="display:none;"></div>
       <div class="detail-row" id="ract-organizer"></div>
       <div class="detail-row" id="ract-mode"></div>
       <div class="detail-desc" id="ract-desc"></div>
@@ -5880,6 +5884,7 @@ async function geocodeLocation(query){
 function openCreateActivityReal(){
   selectedLocationCoords = null;
   document.getElementById('ract-location-suggestions').style.display = 'none';
+  document.getElementById('ract-form-meeting-point').value = '';
   document.getElementById('ract-form-title').value = '';
   document.getElementById('ract-form-desc').value = '';
   document.getElementById('ract-form-date').value = '';
@@ -6049,6 +6054,7 @@ async function submitRealActivity(){
   const date = document.getElementById('ract-form-date').value;
   const time = document.getElementById('ract-form-time').value;
   const location = document.getElementById('ract-form-location').value.trim();
+  const meetingPoint = document.getElementById('ract-form-meeting-point').value.trim();
   const maxRaw = document.getElementById('ract-form-max').value;
   const maxParticipants = maxRaw ? parseInt(maxRaw, 10) : null;
   const photoFile = document.getElementById('ract-form-photo').files[0] || null;
@@ -6108,6 +6114,7 @@ async function submitRealActivity(){
       activity_date: date,
       activity_time: time || null,
       location,
+      meeting_point: meetingPoint || null,
       latitude: geo ? geo.lat : null,
       longitude: geo ? geo.lng : null,
       max_participants: maxParticipants,
@@ -6200,7 +6207,7 @@ async function renderActivitiesList(){
   try{
     const { data: rawData, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point')
       .order('created_at', { ascending: false });
     if(error) throw error;
 
@@ -6305,7 +6312,7 @@ async function renderActivitiesList(){
         id: a.id, title: a.title, description: a.description, category: a.category,
         activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
         organizerName, organizerId: a.organizer_profile_id, emoji, bg,
-        maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode
+        maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode, meetingPoint: a.meeting_point
       });
 
       const dateLabel = a.activity_date
@@ -6471,7 +6478,7 @@ async function fetchSingleActivityForDetail(activityId){
   try{
     const { data: a, error } = await supabaseClient
       .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude')
+      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point')
       .eq('id', activityId).maybeSingle();
     if(error || !a) throw (error || new Error('introuvable'));
     const cat = categories.find(c => c.key === a.category);
@@ -6491,7 +6498,7 @@ async function fetchSingleActivityForDetail(activityId){
       activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
       organizerName, organizerId: a.organizer_profile_id, emoji, bg,
       maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode,
-      moderationStatus: a.moderation_status || 'active', distanceKm
+      moderationStatus: a.moderation_status || 'active', distanceKm, meetingPoint: a.meeting_point
     };
   } catch(e){
     console.warn('[Activités] Récupération directe impossible :', e.message);
@@ -6606,6 +6613,13 @@ async function openActivityDetail(activityId){
     : 'Date à définir';
   document.getElementById('ract-when').textContent = `📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}`;
   document.getElementById('ract-where').textContent = `📍 ${a.location || 'Lieu à définir'}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm)+' km' : ' · distance non disponible'}`;
+  const meetingEl = document.getElementById('ract-meeting-point');
+  if(a.meetingPoint){
+    meetingEl.textContent = `📌 Point de rendez-vous : ${a.meetingPoint}`;
+    meetingEl.style.display = 'block';
+  } else {
+    meetingEl.style.display = 'none';
+  }
   document.getElementById('ract-organizer').textContent = `🙋 Organisée par ${a.organizerName}`;
   document.getElementById('ract-mode').textContent = a.mode === 'love' ? '💜 Mode : Rencontre' : '🤝 Mode : Amitié';
   document.getElementById('ract-desc').textContent = a.description || '';
