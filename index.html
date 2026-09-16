@@ -5099,6 +5099,7 @@ function updateUndoButtonState(){
 
 async function undoLastSwipe(){
   if(!lastSwipedProfile || !lastSwipedWasReal){
+    showToast('Debug annulation : rien à annuler (lastSwipedProfile absent ou pas un vrai profil)', '⚠️');
     return;
   }
   if(!myProfile.isPremiumActive){
@@ -5108,11 +5109,13 @@ async function undoLastSwipe(){
   }
   if(!supabaseClient || !myProfile.supabaseId) return;
   try{
-    const { error } = await supabaseClient
+    const { data: deletedRows, error } = await supabaseClient
       .from('swipe_actions')
       .delete()
       .eq('from_profile_id', myProfile.supabaseId)
-      .eq('to_profile_id', lastSwipedProfile.supabaseId);
+      .eq('to_profile_id', lastSwipedProfile.supabaseId)
+      .select();
+    showToast('Debug annulation : erreur=' + (error ? error.message : 'aucune') + ' | lignes supprimées=' + (deletedRows ? deletedRows.length : 'inconnu'), error ? '⚠️' : 'ℹ️');
     if(error){
       if(error.message && error.message.includes('PREMIUM_REQUIRED_FOR_UNDO')){
         showToast("Le retour en arrière est réservé aux membres Premium.", "🔒");
