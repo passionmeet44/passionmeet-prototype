@@ -1841,6 +1841,16 @@
         <div class="pill" id="df-mode-love" onclick="setDiscoverModeFilter('love')">💜 Rencontre</div>
       </div>
 
+      <div class="form-label" style="margin-top:22px;">Genres recherchés</div>
+      <div class="pills" id="df-gender-pills">
+        <div class="pill" data-gender="homme" onclick="toggleDiscoverGenderPref(this)">Homme</div>
+        <div class="pill" data-gender="femme" onclick="toggleDiscoverGenderPref(this)">Femme</div>
+        <div class="pill" data-gender="non_binaire" onclick="toggleDiscoverGenderPref(this)">Non-binaire</div>
+        <div class="pill" data-gender="autre" onclick="toggleDiscoverGenderPref(this)">Autre</div>
+        <div class="pill" data-gender="ne_pas_preciser" onclick="toggleDiscoverGenderPref(this)">Préfère ne pas préciser</div>
+      </div>
+      <p style="font-size:11.5px; color:#B0A0B5; margin-top:4px;">Aucune sélection = tous les genres, y compris non renseigné</p>
+
       <div class="mode-card" id="df-passions-card" style="margin-top:22px;">
         <div class="mode-icon friend">❤️</div>
         <div class="mode-info"><h3>Passions communes en priorité</h3><p>Affiche d'abord les profils qui partagent au moins une passion avec vous</p></div>
@@ -1865,6 +1875,15 @@
 
     <div class="form-label">Bio</div>
     <textarea class="form-textarea" id="edit-bio" placeholder="Parlez un peu de vous, de ce que vous aimez faire…"></textarea>
+
+    <div class="form-label">Mon genre</div>
+    <div class="pills" id="edit-gender-pills">
+      <div class="pill" data-gender="homme" onclick="selectEditGender(this)">Homme</div>
+      <div class="pill" data-gender="femme" onclick="selectEditGender(this)">Femme</div>
+      <div class="pill" data-gender="non_binaire" onclick="selectEditGender(this)">Non-binaire</div>
+      <div class="pill" data-gender="autre" onclick="selectEditGender(this)">Autre</div>
+      <div class="pill" data-gender="ne_pas_preciser" onclick="selectEditGender(this)">Préfère ne pas préciser</div>
+    </div>
 
     <div class="section-label">Mes modes actifs</div>
     <div class="mode-card" id="edit-card-friend">
@@ -3246,12 +3265,21 @@ async function resolveActivityReport(reportId, activityId, decision){
   }
 }
 
+function selectEditGender(el){
+  document.querySelectorAll('#edit-gender-pills .pill').forEach(p => p.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
 function openEditProfile(){
   document.getElementById('edit-name').value = myProfile.name || '';
   document.getElementById('edit-age').value = myProfile.age || '';
   document.getElementById('edit-bio').value = myProfile.bio || '';
   document.getElementById('edit-age-min').value = myProfile.ageMin || 18;
   document.getElementById('edit-age-max').value = myProfile.ageMax || 99;
+
+  document.querySelectorAll('#edit-gender-pills .pill').forEach(p =>
+    p.classList.toggle('sel', p.getAttribute('data-gender') === myProfile.gender)
+  );
 
   ['friend','love','couple'].forEach(mode => {
     const isOn = (myProfile.modes || []).includes(mode);
@@ -3282,6 +3310,8 @@ function saveEditedProfile(){
   const modes = ['friend','love','couple'].filter(mode =>
     document.getElementById('edit-switch-'+mode).classList.contains('on')
   );
+  const genderEl = document.querySelector('#edit-gender-pills .pill.sel');
+  myProfile.gender = genderEl ? genderEl.getAttribute('data-gender') : null;
 
   if(name) myProfile.name = name;
   if(age) myProfile.age = age;
@@ -3509,6 +3539,8 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.longitude = row.longitude != null ? row.longitude : myProfile.longitude;
   myProfile.intent = row.intent || myProfile.intent;
   if(row.relationship_mode){ myProfile.modes = row.relationship_mode.split(',').filter(Boolean); }
+  myProfile.gender = row.gender || null;
+  myProfile.genderPreferences = row.gender_preferences ? row.gender_preferences.split(',').filter(Boolean) : [];
   if(Array.isArray(row.passions)){ myProfile.interests = row.passions; }
   myProfile.minAgeSet = row.min_age != null;
   if(row.min_age != null) myProfile.ageMin = row.min_age;
@@ -3534,6 +3566,8 @@ async function saveProfileToSupabase(){
       longitude: myProfile.longitude,
       intent: myProfile.intent || null,
       relationship_mode: (myProfile.modes || []).join(','),
+      gender: myProfile.gender || null,
+      gender_preferences: (myProfile.genderPreferences || []).join(','),
       passions: myProfile.interests || [],
       min_age: myProfile.ageMin,
       max_age: myProfile.ageMax,
@@ -4715,7 +4749,20 @@ function countActiveDiscoverFilters(){
   if(swipeModeFilter !== 'tous') n++;
   if((myProfile.ageMin && myProfile.ageMin !== 18) || (myProfile.ageMax && myProfile.ageMax !== 99)) n++;
   if(prioritizeSharedPassions) n++;
+  if((myProfile.genderPreferences || []).length > 0) n++;
   return n;
+}
+
+function toggleDiscoverGenderPref(el){
+  const gender = el.getAttribute('data-gender');
+  el.classList.toggle('sel');
+  const selected = Array.from(document.querySelectorAll('#df-gender-pills .pill.sel')).map(p => p.getAttribute('data-gender'));
+  myProfile.genderPreferences = selected;
+  saveProfileLocally();
+  swipeIndex = 0;
+  applyRadiusFilter();
+  renderSwipeStack();
+  updateDiscoverFiltersBadge();
 }
 
 function updateDiscoverFiltersBadge(){
@@ -4731,6 +4778,9 @@ function openDiscoverFilters(){
   document.getElementById('df-age-min').value = myProfile.ageMin || 18;
   document.getElementById('df-age-max').value = myProfile.ageMax || 99;
   ['tous','friend','love'].forEach(m => document.getElementById('df-mode-'+m).classList.toggle('sel', swipeModeFilter === m));
+  document.querySelectorAll('#df-gender-pills .pill').forEach(p =>
+    p.classList.toggle('sel', (myProfile.genderPreferences || []).includes(p.getAttribute('data-gender')))
+  );
   document.getElementById('df-passions-switch').classList.toggle('on', prioritizeSharedPassions);
   document.getElementById('df-passions-card').classList.toggle('on', prioritizeSharedPassions);
   showScreen('discover-filters');
@@ -4778,6 +4828,8 @@ function resetDiscoverFilters(){
   myProfile.ageMin = 18; myProfile.ageMax = 99;
   document.getElementById('df-age-min').value = 18;
   document.getElementById('df-age-max').value = 99;
+  myProfile.genderPreferences = [];
+  document.querySelectorAll('#df-gender-pills .pill').forEach(p => p.classList.remove('sel'));
   saveProfileLocally();
   setDiscoverModeFilter('tous');
   if(prioritizeSharedPassions) togglePrioritizeSharedPassions();
@@ -4906,7 +4958,8 @@ function mapSupabaseRowToSwipeCard(row, photoUrl){
     photo: photoUrl,
     isRealProfile: true,
     supabaseId: row.id,
-    isPremiumActive: !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date())
+    isPremiumActive: !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date()),
+    gender: row.gender || null
   };
 }
 
@@ -4933,7 +4986,7 @@ async function loadRealSwipeProfiles(){
     // pour voir absolument toutes les lignes que Supabase accepte de nous renvoyer.
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, is_premium, premium_until')
+      .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, is_premium, premium_until, gender')
       .neq('firebase_uid', excludeUid);
     if(error) throw error;
 
@@ -5024,10 +5077,12 @@ async function loadRealSwipeProfiles(){
 
 function applyRadiusFilter(){
   const source = (supabaseClient && realSwipeProfiles !== null) ? realSwipeProfiles : swipeProfiles;
+  const genderPrefs = myProfile.genderPreferences || [];
   filteredProfiles = source.filter(p =>
     getProfileDistance(p) <= currentRadius &&
     (p.age == null || (p.age >= myProfile.ageMin && p.age <= myProfile.ageMax)) &&
-    (swipeModeFilter === 'tous' || p.modes.includes(swipeModeFilter))
+    (swipeModeFilter === 'tous' || p.modes.includes(swipeModeFilter)) &&
+    (genderPrefs.length === 0 || p.gender == null || genderPrefs.includes(p.gender))
   );
 
   // Deux critères de réordonnancement, jamais d'exclusion : d'abord les passions
