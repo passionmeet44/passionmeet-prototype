@@ -1092,6 +1092,7 @@
   }
   .nav-fab.hidden{display:none;}
   #msg-list-private.hidden, #msg-list-groups.hidden{display:none;}
+  .suggestion-detail.hidden{display:none;}
   .nav-fab-plate{
     position:fixed; left:50%; bottom:78px; transform:translateX(-50%);
     width:78px; height:22px; background:var(--cream-card);
@@ -1798,6 +1799,7 @@
       </div>
       <div id="activity-filters-active" class="report-link" style="display:none; text-align:left; margin-top:8px;" onclick="resetActivityFilters()">✕ Réinitialiser les filtres</div>
     </div>
+    <div id="activity-suggestions-section" style="padding:0 20px;"></div>
     <div id="activities-real-list" style="padding:0 20px;"></div>
   </div>
 
@@ -2975,7 +2977,7 @@ function showScreen(name){
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
     if(name==='swipe'){ updateDiscoverFiltersBadge(); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
-    if(name==='activities-list'){ renderActivitiesList(); }
+    if(name==='activities-list'){ renderActivitiesList(); renderActivitySuggestions(); }
     if(name==='matches'){ renderMatchesList(); }
     if(name==='messages'){ renderMessagesList(); }
     if(name==='profile'){ renderProfileScreen(); }
@@ -4111,25 +4113,6 @@ async function renderUpcomingActivities(){
   }
 }
 
-function renderRatingRow(a){
-  if(a.rating){
-    return `<div class="rating-row rated">${'⭐'.repeat(a.rating)}${'☆'.repeat(5-a.rating)}<span>Merci pour votre avis !</span></div>`;
-  }
-  return `<div class="rating-row">
-    <span>Comment c'était ?</span>
-    <span class="stars">${[1,2,3,4,5].map(n=>`<span onclick="rateActivity(event,'${a.key}',${n})">☆</span>`).join('')}</span>
-  </div>`;
-}
-
-function rateActivity(event, key, stars){
-  event.stopPropagation();
-  const act = myUpcomingActivities.find(x => x.key === key);
-  if(!act) return;
-  act.rating = stars;
-  renderUpcomingActivities();
-  showToast(`Merci pour votre avis ${'⭐'.repeat(stars)}`, '🙏');
-}
-
 function switchTab(which){
   document.getElementById('tab-browse').classList.toggle('active', which==='browse');
   document.getElementById('tab-foryou').classList.toggle('active', which==='foryou');
@@ -4836,7 +4819,9 @@ function setHomeWith(w){
     goIntent(homeIntent === 'rencontre' ? 'love' : 'friend');
     return;
   }
-  showHomeResults();
+  // "En groupe" mène désormais vers le vrai écran Activités (vraies sorties +
+  // suggestions PassionMeet), plus vers l'ancien catalogue factice.
+  showScreen('activities-list');
 }
 
 function homeResultsLabel(){
@@ -5269,7 +5254,7 @@ async function recordSwipeAction(toProfileId, action){
 // Vérifie si l'autre profil a déjà envoyé la même intention en retour, et si oui,
 // crée le match dans Supabase (une seule fois, grâce à la contrainte d'unicité).
 async function checkAndCreateMatch(otherProfileId, mode){
-  if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return false;
+  if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return { matched: false, matchId: null };
   try{
     const { data: reciprocal, error: checkError } = await supabaseClient
       .from('swipe_actions')
@@ -5281,24 +5266,26 @@ async function checkAndCreateMatch(otherProfileId, mode){
     if(checkError) throw checkError;
     if(!reciprocal){
       console.info('[Match] Pas encore de réciprocité pour', mode);
-      return false;
+      return { matched: false, matchId: null };
     }
 
     // Réciprocité confirmée : on crée le match, avec l'ordre imposé par la contrainte SQL
     const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
-    const { error: insertError } = await supabaseClient
+    const { data: matchRow, error: insertError } = await supabaseClient
       .from('matches')
       .upsert({
         profile_a_id: profileAId,
         profile_b_id: profileBId,
         mode: mode
-      }, { onConflict: 'profile_a_id,profile_b_id,mode' });
+      }, { onConflict: 'profile_a_id,profile_b_id,mode' })
+      .select('id')
+      .maybeSingle();
     if(insertError) throw insertError;
     console.info('[Match] Match créé :', profileAId, profileBId, mode);
-    return true;
+    return { matched: true, matchId: matchRow ? matchRow.id : null };
   } catch(e){
     console.warn('[Match] Vérification/création impossible :', e.message);
-    return false;
+    return { matched: false, matchId: null };
   }
 }
 
@@ -5328,13 +5315,13 @@ function flyOut(card, type){
     renderSwipeStack();
     if(type==='love' || type==='friend'){
       if(isRealSwipe){
-        const matched = await checkAndCreateMatch(likedProfile.supabaseId, type);
+        const { matched, matchId } = await checkAndCreateMatch(likedProfile.supabaseId, type);
         if(matched){
           // Un match est désormais définitif : impossible de revenir en arrière dessus.
           lastSwipedProfile = null;
           lastSwipedWasReal = false;
           updateUndoButtonState();
-          setTimeout(()=> showMatchOverlay(likedProfile, type), 250);
+          setTimeout(()=> showMatchOverlay(likedProfile, type, matchId), 250);
         }
       } else if(likedProfile && Math.random() < 0.5){
         // Comportement de démonstration conservé uniquement pour les profils fictifs
@@ -5492,7 +5479,7 @@ function spawnConfetti(type){
   }
 }
 
-function showMatchOverlay(profile, type){
+function showMatchOverlay(profile, type, realMatchId){
   document.getElementById('match-overlay-photo').style.background = profile.color;
   document.getElementById('match-overlay-photo').textContent = profile.initial;
   document.getElementById('match-overlay-name').textContent = profile.name;
@@ -5514,7 +5501,7 @@ function showMatchOverlay(profile, type){
     meEl.style.backgroundImage = '';
     meEl.textContent = (myProfile.name || 'C').charAt(0).toUpperCase();
   }
-  window.pendingMatchProfile = { profile, type };
+  window.pendingMatchProfile = { profile, type, realMatchId: realMatchId || null };
   const suggestionsEl = document.getElementById('match-suggestions');
   suggestionsEl.innerHTML = getSuggestedMessages(profile).map(text =>
     `<div class="match-suggestion-chip" onclick="sendSuggestedMessage(this)">${text}</div>`
@@ -5549,17 +5536,31 @@ function openMatchedConversation(){
 }
 
 function messageMatchedProfile(){
-  const result = openMatchedConversation();
+  const pending = window.pendingMatchProfile;
   closeMatchOverlay();
+  // Vrai match : on ouvre la vraie conversation privée Supabase, jamais une
+  // conversation de démonstration — mêmes garanties d'unicité qu'ailleurs.
+  if(pending && pending.realMatchId){
+    openMatchChat(pending.realMatchId);
+    return;
+  }
+  const result = openMatchedConversation();
   if(!result) return;
   showScreen('messages');
   openChat(result.id);
 }
 
-function sendSuggestedMessage(chipEl){
+async function sendSuggestedMessage(chipEl){
   const text = chipEl.textContent;
-  const result = openMatchedConversation();
+  const pending = window.pendingMatchProfile;
   closeMatchOverlay();
+  if(pending && pending.realMatchId){
+    await openMatchChat(pending.realMatchId);
+    const input = document.getElementById('chat-input');
+    if(input){ input.value = text; sendMessage(); }
+    return;
+  }
+  const result = openMatchedConversation();
   if(!result) return;
   result.convo.messages.push({from:'me', text});
   showScreen('messages');
@@ -6062,6 +6063,56 @@ async function submitRealActivity(){
     submitBtn.disabled = false;
     submitBtn.textContent = "Publier l'activité";
   }
+}
+
+let activitySuggestionsLoaded = false;
+
+// Les suggestions PassionMeet sont chargées une seule fois par session — ce sont
+// des idées permanentes, pas des données qui changent au fil des filtres.
+async function renderActivitySuggestions(){
+  if(activitySuggestionsLoaded) return;
+  const section = document.getElementById('activity-suggestions-section');
+  if(!section || !supabaseClient) return;
+  try{
+    const { data, error } = await supabaseClient
+      .from('activity_suggestions')
+      .select('id, title, description, category, zone, suggested_location, practical_info')
+      .eq('is_active', true)
+      .order('category', { ascending: true });
+    if(error) throw error;
+    if(!data || data.length === 0){ activitySuggestionsLoaded = true; return; }
+
+    const cat = (key) => categories.find(c => c.label && c.label.toLowerCase() === (key||'').toLowerCase());
+
+    section.innerHTML = `<div class="section-label">💡 Idées PassionMeet à découvrir</div>` +
+      data.map(s => {
+        const c = cat(s.category);
+        const emoji = c ? c.emoji : '💡';
+        const bg = c ? c.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
+        return `
+          <div class="card" onclick="toggleSuggestionDetail('${s.id}')">
+            <div class="card-media" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;">${emoji}</div>
+            <div class="card-body">
+              <span class="msg-mode-tag friend" style="margin-bottom:6px; display:inline-block;">💡 Idée PassionMeet</span>
+              <h3>${escapeHtml(s.title)}</h3>
+              <div class="card-meta"><span>📍 ${escapeHtml(s.zone || '')}${s.suggested_location ? ' · '+escapeHtml(s.suggested_location) : ''}</span></div>
+              <div id="suggestion-detail-${s.id}" class="suggestion-detail hidden" style="margin-top:8px; font-size:12.5px; color:#6B5872; line-height:1.5;">
+                <p>${escapeHtml(s.description || '')}</p>
+                ${s.practical_info ? `<p style="margin-top:4px; color:#9584A0;">${escapeHtml(s.practical_info)}</p>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    activitySuggestionsLoaded = true;
+  } catch(e){
+    console.warn('[Suggestions] Chargement impossible :', e.message);
+  }
+}
+
+function toggleSuggestionDetail(id){
+  const el = document.getElementById('suggestion-detail-'+id);
+  if(el) el.classList.toggle('hidden');
 }
 
 async function renderActivitiesList(){
