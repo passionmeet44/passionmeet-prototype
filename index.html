@@ -3478,6 +3478,8 @@ let firebaseAuth = null;
 let currentFirebaseUser = null;
 let currentRadius = 20; // déclarée tôt : utilisée par loadStoredRadius(), appelée dès le chargement de la page
 let activityRadius = 20; // idem, distance dédiée aux activités, indépendante de currentRadius
+const RADIUS_STORAGE_KEY = 'passionmeet_search_radius';
+const ACTIVITY_RADIUS_STORAGE_KEY = 'passionmeet_activity_radius';
 let isPremiumUser = false; // déclarée tôt : utilisée par mapSupabaseProfileToMyProfile(), qui peut être
                             // appelée très rapidement après la connexion Firebase (parfois avant la fin
                             // du chargement du reste du script) — la déclarer ici évite l'erreur
@@ -4822,8 +4824,6 @@ function setRadius(km){
   renderNearbyActivities();
 }
 
-const RADIUS_STORAGE_KEY = 'passionmeet_search_radius';
-
 function syncRadiusUI(km){
   currentRadius = km;
   myProfile.radiusKm = km;
@@ -4848,8 +4848,6 @@ function loadStoredRadius(){
   } catch(e){}
   syncRadiusUI(km);
 }
-
-const ACTIVITY_RADIUS_STORAGE_KEY = 'passionmeet_activity_radius';
 
 function setActivityRadius(km){
   km = parseInt(km);
