@@ -4888,12 +4888,12 @@ async function loadRealSwipeProfiles(){
       swipeDebugLines.push('0 ligne reçue depuis Supabase — vérifier RLS ou la requête.');
     }
 
-    // Filtre réel de production (identique à avant, appliqué ici côté client
-    // sur les données déjà reçues)
+    // Filtre réel de production : prénom, âge renseigné et au moins une passion —
+    // la bio reste facultative, pour ne pas exclure des profils valables.
     const validRows = (data || []).filter(row =>
       row.onboarding_completed &&
       row.first_name && row.first_name.trim() &&
-      row.bio && row.bio.trim() &&
+      row.age != null &&
       Array.isArray(row.passions) && row.passions.length > 0
     );
 
