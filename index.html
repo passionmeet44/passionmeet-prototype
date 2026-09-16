@@ -1709,7 +1709,10 @@
       <div class="detail-back" onclick="showScreen('profile')" style="position:absolute; top:20px; left:16px;">←</div>
       <h1 style="padding-left:44px;">Signalements à traiter</h1>
     </div>
+    <div style="padding:0 20px;"><div class="section-label">Activités signalées</div></div>
     <div id="admin-reports-list" style="padding:0 20px;"></div>
+    <div style="padding:20px 20px 0;"><div class="section-label">Profils signalés</div></div>
+    <div id="admin-user-reports-list" style="padding:0 20px;"></div>
   </div>
 
   <!-- ACTIVITY DETAIL (réelle, Supabase) -->
@@ -1731,6 +1734,25 @@
       </div>
       <button class="btn-join" id="ract-cta" onclick="toggleActivityParticipation()">Je participe</button>
       <div class="report-link" id="ract-report-link" onclick="openActivityReportModal()">🚩 Signaler cette activité</div>
+    </div>
+  </div>
+
+  <!-- REPORT USER MODAL -->
+  <div class="tag-comment-overlay" id="report-user-overlay">
+    <div class="tag-comment-card">
+      <div class="tag-comment-title">Signaler cette personne</div>
+      <div id="report-user-reason-options" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+        <div class="pill" data-reason="Harcèlement ou comportement dangereux" onclick="selectUserReportReason(this)">Harcèlement ou comportement dangereux</div>
+        <div class="pill" data-reason="Contenu inapproprié" onclick="selectUserReportReason(this)">Contenu inapproprié</div>
+        <div class="pill" data-reason="Faux profil" onclick="selectUserReportReason(this)">Faux profil</div>
+        <div class="pill" data-reason="Spam ou arnaque" onclick="selectUserReportReason(this)">Spam ou arnaque</div>
+        <div class="pill" data-reason="Autre" onclick="selectUserReportReason(this)">Autre</div>
+      </div>
+      <textarea class="tag-comment-input" id="report-user-details-input" rows="2" placeholder="Précisions (facultatif)"></textarea>
+      <div class="tag-comment-actions">
+        <button class="tag-comment-btn friend" style="width:100%;" onclick="submitUserReport()">Envoyer le signalement</button>
+      </div>
+      <div class="tag-comment-cancel" onclick="closeUserReportModal()">Annuler</div>
     </div>
   </div>
 
@@ -1931,7 +1953,7 @@
         </div>
         <div class="switch" id="switch-share-location" onclick="toggleLocationShare()"></div>
       </div>
-      <div class="safety-item" onclick="showToast('Signalement envoyé à notre équipe', '🚩')" style="cursor:pointer;">
+      <div class="safety-item" onclick="openUserReportModal()" style="cursor:pointer;">
         <div class="safety-check">🚩</div>
         <div><h4>Signaler un comportement</h4><p>Un souci avec cette personne ? Signalez-le en un clic, à tout moment.</p></div>
       </div>
@@ -3066,6 +3088,72 @@ async function openAdminReports(){
   }
   showScreen('admin-reports');
   await renderAdminReportsList();
+  await renderAdminUserReportsList();
+}
+
+async function renderAdminUserReportsList(){
+  const list = document.getElementById('admin-user-reports-list');
+  if(!supabaseClient) return;
+  list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:40px 20px; flex-direction:column;"><span>⏳</span>Chargement…</div>`;
+  try{
+    const { data, error } = await supabaseClient
+      .from('user_reports')
+      .select('id, reported_profile_id, reporter_profile_id, reason, details, status, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    if(error) throw error;
+
+    if(!data || data.length === 0){
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:40px 20px; flex-direction:column;"><span>✅</span>Aucun profil signalé en attente.</div>`;
+      return;
+    }
+
+    const cards = await Promise.all(data.map(async (r) => {
+      let reportedName = 'Membre', reporterName = 'Membre';
+      try{
+        const { data: p1 } = await supabaseClient.from('profiles').select('first_name').eq('id', r.reported_profile_id).maybeSingle();
+        if(p1 && p1.first_name) reportedName = p1.first_name;
+      } catch(e){}
+      try{
+        const { data: p2 } = await supabaseClient.from('profiles').select('first_name').eq('id', r.reporter_profile_id).maybeSingle();
+        if(p2 && p2.first_name) reporterName = p2.first_name;
+      } catch(e){}
+      const dateLabel = new Date(r.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+      return `
+        <div class="card"><div class="card-body" style="padding-top:16px;">
+          <h3>${escapeHtml(reportedName)}</h3>
+          <div class="card-meta"><span>📅 ${dateLabel} · Signalé par ${escapeHtml(reporterName)}</span></div>
+          <div class="card-meta"><span>Motif : ${escapeHtml(r.reason)}</span></div>
+          ${r.details ? `<div class="card-meta"><span>Précisions : ${escapeHtml(r.details)}</span></div>` : ''}
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
+            <button class="btn-primary" style="padding:8px 12px; font-size:12px;" onclick="resolveUserReport('${r.id}','action_taken')">Marquer traité</button>
+            <button class="btn-primary" style="padding:8px 12px; font-size:12px; background:linear-gradient(135deg,#B0A0B5,#6B5872);" onclick="resolveUserReport('${r.id}','dismissed')">Classer sans suite</button>
+          </div>
+        </div></div>
+      `;
+    }));
+    list.innerHTML = cards.join('');
+  } catch(e){
+    console.warn('[Admin] Chargement des signalements de profils impossible :', e.message);
+    list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:40px 20px; flex-direction:column;"><span>⚠️</span>Impossible de charger les signalements.</div>`;
+  }
+}
+
+async function resolveUserReport(reportId, decision){
+  if(!myProfile.isAdmin || !supabaseClient) return;
+  try{
+    const { error } = await supabaseClient.from('user_reports').update({
+      status: decision,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: myProfile.supabaseId
+    }).eq('id', reportId);
+    if(error) throw error;
+    showToast('Signalement traité', '✅');
+    renderAdminUserReportsList();
+  } catch(e){
+    console.warn('[Admin] Traitement impossible :', e.message);
+    showToast("Le traitement a échoué, réessayez.", "⚠️");
+  }
 }
 
 async function renderAdminReportsList(){
@@ -6988,6 +7076,81 @@ function renderChatBody(){
     `;
   }).join('');
   body.scrollTop = body.scrollHeight;
+}
+
+let selectedUserReportReason = null;
+
+function selectUserReportReason(el){
+  document.querySelectorAll('#report-user-reason-options .pill').forEach(p => p.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedUserReportReason = el.getAttribute('data-reason');
+}
+
+function closeUserReportModal(){
+  document.getElementById('report-user-overlay').classList.remove('show');
+}
+
+async function openUserReportModal(){
+  if(!currentFirebaseUser || !myProfile.supabaseId){
+    showToast("Connectez-vous pour signaler un profil.", "⚠️");
+    return;
+  }
+  const targetId = currentConversation ? currentConversation.otherProfileId : null;
+  if(!targetId){
+    showToast("Le signalement d'un profil n'est disponible que dans une conversation privée pour l'instant.", "ℹ️");
+    return;
+  }
+  if(targetId === myProfile.supabaseId){
+    showToast("Vous ne pouvez pas vous signaler vous-même.", "ℹ️");
+    return;
+  }
+  selectedUserReportReason = null;
+  document.querySelectorAll('#report-user-reason-options .pill').forEach(p => p.classList.remove('sel'));
+  document.getElementById('report-user-details-input').value = '';
+
+  try{
+    const { data: existing } = await supabaseClient
+      .from('my_user_reports').select('id')
+      .eq('reported_profile_id', targetId).maybeSingle();
+    if(existing){
+      showToast('Vous avez déjà signalé cette personne.', 'ℹ️');
+      return;
+    }
+  } catch(e){ /* pas bloquant, la contrainte unique reste la vraie garantie */ }
+
+  document.getElementById('report-user-overlay').classList.add('show');
+}
+
+async function submitUserReport(){
+  const targetId = currentConversation ? currentConversation.otherProfileId : null;
+  if(!targetId || !supabaseClient || !myProfile.supabaseId) return;
+  if(!selectedUserReportReason){
+    showToast('Merci de choisir un motif.', '⚠️');
+    return;
+  }
+  const details = document.getElementById('report-user-details-input').value.trim();
+  try{
+    const { error } = await supabaseClient.from('user_reports').insert({
+      reported_profile_id: targetId,
+      reporter_profile_id: myProfile.supabaseId,
+      reason: selectedUserReportReason,
+      details: details || null
+    });
+    if(error){
+      if(error.code === '23505'){
+        showToast('Vous avez déjà signalé cette personne.', 'ℹ️');
+        closeUserReportModal();
+        return;
+      }
+      throw error;
+    }
+    closeUserReportModal();
+    document.getElementById('safety-overlay').classList.remove('show');
+    showToast("Merci, votre signalement a bien été transmis.", '✅');
+  } catch(e){
+    console.warn('[Signalement] Envoi impossible :', e.message);
+    showToast("Le signalement n'a pas pu être envoyé, réessayez.", "⚠️");
+  }
 }
 
 function openGroupDetailsFromChat(){
