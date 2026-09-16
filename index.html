@@ -5558,12 +5558,15 @@ async function fetchUnreadCounts(){
       .neq('sender_profile_id', myProfile.supabaseId);
     if(error) throw error;
     const byMatch = {};
+    let total = 0;
     (data || []).forEach(m => {
+      // Compte TOUS les messages non lus (privés et groupes) pour le total global.
+      total++;
+      // Le détail par match, lui, ne concerne que les conversations privées —
+      // utilisé uniquement pour les badges sur les cartes de l'onglet Matchs.
       const matchId = m.conversations ? m.conversations.match_id : null;
-      if(!matchId) return; // message de groupe : pas encore utilisé dans ce lot
-      byMatch[matchId] = (byMatch[matchId] || 0) + 1;
+      if(matchId) byMatch[matchId] = (byMatch[matchId] || 0) + 1;
     });
-    const total = Object.values(byMatch).reduce((a,b) => a+b, 0);
     return { total, byMatch };
   } catch(e){
     console.warn('[Notifs] Impossible de récupérer les messages non lus :', e.message);
