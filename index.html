@@ -1175,8 +1175,8 @@
         En appuyant sur "Créer un compte" ou sur "Connexion", tu acceptes nos <u onclick="openLegal('cgu','login')">Conditions Générales d'Utilisation</u> et notre <u onclick="openLegal('confidentialite','login')">Politique de confidentialité</u>.
       </div>
       <div class="login-big-buttons">
-        <button class="login-big-btn primary" onclick="showScreen('login-methods')">Créer un compte</button>
-        <button class="login-big-btn" onclick="showScreen('login-methods')">Connexion</button>
+        <button class="login-big-btn primary" onclick="loginIntent='signup'; showScreen('login-methods')">Créer un compte</button>
+        <button class="login-big-btn" onclick="loginIntent='login'; showScreen('login-methods')">Connexion</button>
       </div>
       <span class="login-lost" onclick="showScreen('home')">Des problèmes de connexion ?</span>
     </div>
@@ -3950,22 +3950,9 @@ function signInWithGoogle(){
 }
 
 let emailScreenMode = 'signup';
+let loginIntent = 'signup'; // mémorise si l'utilisateur a touché "Créer un compte" ou "Connexion"
 
-function openEmailAuthScreen(){
-  emailScreenMode = 'signup';
-  document.getElementById('email-signup-email').value = '';
-  document.getElementById('email-signup-password').value = '';
-  document.getElementById('email-signup-error').style.display = 'none';
-  document.getElementById('email-screen-title').textContent = 'Créer un compte par email';
-  document.getElementById('email-screen-sub').textContent = 'Vous recevrez un email de confirmation à valider avant de pouvoir vous connecter.';
-  document.getElementById('email-signup-btn').textContent = 'Créer mon compte';
-  document.getElementById('email-screen-toggle').textContent = 'Déjà un compte ? Se connecter';
-  showScreen('signup-email');
-}
-
-function toggleEmailScreenMode(){
-  emailScreenMode = emailScreenMode === 'signup' ? 'login' : 'signup';
-  document.getElementById('email-signup-error').style.display = 'none';
+function applyEmailScreenMode(){
   if(emailScreenMode === 'login'){
     document.getElementById('email-screen-title').textContent = 'Se connecter par email';
     document.getElementById('email-screen-sub').textContent = 'Retrouvez votre compte avec votre email et votre mot de passe.';
@@ -3977,6 +3964,21 @@ function toggleEmailScreenMode(){
     document.getElementById('email-signup-btn').textContent = 'Créer mon compte';
     document.getElementById('email-screen-toggle').textContent = 'Déjà un compte ? Se connecter';
   }
+}
+
+function openEmailAuthScreen(){
+  emailScreenMode = loginIntent; // respecte le choix fait sur l'écran précédent
+  document.getElementById('email-signup-email').value = '';
+  document.getElementById('email-signup-password').value = '';
+  document.getElementById('email-signup-error').style.display = 'none';
+  applyEmailScreenMode();
+  showScreen('signup-email');
+}
+
+function toggleEmailScreenMode(){
+  emailScreenMode = emailScreenMode === 'signup' ? 'login' : 'signup';
+  document.getElementById('email-signup-error').style.display = 'none';
+  applyEmailScreenMode();
 }
 
 function signInWithEmail(){
