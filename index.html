@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>PassionMeet — Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -957,7 +957,7 @@
 
   /* ---------- Toasts ---------- */
   .toast-container{
-    position:fixed; top:16px; left:0; right:0; z-index:400;
+    position:fixed; top:calc(16px + env(safe-area-inset-top)); left:0; right:0; z-index:400;
     display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none;
   }
   .toast{
@@ -1063,7 +1063,7 @@
   .bottom-nav{
     position:fixed; bottom:0; left:0; right:0; height:78px; background:#fff;
     border-top:1px solid var(--line); display:flex; z-index:40;
-    padding-bottom: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
   .bottom-nav.hidden{display:none;}
   .nav-item{
@@ -1083,7 +1083,7 @@
   .msg-unread-badge.hidden{display:none;}
   .nav-icon{font-size:19px;}
   .nav-fab{
-    position:fixed; left:50%; bottom:86px; transform:translateX(-50%);
+    position:fixed; left:50%; bottom:calc(86px + env(safe-area-inset-bottom)); transform:translateX(-50%);
     width:54px; height:54px; border-radius:50%; z-index:46; cursor:pointer;
     background:linear-gradient(135deg,var(--orange),var(--gold)); color:#fff;
     font-size:28px; font-weight:800; line-height:1;
@@ -1094,7 +1094,7 @@
   #msg-list-private.hidden, #msg-list-groups.hidden{display:none;}
   .suggestion-detail.hidden{display:none;}
   .nav-fab-plate{
-    position:fixed; left:50%; bottom:78px; transform:translateX(-50%);
+    position:fixed; left:50%; bottom:calc(78px + env(safe-area-inset-bottom)); transform:translateX(-50%);
     width:78px; height:22px; background:var(--cream-card);
     border-radius:39px 39px 0 0; z-index:44; pointer-events:none;
   }
@@ -1196,7 +1196,7 @@
         <button class="login-pill-btn" onclick="signInWithGoogle()">
           <span class="login-pill-icon" style="color:#4285F4; font-weight:800;">G</span><span>Se connecter avec Google</span>
         </button>
-        <button class="login-pill-btn" onclick="showScreen('signup-email')">
+        <button class="login-pill-btn" onclick="openEmailAuthScreen()">
           <span class="login-pill-icon">✉️</span><span>Continuer avec Email</span>
         </button>
       </div>
@@ -1221,8 +1221,8 @@
   <!-- SIGNUP ACCOUNT -->
   <!-- SIGNUP EMAIL -->
   <div class="screen" id="screen-signup-email">
-    <div class="ob-title">Créer un compte par email</div>
-    <div class="ob-sub">Vous recevrez un email de confirmation à valider avant de pouvoir vous connecter.</div>
+    <div class="ob-title" id="email-screen-title">Créer un compte par email</div>
+    <div class="ob-sub" id="email-screen-sub">Vous recevrez un email de confirmation à valider avant de pouvoir vous connecter.</div>
 
     <div class="form-label">Adresse email</div>
     <input class="form-input" id="email-signup-email" type="email" placeholder="vous@exemple.com">
@@ -1232,8 +1232,9 @@
 
     <div id="email-signup-error" style="color:var(--orange-deep); font-size:12px; margin-top:10px; display:none;"></div>
 
-    <button class="btn-primary" id="email-signup-btn" style="width:100%; margin-top:24px;" onclick="signUpWithEmail()">Créer mon compte</button>
-    <div class="location-skip" style="color:var(--plum-soft); margin-top:16px;" onclick="showScreen('login')">Retour</div>
+    <button class="btn-primary" id="email-signup-btn" style="width:100%; margin-top:24px;" onclick="submitEmailAuthForm()">Créer mon compte</button>
+    <div class="location-skip" id="email-screen-toggle" style="color:var(--plum-soft); margin-top:16px;" onclick="toggleEmailScreenMode()">Déjà un compte ? Se connecter</div>
+    <div class="location-skip" style="color:var(--plum-soft); margin-top:8px;" onclick="showScreen('login')">Retour</div>
   </div>
 
   <div class="screen" id="screen-signup-account" style="position:relative;">
@@ -1527,7 +1528,10 @@
     <div class="swipe-header">
       <h1>Découvrir des profils</h1>
       <p>Glissez pour choisir : ✕ passer · 🤝 amitié · 💜 rencontre</p>
-      <div class="profile-photo-hint" id="discover-filters-btn" style="margin-top:6px;" onclick="openDiscoverFilters()">🎛️ Filtres<span id="discover-filters-badge"></span></div>
+      <div style="display:flex; gap:10px; margin-top:6px;">
+        <div class="profile-photo-hint" id="discover-filters-btn" style="margin-top:0;" onclick="openDiscoverFilters()">🎛️ Filtres<span id="discover-filters-badge"></span></div>
+        <div class="profile-photo-hint" style="margin-top:0;" onclick="openSwipeTutorial()">❔ Comment ça marche ?</div>
+      </div>
     </div>
     <div class="radius-slider-row">
       <div class="range-label">Rayon de recherche <span id="swipe-radius-value">20 km</span></div>
@@ -1745,6 +1749,30 @@
     </div>
   </div>
 
+  <!-- SWIPE TUTORIAL -->
+  <div class="tag-comment-overlay" id="swipe-tutorial-overlay">
+    <div class="tag-comment-card">
+      <div class="tag-comment-title">Comment swiper ?</div>
+      <div style="display:flex; flex-direction:column; gap:16px; margin:16px 0;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span style="font-size:30px;">➡️💜</span>
+          <div><strong>Glissez à droite</strong><div style="font-size:12.5px; color:#6B5872;">Pour proposer une Rencontre</div></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span style="font-size:30px;">⬅️✕</span>
+          <div><strong>Glissez à gauche</strong><div style="font-size:12.5px; color:#6B5872;">Pour passer au profil suivant</div></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span style="font-size:30px;">⬆️🤝</span>
+          <div><strong>Glissez vers le haut</strong><div style="font-size:12.5px; color:#6B5872;">Pour proposer une Amitié</div></div>
+        </div>
+      </div>
+      <div class="tag-comment-actions">
+        <button class="tag-comment-btn friend" style="width:100%;" onclick="closeSwipeTutorial()">J'ai compris</button>
+      </div>
+    </div>
+  </div>
+
   <!-- REPORT USER MODAL -->
   <div class="tag-comment-overlay" id="report-user-overlay">
     <div class="tag-comment-card">
@@ -1791,21 +1819,21 @@
       <button class="btn-primary" style="width:100%;" onclick="openCreateActivityReal()">➕ Créer une activité</button>
     </div>
     <div style="padding:0 20px 10px;">
-      <input class="form-input" id="activity-search-input" type="text" placeholder="🔍 Rechercher une activité…" style="margin-bottom:8px;" oninput="onActivityFiltersChanged()">
-      <div style="display:flex; gap:8px;">
-        <select class="form-input" id="activity-category-filter" style="flex:1;" onchange="onActivityFiltersChanged()">
+      <div style="background:#fff; border-radius:18px; padding:14px 16px; box-shadow:0 4px 14px rgba(62,31,68,0.08);">
+        <input class="form-input" id="activity-search-input" type="text" placeholder="🔍 Rechercher une activité…" style="margin-bottom:10px;" oninput="onActivityFiltersChanged()">
+        <select class="form-input" id="activity-category-filter" style="margin-bottom:10px;" onchange="onActivityFiltersChanged()">
           <option value="tous">Toutes catégories</option>
         </select>
-        <select class="form-input" id="activity-date-filter" style="flex:1;" onchange="onActivityFiltersChanged()">
-          <option value="toutes">Toutes dates</option>
-          <option value="today">Aujourd'hui</option>
-          <option value="week">Cette semaine</option>
-          <option value="weekend">Ce week-end</option>
-          <option value="later">Plus tard</option>
-        </select>
+        <div class="time-filter-row" id="activity-date-chip-row">
+          <div class="time-chip active" data-date="toutes" onclick="setActivityDateFilterChip(this,'toutes')">Toutes dates</div>
+          <div class="time-chip" data-date="today" onclick="setActivityDateFilterChip(this,'today')">Aujourd'hui</div>
+          <div class="time-chip" data-date="week" onclick="setActivityDateFilterChip(this,'week')">Cette semaine</div>
+          <div class="time-chip" data-date="weekend" onclick="setActivityDateFilterChip(this,'weekend')">Ce week-end</div>
+          <div class="time-chip" data-date="later" onclick="setActivityDateFilterChip(this,'later')">Plus tard</div>
+        </div>
+        <div class="form-hint" style="margin-top:2px;">📍 Rayon : <span id="activity-radius-label"></span> (réglable depuis Découvrir)</div>
+        <div id="activity-filters-active" class="report-link" style="display:none; text-align:left; margin-top:8px;" onclick="resetActivityFilters()">✕ Réinitialiser les filtres</div>
       </div>
-      <div id="activity-filters-active" class="report-link" style="display:none; text-align:left; margin-top:8px;" onclick="resetActivityFilters()">✕ Réinitialiser les filtres</div>
-      <div class="form-hint" style="margin-top:8px;">📍 Distance : dans un rayon de <span id="activity-radius-label"></span> (réglable depuis Découvrir)</div>
     </div>
     <div id="activity-suggestions-section" style="padding:0 20px;"></div>
     <div id="activities-real-list" style="padding:0 20px;"></div>
@@ -3921,6 +3949,78 @@ function signInWithGoogle(){
   });
 }
 
+let emailScreenMode = 'signup';
+
+function openEmailAuthScreen(){
+  emailScreenMode = 'signup';
+  document.getElementById('email-signup-email').value = '';
+  document.getElementById('email-signup-password').value = '';
+  document.getElementById('email-signup-error').style.display = 'none';
+  document.getElementById('email-screen-title').textContent = 'Créer un compte par email';
+  document.getElementById('email-screen-sub').textContent = 'Vous recevrez un email de confirmation à valider avant de pouvoir vous connecter.';
+  document.getElementById('email-signup-btn').textContent = 'Créer mon compte';
+  document.getElementById('email-screen-toggle').textContent = 'Déjà un compte ? Se connecter';
+  showScreen('signup-email');
+}
+
+function toggleEmailScreenMode(){
+  emailScreenMode = emailScreenMode === 'signup' ? 'login' : 'signup';
+  document.getElementById('email-signup-error').style.display = 'none';
+  if(emailScreenMode === 'login'){
+    document.getElementById('email-screen-title').textContent = 'Se connecter par email';
+    document.getElementById('email-screen-sub').textContent = 'Retrouvez votre compte avec votre email et votre mot de passe.';
+    document.getElementById('email-signup-btn').textContent = 'Se connecter';
+    document.getElementById('email-screen-toggle').textContent = "Pas encore de compte ? S'inscrire";
+  } else {
+    document.getElementById('email-screen-title').textContent = 'Créer un compte par email';
+    document.getElementById('email-screen-sub').textContent = 'Vous recevrez un email de confirmation à valider avant de pouvoir vous connecter.';
+    document.getElementById('email-signup-btn').textContent = 'Créer mon compte';
+    document.getElementById('email-screen-toggle').textContent = 'Déjà un compte ? Se connecter';
+  }
+}
+
+function signInWithEmail(){
+  const email = document.getElementById('email-signup-email').value.trim();
+  const password = document.getElementById('email-signup-password').value;
+  const errorEl = document.getElementById('email-signup-error');
+  errorEl.style.display = 'none';
+
+  if(!email || !password){
+    errorEl.textContent = "Merci de renseigner votre email et votre mot de passe.";
+    errorEl.style.display = 'block';
+    return;
+  }
+  if(!firebaseAuth){
+    showToast("Connexion impossible ici — ouvrez le fichier dans un vrai navigateur", "⚠️");
+    return;
+  }
+
+  const btn = document.getElementById('email-signup-btn');
+  btn.disabled = true;
+  btn.textContent = 'Connexion en cours…';
+
+  firebaseAuth.signInWithEmailAndPassword(email, password).then(() => {
+    showToast('Connecté', '✅');
+    // La navigation (accueil, profil déjà existant) est décidée par onAuthStateChanged,
+    // exactement comme pour Google — le même Firebase UID retrouve le même profil Supabase.
+  }).catch((error) => {
+    let message = "Une erreur est survenue, réessayez.";
+    if(error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') message = "Email ou mot de passe incorrect.";
+    if(error.code === 'auth/user-not-found') message = "Aucun compte trouvé avec cet email.";
+    if(error.code === 'auth/invalid-email') message = "Adresse email invalide.";
+    if(error.code === 'auth/too-many-requests') message = "Trop de tentatives, réessayez plus tard.";
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Se connecter';
+  });
+}
+
+function submitEmailAuthForm(){
+  if(emailScreenMode === 'login') signInWithEmail();
+  else signUpWithEmail();
+}
+
 function signUpWithEmail(){
   const email = document.getElementById('email-signup-email').value.trim();
   const password = document.getElementById('email-signup-password').value;
@@ -3956,7 +4056,10 @@ function signUpWithEmail(){
     showScreen('signup-account');
   }).catch((error) => {
     let message = "Une erreur est survenue, réessayez.";
-    if(error.code === 'auth/email-already-in-use') message = "Cet email est déjà utilisé.";
+    if(error.code === 'auth/email-already-in-use'){
+      message = "Un compte existe déjà avec cet email — connectez-vous plutôt.";
+      toggleEmailScreenMode();
+    }
     if(error.code === 'auth/invalid-email') message = "Adresse email invalide.";
     if(error.code === 'auth/weak-password') message = "Mot de passe trop faible.";
     errorEl.textContent = message;
@@ -5099,12 +5202,28 @@ function applyRadiusFilter(){
     .map(x => x.p);
 }
 
+function openSwipeTutorial(){
+  document.getElementById('swipe-tutorial-overlay').classList.add('show');
+}
+
+function closeSwipeTutorial(){
+  document.getElementById('swipe-tutorial-overlay').classList.remove('show');
+  try{ localStorage.setItem('pm_swipe_tutorial_seen', '1'); } catch(e){}
+}
+
+function maybeShowSwipeTutorialFirstTime(){
+  let seen = false;
+  try{ seen = localStorage.getItem('pm_swipe_tutorial_seen') === '1'; } catch(e){}
+  if(!seen) openSwipeTutorial();
+}
+
 function initSwipe(){
   swipeInitialized = true;
   swipeIndex = 0;
   lastSwipedProfile = null;
   lastSwipedWasReal = false;
   updateUndoButtonState();
+  maybeShowSwipeTutorialFirstTime();
   if(supabaseClient){
     loadRealSwipeProfiles();
   } else {
@@ -5319,6 +5438,20 @@ async function recordSwipeAction(toProfileId, action){
 async function checkAndCreateMatch(otherProfileId, mode){
   if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return { matched: false, matchId: null };
   try{
+    const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
+
+    // Règle définitive : une seule relation par duo, quel que soit le mode. Si une
+    // relation existe déjà entre ces deux personnes, on ne crée jamais de doublon —
+    // le mode déjà établi (Amitié conservée par défaut en cas de conflit) reste tel quel.
+    const { data: existingMatch, error: existingErr } = await supabaseClient
+      .from('matches').select('id, mode')
+      .eq('profile_a_id', profileAId).eq('profile_b_id', profileBId)
+      .maybeSingle();
+    if(existingErr) throw existingErr;
+    if(existingMatch){
+      return { matched: true, matchId: existingMatch.id };
+    }
+
     const { data: reciprocal, error: checkError } = await supabaseClient
       .from('swipe_actions')
       .select('id')
@@ -5332,8 +5465,7 @@ async function checkAndCreateMatch(otherProfileId, mode){
       return { matched: false, matchId: null };
     }
 
-    // Réciprocité confirmée : on crée le match, avec l'ordre imposé par la contrainte SQL
-    const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
+    // Réciprocité confirmée, et aucune relation existante : on crée le match
     const { data: matchRow, error: insertError } = await supabaseClient
       .from('matches')
       .upsert({
@@ -5836,16 +5968,24 @@ let activityDateFilter = 'toutes';
 function onActivityFiltersChanged(){
   activitySearchQuery = document.getElementById('activity-search-input').value.trim().toLowerCase();
   activityCategoryFilter = document.getElementById('activity-category-filter').value;
-  activityDateFilter = document.getElementById('activity-date-filter').value;
   const active = activitySearchQuery || activityCategoryFilter !== 'tous' || activityDateFilter !== 'toutes';
   document.getElementById('activity-filters-active').style.display = active ? 'block' : 'none';
   renderActivitiesList();
 }
 
+function setActivityDateFilterChip(el, value){
+  document.querySelectorAll('#activity-date-chip-row .time-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activityDateFilter = value;
+  onActivityFiltersChanged();
+}
+
 function resetActivityFilters(){
   document.getElementById('activity-search-input').value = '';
   document.getElementById('activity-category-filter').value = 'tous';
-  document.getElementById('activity-date-filter').value = 'toutes';
+  document.querySelectorAll('#activity-date-chip-row .time-chip').forEach(c =>
+    c.classList.toggle('active', c.getAttribute('data-date') === 'toutes')
+  );
   activitySearchQuery = '';
   activityCategoryFilter = 'tous';
   activityDateFilter = 'toutes';
@@ -6338,7 +6478,7 @@ async function renderActivitiesList(){
       return { a, passionScore, modeScore, distanceValue, dayDiff, distanceKm: dist };
     });
     scored.sort((x,y) => (y.passionScore - x.passionScore) || (y.modeScore - x.modeScore) || (x.distanceValue - y.distanceValue) || (x.dayDiff - y.dayDiff));
-    const sortedData = scored.map(s => ({ ...s.a, distanceKm: s.distanceKm }));
+    const sortedData = scored.map(s => ({ ...s.a, distanceKm: s.distanceKm, matchesPassion: s.passionScore > 0 }));
 
     const cards = await Promise.all(sortedData.map(async (a) => {
       const cat = categories.find(c => c.key === a.category);
@@ -6380,6 +6520,8 @@ async function renderActivitiesList(){
       const modeTagHtml = a.mode === 'love'
         ? `<span class="msg-mode-tag love">Rencontre</span>`
         : `<span class="msg-mode-tag friend">Amitié</span>`;
+      const proximityTag = (a.distanceKm != null && a.distanceKm <= 10) ? `<span class="msg-mode-tag friend" style="background:var(--lavender); color:var(--plum-soft);">📍 À proximité</span>` : '';
+      const passionTag = a.matchesPassion ? `<span class="msg-mode-tag friend" style="background:var(--lavender); color:var(--plum-soft);">❤️ Correspond à vos passions</span>` : '';
 
       return `
         <div class="card" onclick="openActivityDetail('${a.id}')">
@@ -6389,7 +6531,7 @@ async function renderActivitiesList(){
             <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
             <div class="card-meta"><span>📍 ${escapeHtml(a.location) || 'Lieu à définir'}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm)+' km' : ' · distance non disponible'}</span></div>
             <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${escapeHtml(organizerName)}</span></div>
-            <div style="margin-top:6px;">${modeTagHtml}</div>
+            <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">${modeTagHtml}${proximityTag}${passionTag}</div>
           </div>
         </div>
       `;
