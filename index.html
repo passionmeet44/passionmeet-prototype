@@ -5117,6 +5117,11 @@ async function undoLastSwipe(){
       if(error.message && error.message.includes('PREMIUM_REQUIRED_FOR_UNDO')){
         showToast("Le retour en arrière est réservé aux membres Premium.", "🔒");
         showScreen('premium');
+      } else if(error.message && error.message.includes('CANNOT_UNDO_AFTER_MATCH')){
+        showToast("Un match a déjà été créé, impossible d'annuler.", "💜");
+        lastSwipedProfile = null;
+        lastSwipedWasReal = false;
+        updateUndoButtonState();
       } else {
         console.warn('[Swipe] Annulation impossible :', error.message);
         showToast("Impossible d'annuler ce swipe pour le moment.", "⚠️");
@@ -5233,6 +5238,10 @@ function flyOut(card, type){
       if(isRealSwipe){
         const matched = await checkAndCreateMatch(likedProfile.supabaseId, type);
         if(matched){
+          // Un match est désormais définitif : impossible de revenir en arrière dessus.
+          lastSwipedProfile = null;
+          lastSwipedWasReal = false;
+          updateUndoButtonState();
           setTimeout(()=> showMatchOverlay(likedProfile, type), 250);
         }
       } else if(likedProfile && Math.random() < 0.5){
