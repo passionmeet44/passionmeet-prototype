@@ -351,7 +351,7 @@
   .pill.sel{background:var(--plum); color:#fff;}
 
   /* ---------- Home ---------- */
-  #screen-home{ padding-left:20px; padding-right:20px; padding-bottom:130px; }
+  #screen-home{ padding-left:20px; padding-right:20px; padding-bottom: calc(56px + env(safe-area-inset-bottom) + 24px); }
   .home-header{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px;}
   .home-header h1{font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--plum); line-height:1.15;}
   .home-location{
@@ -1127,18 +1127,18 @@
 
   /* ---------- Bottom nav ---------- */
   .app-top-bar{
-    position:fixed; top:0; left:0; right:0; height:calc(66px + env(safe-area-inset-top)); z-index:41;
+    position:fixed; top:0; left:0; right:0; height:calc(48px + env(safe-area-inset-top)); z-index:41;
     background:var(--plum); box-shadow:0 4px 14px rgba(62,31,68,0.18);
     display:flex; align-items:center; justify-content:center;
     padding-top:env(safe-area-inset-top); box-sizing:border-box;
   }
   .app-top-bar.hidden{display:none;}
-  .app-top-bar img{height:58px; max-width:82%; object-fit:contain; display:block; margin:0 auto;}
-  .screen.has-topbar{padding-top: calc(66px + env(safe-area-inset-top) + 14px);}
+  .app-top-bar img{height:32px; max-width:70%; object-fit:contain; display:block; margin:0 auto;}
+  .screen.has-topbar{padding-top: calc(48px + env(safe-area-inset-top) + 10px);}
   .bottom-nav{
-    position:fixed; bottom:0; left:0; right:0; height:78px; background:var(--plum);
-    display:flex; z-index:40;
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    position:fixed; bottom:0; left:0; right:0; height:calc(56px + env(safe-area-inset-bottom)); background:var(--plum);
+    display:flex; z-index:40; box-sizing:border-box;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .bottom-nav.hidden{display:none;}
   .nav-item{
@@ -1159,7 +1159,7 @@
   .nav-icon{display:flex; align-items:center; justify-content:center; margin-bottom:2px;}
   .nav-icon svg{width:22px; height:22px; display:block;}
   .nav-fab{
-    position:fixed; left:50%; bottom:calc(86px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+    position:fixed; left:50%; bottom:calc(56px + env(safe-area-inset-bottom) + 8px); transform:translateX(-50%);
     width:54px; height:54px; border-radius:50%; z-index:46; cursor:pointer;
     background:linear-gradient(135deg,var(--orange),var(--gold)); color:#fff;
     font-size:28px; font-weight:800; line-height:1;
@@ -1170,7 +1170,7 @@
   #msg-list-private.hidden, #msg-list-groups.hidden{display:none;}
   .suggestion-detail.hidden{display:none;}
   .nav-fab-plate{
-    position:fixed; left:50%; bottom:calc(78px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+    position:fixed; left:50%; bottom:calc(56px + env(safe-area-inset-bottom)); transform:translateX(-50%);
     width:78px; height:22px; background:var(--cream-card);
     border-radius:39px 39px 0 0; z-index:44; pointer-events:none;
   }
