@@ -21,6 +21,11 @@
     --success: #4E9A6E;
     --font-display: 'Baloo 2', sans-serif;
     --font-body: 'Work Sans', sans-serif;
+    --radius-sm: 12px;
+    --radius-md: 18px;
+    --radius-lg: 26px;
+    --shadow-soft: 0 4px 14px rgba(62,31,68,0.07);
+    --shadow-elevated: 0 12px 30px rgba(62,31,68,0.16);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
@@ -338,15 +343,24 @@
 
   /* ---------- Home ---------- */
   #screen-home{ padding:20px 20px 100px; }
-  .home-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
-  .home-header h1{font-family:var(--font-display); font-size:22px; color:var(--plum);}
-  .home-location{font-size:12px; color:#9584A0; font-weight:600; margin-bottom:16px;}
+  .home-header{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px;}
+  .home-header h1{font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--plum); line-height:1.15;}
+  .home-location{font-size:11.5px; color:var(--orange-deep); font-weight:700; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.04em;}
   .home-step.hidden{display:none;}
-  .home-question{font-family:var(--font-display); font-size:17px; font-weight:800; color:var(--plum); margin-bottom:16px; line-height:1.3;}
+  .home-question{font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--plum-soft); margin-bottom:20px; line-height:1.4;}
   .home-step-back{font-size:12.5px; color:#9584A0; font-weight:700; margin-bottom:14px; cursor:pointer;}
   .home-browse-link{text-align:center; font-size:12px; color:var(--plum-soft); text-decoration:underline; cursor:pointer; margin:18px 0 4px;}
-  .intent-grid-3{display:flex; flex-direction:column; gap:12px; margin-bottom:6px;}
+  .intent-grid-3{display:flex; flex-direction:column; gap:10px; margin-bottom:6px;}
   .intent-card.wide{display:flex; align-items:center; gap:14px; text-align:left; padding:16px;}
+  .intent-card.wide.featured{
+    background:linear-gradient(135deg, var(--plum) 0%, #5A2E63 100%); box-shadow:var(--shadow-elevated); padding:20px;
+  }
+  .intent-card.wide.featured h4{color:#fff;}
+  .intent-card.wide.featured p{color:rgba(255,255,255,0.72);}
+  .intent-card.wide.featured .intent-icon{
+    width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,0.18);
+    display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:0;
+  }
   .intent-card.wide .intent-icon{font-size:26px; margin-bottom:0; flex-shrink:0;}
   .home-choice-list{display:flex; flex-direction:column; gap:12px;}
   .home-choice-item{
@@ -1081,7 +1095,8 @@
     margin-left:6px; display:inline-block;
   }
   .msg-unread-badge.hidden{display:none;}
-  .nav-icon{font-size:19px;}
+  .nav-icon{display:flex; align-items:center; justify-content:center; margin-bottom:2px;}
+  .nav-icon svg{width:22px; height:22px; display:block;}
   .nav-fab{
     position:fixed; left:50%; bottom:calc(86px + env(safe-area-inset-bottom)); transform:translateX(-50%);
     width:54px; height:54px; border-radius:50%; z-index:46; cursor:pointer;
@@ -1382,21 +1397,18 @@
   <!-- HOME -->
   <div class="screen" id="screen-home">
     <div class="home-header">
-      <h1 id="home-greeting">Bonjour Camille</h1>
+      <div>
+        <div class="home-location" id="location-label">📍 44 · Loire-Atlantique</div>
+        <h1 id="home-greeting">Bonjour Camille</h1>
+      </div>
       <div class="kyc-badge">✓ Vérifié</div>
     </div>
-    <div class="home-location" id="location-label">📍 44 · Loire-Atlantique</div>
 
     <!-- STEP 1 : QUOI -->
     <div class="home-step" id="home-step-1">
-      <div class="home-question">Qu'est-ce qui te ferait plaisir aujourd'hui ?</div>
+      <div class="home-question">Qu'est-ce que tu vas découvrir aujourd'hui ?</div>
       <div class="intent-grid intent-grid-3">
-        <div class="intent-card wide" onclick="openCreateActivityReal()">
-          <div class="intent-icon">🧡</div>
-          <h4>Faire une activité</h4>
-          <p>Créer une activité</p>
-        </div>
-        <div class="intent-card wide" onclick="setHomeIntent('rencontre')">
+        <div class="intent-card wide featured" onclick="setHomeIntent('rencontre')">
           <div class="intent-icon">💜</div>
           <h4>Faire une rencontre</h4>
           <p>Une intention plus romantique</p>
@@ -1405,6 +1417,11 @@
           <div class="intent-icon">🤝</div>
           <h4>Me faire de nouveaux amis</h4>
           <p>Élargir son cercle autour de passions communes</p>
+        </div>
+        <div class="intent-card wide" onclick="openCreateActivityReal()">
+          <div class="intent-icon">🧡</div>
+          <h4>Faire une activité</h4>
+          <p>Créer une activité</p>
         </div>
       </div>
       <div class="home-browse-link" onclick="showScreen('swipe')">🔎 Ou parcourir directement les profils</div>
@@ -2070,19 +2087,19 @@
   <!-- BOTTOM NAV -->
   <div class="bottom-nav hidden" id="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="showScreen('home')">
-      <div class="nav-icon">🧭</div>Découvrir
+      <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15,9 13,13 9,15 11,11"/></svg></div>Découvrir
     </div>
     <div class="nav-item" id="nav-activities" onclick="showScreen('activities-list')">
-      <div class="nav-icon">🎉</div>Activités
+      <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg></div>Activités
     </div>
     <div class="nav-item" id="nav-matches" onclick="showScreen('matches')">
-      <div class="nav-icon">💜</div>Matchs
+      <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.7-9.3C.7 7.8 2.4 4.5 5.7 4.5c2 0 3.5 1 4.3 2.6.5-.9 1.3-1.6 2.3-2 1.9-.8 4.4-.2 5.9 1.4 1.8 1.9 1.6 4.9-.5 7.6-2.2 2.8-5.7 5.4-5.7 6.4z"/></svg></div>Matchs
     </div>
     <div class="nav-item" id="nav-messages" onclick="showScreen('messages')">
-      <div class="nav-icon">💬</div>Messages
+      <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5c0 4.1-4 7.5-9 7.5-1.1 0-2.2-.2-3.1-.5L4 20l1-3.8C3.7 15 3 13.3 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z"/></svg></div>Messages
     </div>
     <div class="nav-item" id="nav-profile" onclick="showScreen('profile')">
-      <div class="nav-icon">👤</div>Profil
+      <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20c1.3-3.5 4.2-5.5 7.5-5.5s6.2 2 7.5 5.5"/></svg></div>Profil
     </div>
   </div>
   <div class="nav-fab-plate hidden" id="nav-fab-plate"></div>
@@ -3023,7 +3040,7 @@ function showScreen(name){
   const fabPlate = document.getElementById('nav-fab-plate');
   if(name==='home' || name==='profile' || name==='swipe' || name==='messages' || name==='matches' || name==='activities-list'){
     nav.classList.remove('hidden');
-    const showFab = name !== 'swipe';
+    const showFab = name === 'activities-list';
     if(fab) fab.classList.toggle('hidden', !showFab);
     if(fabPlate) fabPlate.classList.toggle('hidden', !showFab);
     document.getElementById('nav-home').classList.toggle('active', name==='home' || name==='swipe');
