@@ -345,23 +345,26 @@
   #screen-home{ padding:20px 20px 100px; }
   .home-header{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px;}
   .home-header h1{font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--plum); line-height:1.15;}
-  .home-location{font-size:11.5px; color:var(--orange-deep); font-weight:700; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.04em;}
+  .home-location{
+    font-size:11px; color:var(--orange-deep); font-weight:700; margin-bottom:10px; letter-spacing:0.02em;
+    display:inline-flex; align-items:center; background:#FDEEE0; padding:5px 11px; border-radius:12px;
+  }
   .home-step.hidden{display:none;}
   .home-question{font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--plum-soft); margin-bottom:20px; line-height:1.4;}
   .home-step-back{font-size:12.5px; color:#9584A0; font-weight:700; margin-bottom:14px; cursor:pointer;}
   .home-browse-link{text-align:center; font-size:12px; color:var(--plum-soft); text-decoration:underline; cursor:pointer; margin:18px 0 4px;}
   .intent-grid-3{display:flex; flex-direction:column; gap:10px; margin-bottom:6px;}
-  .intent-card.wide{display:flex; align-items:center; gap:14px; text-align:left; padding:16px;}
+  .intent-card.wide{display:flex; align-items:center; gap:14px; text-align:left; padding:16px; min-height:78px;}
+  .intent-card.wide .intent-icon{
+    width:46px; height:46px; border-radius:50%; background:var(--lavender);
+    display:flex; align-items:center; justify-content:center; font-size:21px; margin-bottom:0; flex-shrink:0;
+  }
   .intent-card.wide.featured{
-    background:linear-gradient(135deg, var(--plum) 0%, #5A2E63 100%); box-shadow:var(--shadow-elevated); padding:20px;
+    background:linear-gradient(135deg, var(--plum) 0%, #5A2E63 100%); box-shadow:var(--shadow-elevated); padding:18px;
   }
   .intent-card.wide.featured h4{color:#fff;}
   .intent-card.wide.featured p{color:rgba(255,255,255,0.72);}
-  .intent-card.wide.featured .intent-icon{
-    width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,0.18);
-    display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:0;
-  }
-  .intent-card.wide .intent-icon{font-size:26px; margin-bottom:0; flex-shrink:0;}
+  .intent-card.wide.featured .intent-icon{background:rgba(255,255,255,0.18);}
   .home-choice-list{display:flex; flex-direction:column; gap:12px;}
   .home-choice-item{
     background:var(--cream-card); border-radius:16px; padding:16px 18px; cursor:pointer;
@@ -369,25 +372,25 @@
     box-shadow:0 4px 12px rgba(62,31,68,0.08);
   }
   .home-choice-item:active{transform:scale(0.98);}
-  .digest-title{font-family:var(--font-display); font-size:11.5px; font-weight:700; color:#9584A0; margin:22px 0 10px; text-transform:uppercase; letter-spacing:0.3px;}
-  .digest-row{display:flex; gap:10px; overflow-x:auto; padding-bottom:14px; margin-bottom:4px; -ms-overflow-style:none; scrollbar-width:none;}
+  .digest-title{font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--plum); margin:26px 0 12px; letter-spacing:0.01em;}
+  .digest-row{display:flex; gap:12px; overflow-x:auto; padding:2px 2px 14px; margin-bottom:4px; -ms-overflow-style:none; scrollbar-width:none;}
   .digest-row::-webkit-scrollbar{display:none;}
   .digest-card{
-    flex-shrink:0; width:98px; background:var(--cream-card); border-radius:14px; padding:9px;
-    box-shadow:0 3px 10px rgba(62,31,68,0.07); cursor:pointer; position:relative;
+    flex-shrink:0; width:150px; background:var(--cream-card); border-radius:var(--radius-md); overflow:hidden;
+    box-shadow:var(--shadow-soft); cursor:pointer; position:relative;
   }
   .digest-score{
-    position:absolute; top:7px; right:7px; background:var(--orange); color:#fff; font-size:9px; font-weight:800;
-    padding:2px 5px; border-radius:8px; z-index:2;
+    position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.92); color:var(--plum); font-size:11px; font-weight:800;
+    padding:3px 8px; border-radius:10px; z-index:2; box-shadow:0 2px 6px rgba(62,31,68,0.15);
   }
   .digest-emoji{
-    width:100%; height:46px; border-radius:11px; display:flex; align-items:center; justify-content:center;
-    font-size:21px; margin-bottom:7px;
+    width:100%; height:82px; display:flex; align-items:center; justify-content:center; font-size:30px;
   }
-  .digest-card h4{font-family:var(--font-display); font-size:11px; color:var(--plum); margin-bottom:2px; line-height:1.25;}
-  .digest-card p{font-size:10px; color:#9584A0;}
+  .digest-card-body{padding:10px 12px 12px;}
+  .digest-card h4{font-family:var(--font-display); font-size:13px; font-weight:700; color:var(--plum); margin-bottom:3px; line-height:1.25;}
+  .digest-card p{font-size:11.5px; color:var(--plum-soft); font-weight:600;}
   .cat-grid.hidden{display:none;}
-  .intent-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;}
+  .intent-grid.intent-grid-3{display:grid; grid-template-columns:1fr;}
   .intent-card{
     background:var(--cream-card); border-radius:16px; padding:14px 12px; cursor:pointer;
     box-shadow:0 4px 12px rgba(62,31,68,0.08);
@@ -395,6 +398,9 @@
   .intent-icon{font-size:22px; margin-bottom:6px;}
   .intent-card h4{font-family:var(--font-display); font-size:12.5px; color:var(--plum); margin-bottom:3px; line-height:1.25;}
   .intent-card p{font-size:10.5px; color:#9584A0; line-height:1.3;}
+  .intent-card.wide h4{font-size:15px; margin-bottom:2px;}
+  .intent-card.wide p{font-size:12px;}
+  .intent-card.wide:not(.featured){border:1px solid var(--line); box-shadow:0 3px 10px rgba(62,31,68,0.06);}
   @keyframes flash-highlight{
     0%{ box-shadow:0 0 0 3px rgba(242,146,75,0.6); border-radius:16px; }
     100%{ box-shadow:0 0 0 3px rgba(242,146,75,0); border-radius:16px; }
@@ -4401,10 +4407,12 @@ function renderWeeklyDigest(){
     <div class="digest-row">
       ${top.map(x => `
         <div class="digest-card" onclick="openDetail('${x.id}')">
-          <div class="digest-score">${x.score}%</div>
           <div class="digest-emoji" style="background:${x.a.bg}">${x.a.emoji}</div>
-          <h4>${x.a.title}</h4>
-          <p>${x.dist.toFixed(1)} km</p>
+          <div class="digest-score">${x.score}%</div>
+          <div class="digest-card-body">
+            <h4>${x.a.title}</h4>
+            <p>📍 ${x.dist.toFixed(1)} km</p>
+          </div>
         </div>
       `).join('')}
     </div>
