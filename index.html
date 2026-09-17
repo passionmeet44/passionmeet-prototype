@@ -48,7 +48,7 @@
     flex-direction:column;
   }
   @media (min-width:481px){
-    .app-top-bar, .bottom-nav{ max-width:480px; left:50%; transform:translateX(-50%); right:auto; width:100%; }
+    .app-top-bar, .bottom-nav{ max-width:480px; margin:0 auto; left:0; right:0; width:auto; transform:none; }
   }
   .notch{ display:none; }
   .notch{
@@ -390,6 +390,14 @@
     background:linear-gradient(155deg, #EAF6EE 0%, #F6FBF7 100%); border:1px solid #D9EEDF;
   }
   .intent-card.wide.accent-green .intent-icon{ background:#CBE9D3; }
+  .intent-card.wide.accent-orange{
+    background:linear-gradient(155deg, #FDEFE2 0%, #FFF8F1 100%); border:1px solid #F7DCC0;
+  }
+  .intent-card.wide.accent-orange .intent-icon{ background:#FBDDBB; }
+  .intent-card.wide.accent-teal{
+    background:linear-gradient(155deg, #E2F5F4 0%, #F3FBFA 100%); border:1px solid #C9EBE8;
+  }
+  .intent-card.wide.accent-teal .intent-icon{ background:#BFE9E5; }
   .intent-card.wide.full{
     grid-column:1 / -1; flex-direction:row; justify-content:flex-start; text-align:left;
     gap:14px; padding:16px 18px; min-height:0;
@@ -1127,14 +1135,14 @@
 
   /* ---------- Bottom nav ---------- */
   .app-top-bar{
-    position:fixed; top:0; left:0; right:0; height:calc(48px + env(safe-area-inset-top)); z-index:41;
+    position:fixed; top:0; left:0; right:0; height:calc(56px + env(safe-area-inset-top)); z-index:41;
     background:var(--plum); box-shadow:0 4px 14px rgba(62,31,68,0.18);
     display:flex; align-items:center; justify-content:center;
-    padding-top:env(safe-area-inset-top); box-sizing:border-box;
+    padding-top:env(safe-area-inset-top); box-sizing:border-box; width:100%; overflow:hidden;
   }
   .app-top-bar.hidden{display:none;}
-  .app-top-bar img{height:32px; max-width:70%; object-fit:contain; display:block; margin:0 auto;}
-  .screen.has-topbar{padding-top: calc(48px + env(safe-area-inset-top) + 10px);}
+  .app-top-bar img{height:42px; width:auto; max-width:75%; max-height:none; object-fit:contain; display:block; margin:0 auto; transform:none;}
+  .screen.has-topbar{padding-top: calc(56px + env(safe-area-inset-top) + 10px);}
   .bottom-nav{
     position:fixed; bottom:0; left:0; right:0; height:calc(56px + env(safe-area-inset-bottom)); background:var(--plum);
     display:flex; z-index:40; box-sizing:border-box;
@@ -1479,15 +1487,17 @@
           <h4>Nouveaux amis</h4>
           <p>Élargir son cercle</p>
         </div>
-        <div class="intent-card wide full accent-orange" onclick="openCreateActivityReal()">
+        <div class="intent-card wide accent-orange" onclick="openCreateActivityReal()">
           <div class="intent-icon">🧡</div>
-          <div class="intent-text">
-            <h4>Faire une activité</h4>
-            <p>Créer et publier une activité</p>
-          </div>
+          <h4>Faire une activité</h4>
+          <p>Créer et publier une activité</p>
+        </div>
+        <div class="intent-card wide accent-teal" onclick="showScreen('swipe')">
+          <div class="intent-icon">🔎</div>
+          <h4>Parcourir les profils</h4>
+          <p>Découvrir les personnes</p>
         </div>
       </div>
-      <div class="home-browse-link" onclick="showScreen('swipe')">🔎 Ou parcourir directement les profils</div>
       <div id="weekly-digest"></div>
     </div>
 
