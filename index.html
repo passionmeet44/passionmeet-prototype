@@ -36,6 +36,8 @@
   }
   .phone{
     width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
     background: var(--cream);
     border-radius: 0;
     box-shadow: none;
@@ -43,6 +45,7 @@
     display:flex;
     flex-direction:column;
   }
+  .app-top-bar, .bottom-nav{ max-width:480px; left:50%; transform:translateX(-50%); right:auto; width:100%; }
   .notch{ display:none; }
   .notch{
     position:absolute; top:0; left:50%; transform:translateX(-50%);
@@ -373,11 +376,11 @@
   }
   .home-choice-item:active{transform:scale(0.98);}
   .digest-title{font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--plum); margin:26px 0 12px; letter-spacing:0.01em;}
-  .digest-row{display:flex; gap:12px; overflow-x:auto; padding:2px 2px 14px; margin-bottom:4px; -ms-overflow-style:none; scrollbar-width:none;}
+  .digest-row{display:flex; gap:14px; overflow-x:auto; padding:2px 2px 14px 2px; margin:0 -20px; padding-left:20px; padding-right:20px; margin-bottom:4px; -ms-overflow-style:none; scrollbar-width:none; scroll-snap-type:x mandatory;}
   .digest-row::-webkit-scrollbar{display:none;}
   .digest-card{
-    flex-shrink:0; width:150px; background:var(--cream-card); border-radius:var(--radius-md); overflow:hidden;
-    box-shadow:var(--shadow-soft); cursor:pointer; position:relative;
+    flex-shrink:0; width:158px; background:var(--cream-card); border-radius:var(--radius-md); overflow:hidden;
+    box-shadow:var(--shadow-soft); cursor:pointer; position:relative; scroll-snap-align:start;
   }
   .digest-score{
     position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.92); color:var(--plum); font-size:11px; font-weight:800;
@@ -1081,13 +1084,13 @@
 
   /* ---------- Bottom nav ---------- */
   .app-top-bar{
-    position:fixed; top:0; left:0; right:0; height:56px; z-index:41;
-    background:var(--plum); display:flex; align-items:center; justify-content:center;
-    padding-top: env(safe-area-inset-top);
+    position:fixed; top:0; left:0; right:0; height:calc(64px + env(safe-area-inset-top)); z-index:41;
+    background:var(--plum); display:flex; align-items:flex-end; justify-content:center;
+    padding-bottom:10px;
   }
   .app-top-bar.hidden{display:none;}
-  .app-top-bar img{height:30px; object-fit:contain;}
-  .screen.has-topbar{padding-top: calc(56px + env(safe-area-inset-top));}
+  .app-top-bar img{height:42px; object-fit:contain;}
+  .screen.has-topbar{padding-top: calc(64px + env(safe-area-inset-top) + 14px);}
   .bottom-nav{
     position:fixed; bottom:0; left:0; right:0; height:78px; background:var(--plum);
     display:flex; z-index:40;
