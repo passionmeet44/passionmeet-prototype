@@ -1080,9 +1080,17 @@
   .match-continue{ margin-top:16px; color:#fff; font-size:13px; text-decoration:underline; cursor:pointer; }
 
   /* ---------- Bottom nav ---------- */
+  .app-top-bar{
+    position:fixed; top:0; left:0; right:0; height:56px; z-index:41;
+    background:var(--plum); display:flex; align-items:center; justify-content:center;
+    padding-top: env(safe-area-inset-top);
+  }
+  .app-top-bar.hidden{display:none;}
+  .app-top-bar img{height:30px; object-fit:contain;}
+  .screen.has-topbar{padding-top: calc(56px + env(safe-area-inset-top));}
   .bottom-nav{
-    position:fixed; bottom:0; left:0; right:0; height:78px; background:#fff;
-    border-top:1px solid var(--line); display:flex; z-index:40;
+    position:fixed; bottom:0; left:0; right:0; height:78px; background:var(--plum);
+    display:flex; z-index:40;
     padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
   .bottom-nav.hidden{display:none;}
@@ -2091,6 +2099,9 @@
   </div>
 
   <!-- BOTTOM NAV -->
+  <div class="app-top-bar hidden" id="app-top-bar">
+    <img id="app-top-logo" alt="PassionMeet">
+  </div>
   <div class="bottom-nav hidden" id="bottom-nav">
     <div class="nav-item active" id="nav-home" onclick="showScreen('home')">
       <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15,9 13,13 9,15 11,11"/></svg></div>Découvrir
@@ -3042,10 +3053,18 @@ function showScreen(name){
   if(name==='signup-photos'){ renderPhotoGrid(); }
   if(name==='premium'){ renderTierPanel(); updatePremiumStatusDisplay(); }
   const nav = document.getElementById('bottom-nav');
+  const topBar = document.getElementById('app-top-bar');
   const fab = document.getElementById('nav-fab');
   const fabPlate = document.getElementById('nav-fab-plate');
   if(name==='home' || name==='profile' || name==='swipe' || name==='messages' || name==='matches' || name==='activities-list'){
     nav.classList.remove('hidden');
+    topBar.classList.remove('hidden');
+    incoming.classList.add('has-topbar');
+    const logo = document.getElementById('app-top-logo');
+    if(logo && !logo.src){
+      const existing = document.querySelector('.login-logo, .splash-logo');
+      if(existing) logo.src = existing.src;
+    }
     const showFab = name === 'activities-list';
     if(fab) fab.classList.toggle('hidden', !showFab);
     if(fabPlate) fabPlate.classList.toggle('hidden', !showFab);
@@ -3063,6 +3082,8 @@ function showScreen(name){
     if(name==='profile'){ renderProfileScreen(); }
   } else {
     nav.classList.add('hidden');
+    topBar.classList.add('hidden');
+    incoming.classList.remove('has-topbar');
     if(fab) fab.classList.add('hidden');
     if(fabPlate) fabPlate.classList.add('hidden');
   }
