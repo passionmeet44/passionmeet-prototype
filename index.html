@@ -28,11 +28,13 @@
     --shadow-elevated: 0 12px 30px rgba(62,31,68,0.16);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
+  html, body{ overflow-x:hidden; max-width:100%; }
   body{
     font-family: var(--font-body);
     background: var(--cream);
     margin:0;
     min-height:100vh;
+    width:100%;
   }
   .phone{
     width: 100%;
@@ -54,10 +56,12 @@
   .screen{
     position:relative;
     width:100%;
+    max-width:100%;
     min-height:100vh;
     display:none;
     flex-direction:column;
     overflow-y:auto;
+    overflow-x:hidden;
     padding-bottom: 130px;
   }
   .screen.active{display:flex;}
@@ -356,18 +360,47 @@
   .home-question{font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--plum-soft); margin-bottom:20px; line-height:1.4;}
   .home-step-back{font-size:12.5px; color:#9584A0; font-weight:700; margin-bottom:14px; cursor:pointer;}
   .home-browse-link{text-align:center; font-size:12px; color:var(--plum-soft); text-decoration:underline; cursor:pointer; margin:18px 0 4px;}
-  .intent-grid-3{display:flex; flex-direction:column; gap:10px; margin-bottom:6px;}
-  .intent-card.wide{display:flex; align-items:center; gap:14px; text-align:left; padding:16px; min-height:78px;}
+
+  /* Trois boutons d'intention premium : 2 cartes carrées + 1 carte large */
+  .intent-grid-3{
+    display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:12px; margin-bottom:6px;
+  }
+  .intent-card.wide{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; gap:6px; padding:20px 12px; border-radius:22px; min-height:150px;
+    box-shadow:var(--shadow-soft); cursor:pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .intent-card.wide:active{ transform:scale(0.97); }
+  .intent-card.wide h4{ order:1; font-size:14.5px; margin-bottom:0; line-height:1.2; }
+  .intent-card.wide p{ order:2; font-size:11px; line-height:1.3; margin-bottom:4px; }
   .intent-card.wide .intent-icon{
-    width:46px; height:46px; border-radius:50%; background:var(--lavender);
-    display:flex; align-items:center; justify-content:center; font-size:21px; margin-bottom:0; flex-shrink:0;
+    order:3; width:50px; height:50px; border-radius:50%; background:var(--lavender);
+    display:flex; align-items:center; justify-content:center; font-size:23px; flex-shrink:0;
   }
   .intent-card.wide.featured{
-    background:linear-gradient(135deg, var(--plum) 0%, #5A2E63 100%); box-shadow:var(--shadow-elevated); padding:18px;
+    background:linear-gradient(155deg, var(--plum) 0%, #5A2E63 100%); box-shadow:var(--shadow-elevated);
   }
   .intent-card.wide.featured h4{color:#fff;}
   .intent-card.wide.featured p{color:rgba(255,255,255,0.72);}
   .intent-card.wide.featured .intent-icon{background:rgba(255,255,255,0.18);}
+  .intent-card.wide.accent-green{
+    background:linear-gradient(155deg, #EAF6EE 0%, #F6FBF7 100%); border:1px solid #D9EEDF;
+  }
+  .intent-card.wide.accent-green .intent-icon{ background:#CBE9D3; }
+  .intent-card.wide.full{
+    grid-column:1 / -1; flex-direction:row; justify-content:flex-start; text-align:left;
+    gap:14px; padding:16px 18px; min-height:0;
+  }
+  .intent-card.wide.full .intent-text{ display:flex; flex-direction:column; gap:2px; }
+  .intent-card.wide.full h4, .intent-card.wide.full p{ order:0; margin:0; }
+  .intent-card.wide.full .intent-icon{ order:0; width:46px; height:46px; font-size:20px; }
+  .intent-card.wide.full.accent-orange{
+    background:linear-gradient(120deg, var(--orange) 0%, var(--orange-deep) 100%); box-shadow:var(--shadow-elevated);
+  }
+  .intent-card.wide.full.accent-orange h4{ color:#fff; }
+  .intent-card.wide.full.accent-orange p{ color:rgba(255,255,255,0.78); }
+  .intent-card.wide.full.accent-orange .intent-icon{ background:rgba(255,255,255,0.22); }
   .home-choice-list{display:flex; flex-direction:column; gap:12px;}
   .home-choice-item{
     background:var(--cream-card); border-radius:16px; padding:16px 18px; cursor:pointer;
@@ -376,24 +409,32 @@
   }
   .home-choice-item:active{transform:scale(0.98);}
   .digest-title{font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--plum); margin:26px 0 12px; letter-spacing:0.01em;}
-  .digest-row{display:flex; gap:14px; overflow-x:auto; padding:2px 2px 14px 2px; margin:0 -20px; padding-left:20px; padding-right:20px; margin-bottom:4px; -ms-overflow-style:none; scrollbar-width:none; scroll-snap-type:x mandatory;}
+  .digest-row{
+    display:flex; gap:12px; overflow-x:auto; padding:2px 2px 14px 2px; margin:0 -20px; padding-left:20px; padding-right:20px;
+    margin-bottom:4px; -ms-overflow-style:none; scrollbar-width:none; scroll-snap-type:x mandatory; scroll-padding-left:20px;
+  }
   .digest-row::-webkit-scrollbar{display:none;}
   .digest-card{
-    flex-shrink:0; width:158px; background:var(--cream-card); border-radius:var(--radius-md); overflow:hidden;
+    flex-shrink:0; width:148px; height:176px; background:var(--cream-card); border-radius:var(--radius-md); overflow:hidden;
     box-shadow:var(--shadow-soft); cursor:pointer; position:relative; scroll-snap-align:start;
+    display:flex; flex-direction:column;
   }
   .digest-score{
-    position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.92); color:var(--plum); font-size:11px; font-weight:800;
+    position:absolute; top:9px; right:9px; background:rgba(255,255,255,0.94); color:var(--plum); font-size:10.5px; font-weight:800;
     padding:3px 8px; border-radius:10px; z-index:2; box-shadow:0 2px 6px rgba(62,31,68,0.15);
   }
   .digest-emoji{
-    width:100%; height:82px; display:flex; align-items:center; justify-content:center; font-size:30px;
+    width:100%; height:84px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:28px;
   }
-  .digest-card-body{padding:10px 12px 12px;}
-  .digest-card h4{font-family:var(--font-display); font-size:13px; font-weight:700; color:var(--plum); margin-bottom:3px; line-height:1.25;}
-  .digest-card p{font-size:11.5px; color:var(--plum-soft); font-weight:600;}
+  .digest-card-body{padding:10px 11px 12px; flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between;}
+  .digest-card h4{
+    font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--plum); margin-bottom:4px; line-height:1.25;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .digest-card p{
+    font-size:10.5px; color:var(--plum-soft); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
   .cat-grid.hidden{display:none;}
-  .intent-grid.intent-grid-3{display:grid; grid-template-columns:1fr;}
   .intent-card{
     background:var(--cream-card); border-radius:16px; padding:14px 12px; cursor:pointer;
     box-shadow:0 4px 12px rgba(62,31,68,0.08);
@@ -1084,13 +1125,14 @@
 
   /* ---------- Bottom nav ---------- */
   .app-top-bar{
-    position:fixed; top:0; left:0; right:0; height:calc(64px + env(safe-area-inset-top)); z-index:41;
-    background:var(--plum); display:flex; align-items:flex-end; justify-content:center;
-    padding-bottom:10px;
+    position:fixed; top:0; left:0; right:0; height:calc(70px + env(safe-area-inset-top)); z-index:41;
+    background:var(--plum); box-shadow:0 4px 14px rgba(62,31,68,0.18);
+    display:flex; align-items:center; justify-content:center;
+    padding-top:env(safe-area-inset-top); box-sizing:border-box;
   }
   .app-top-bar.hidden{display:none;}
-  .app-top-bar img{height:42px; object-fit:contain;}
-  .screen.has-topbar{padding-top: calc(64px + env(safe-area-inset-top) + 14px);}
+  .app-top-bar img{height:38px; max-width:70%; object-fit:contain; display:block; margin:0 auto;}
+  .screen.has-topbar{padding-top: calc(70px + env(safe-area-inset-top) + 18px);}
   .bottom-nav{
     position:fixed; bottom:0; left:0; right:0; height:78px; background:var(--plum);
     display:flex; z-index:40;
@@ -1430,15 +1472,17 @@
           <h4>Faire une rencontre</h4>
           <p>Une intention plus romantique</p>
         </div>
-        <div class="intent-card wide" onclick="setHomeIntent('amis')">
+        <div class="intent-card wide accent-green" onclick="setHomeIntent('amis')">
           <div class="intent-icon">🤝</div>
-          <h4>Me faire de nouveaux amis</h4>
-          <p>Élargir son cercle autour de passions communes</p>
+          <h4>Nouveaux amis</h4>
+          <p>Élargir son cercle</p>
         </div>
-        <div class="intent-card wide" onclick="openCreateActivityReal()">
+        <div class="intent-card wide full accent-orange" onclick="openCreateActivityReal()">
           <div class="intent-icon">🧡</div>
-          <h4>Faire une activité</h4>
-          <p>Créer une activité</p>
+          <div class="intent-text">
+            <h4>Faire une activité</h4>
+            <p>Créer et publier une activité</p>
+          </div>
         </div>
       </div>
       <div class="home-browse-link" onclick="showScreen('swipe')">🔎 Ou parcourir directement les profils</div>
