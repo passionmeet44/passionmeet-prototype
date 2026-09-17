@@ -47,7 +47,9 @@
     display:flex;
     flex-direction:column;
   }
-  .app-top-bar, .bottom-nav{ max-width:480px; left:50%; transform:translateX(-50%); right:auto; width:100%; }
+  @media (min-width:481px){
+    .app-top-bar, .bottom-nav{ max-width:480px; left:50%; transform:translateX(-50%); right:auto; width:100%; }
+  }
   .notch{ display:none; }
   .notch{
     position:absolute; top:0; left:50%; transform:translateX(-50%);
