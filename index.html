@@ -387,17 +387,17 @@
   .intent-card.wide.featured p{color:rgba(255,255,255,0.72);}
   .intent-card.wide.featured .intent-icon{background:rgba(255,255,255,0.18);}
   .intent-card.wide.accent-green{
-    background:linear-gradient(155deg, #EAF6EE 0%, #F6FBF7 100%); border:1px solid #D9EEDF;
+    background:linear-gradient(155deg, #D6F2E3 0%, #EFFBF4 100%); border:1px solid #B7E6CB;
   }
-  .intent-card.wide.accent-green .intent-icon{ background:#CBE9D3; }
+  .intent-card.wide.accent-green .intent-icon{ background:#A8DFBD; }
   .intent-card.wide.accent-orange{
     background:linear-gradient(155deg, #FDEFE2 0%, #FFF8F1 100%); border:1px solid #F7DCC0;
   }
   .intent-card.wide.accent-orange .intent-icon{ background:#FBDDBB; }
   .intent-card.wide.accent-teal{
-    background:linear-gradient(155deg, #E2F5F4 0%, #F3FBFA 100%); border:1px solid #C9EBE8;
+    background:linear-gradient(155deg, #D9ECFB 0%, #F1F8FE 100%); border:1px solid #B7D9F5;
   }
-  .intent-card.wide.accent-teal .intent-icon{ background:#BFE9E5; }
+  .intent-card.wide.accent-teal .intent-icon{ background:#AACFF2; }
   .intent-card.wide.full{
     grid-column:1 / -1; flex-direction:row; justify-content:flex-start; text-align:left;
     gap:14px; padding:16px 18px; min-height:0;
@@ -1138,7 +1138,7 @@
     position:fixed; top:0; left:0; right:0; z-index:41;
     background:var(--plum); box-shadow:0 4px 14px rgba(62,31,68,0.18);
     display:flex; align-items:center; justify-content:center;
-    padding-top:calc(env(safe-area-inset-top) + 3px); padding-bottom:3px;
+    padding-top:env(safe-area-inset-top); padding-bottom:0;
     box-sizing:border-box; width:100%; overflow:hidden;
   }
   .app-top-bar.hidden{display:none;}
@@ -1146,7 +1146,7 @@
     width:29%; min-width:96px; max-width:140px; height:auto;
     object-fit:contain; display:block; margin:0 auto; transform:none;
   }
-  .screen.has-topbar{padding-top: calc(92px + env(safe-area-inset-top));}
+  .screen.has-topbar{padding-top: calc(86px + env(safe-area-inset-top));}
   .bottom-nav{
     position:fixed; bottom:0; left:0; right:0; height:calc(56px + env(safe-area-inset-bottom)); background:var(--plum);
     display:flex; z-index:40; box-sizing:border-box;
