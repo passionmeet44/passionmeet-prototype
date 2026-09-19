@@ -117,7 +117,6 @@
     background:var(--lavender); color:var(--plum); border:none; font-family:var(--font-display);
     font-weight:600; font-size:14px; padding:12px 28px; border-radius:24px; cursor:pointer;
   }
-  #activity-search-panel.hidden{display:none;}
 
   /* ---------- Login screen (fond clair, carré, centré) ---------- */
   #screen-login, #screen-login-methods{
@@ -546,6 +545,31 @@
   .badge{font-size:9.5px; font-weight:700; padding:4px 9px; border-radius:10px; color:#fff;}
   .badge.partner{background:var(--plum);}
   .badge.user{background:var(--orange-deep);}
+
+  /* ---------- Carte compacte dédiée à l'écran Activités ---------- */
+  /* Distincte de .card (réutilisée ailleurs dans l'app : profil, légal…) pour ne */
+  /* jamais impacter les autres écrans en la rendant plus dense ici. */
+  .activity-card{
+    display:flex; gap:10px; background:var(--cream-card); border-radius:16px;
+    padding:8px; margin-bottom:8px; box-shadow:0 3px 10px rgba(62,31,68,0.07); cursor:pointer;
+  }
+  .activity-card-media{
+    width:92px; height:92px; flex-shrink:0; border-radius:12px; overflow:hidden; position:relative;
+    display:flex; align-items:center; justify-content:center; font-size:28px;
+  }
+  .activity-card-media img{width:100%; height:100%; object-fit:cover; display:block;}
+  .activity-card-body{flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:2px;}
+  .activity-card-title{
+    font-family:var(--font-display); font-size:13.5px; font-weight:700; color:var(--plum);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:1px;
+  }
+  .activity-card-meta{
+    font-size:11px; color:#9584A0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .activity-card-tags{display:flex; gap:4px; flex-wrap:wrap; margin-top:3px;}
+  .activity-card-tag{font-size:9px; font-weight:700; padding:2px 7px; border-radius:8px; background:var(--lavender); color:var(--plum-soft);}
+  .activity-card-tag.full{background:#F0E4E6; color:#A8465A;}
+  .activity-card-cta{font-size:11px; font-weight:700; color:var(--orange-deep); margin-top:2px;}
   .badge.mode{position:absolute; top:10px; right:10px; z-index:2; background:rgba(255,255,255,0.9); color:var(--plum); font-size:9.5px; font-weight:700; padding:4px 9px; border-radius:10px;}
   .badge.premium-badge{position:absolute; bottom:10px; right:10px; z-index:2; background:#D9A62E; color:#4A2E00;}
   .card-body{padding:14px 16px 16px;}
@@ -1917,11 +1941,11 @@
   <div class="screen" id="screen-activities-list">
     <div class="msg-header">
       <h1>Activités</h1>
-      <p style="font-size:12.5px; color:#9584A0; margin-top:2px;">Rejoignez une sortie déjà organisée, ou proposez la vôtre.</p>
+      <p style="font-size:12.5px; color:#9584A0; margin-top:2px;">Rejoins une sortie ou crée la tienne</p>
     </div>
     <div style="padding:0 20px 14px; display:flex; gap:10px;">
-      <button class="btn-primary" style="flex:1; width:auto; margin-top:0;" onclick="openCreateActivityReal()">➕ Créer une activité</button>
-      <button class="btn-secondary" style="flex:1; width:auto;" onclick="toggleActivitySearchPanel()">🔍 Rechercher</button>
+      <button class="btn-primary" style="flex:1; width:auto; margin-top:0; padding:11px 10px; font-size:13.5px;" onclick="openCreateActivityReal()">➕ Créer une activité</button>
+      <button class="btn-secondary" style="flex:1; width:auto; padding:11px 10px; font-size:13.5px;" onclick="toggleActivitySearchPanel(true)">🔍 Rechercher</button>
     </div>
 
     <div id="activity-univers-section" style="padding:0 20px;"></div>
@@ -1929,40 +1953,43 @@
     <div style="padding:4px 20px 14px;">
       <div class="report-link" style="cursor:pointer; text-align:center;" onclick="toggleActivitySearchPanel(true)">Voir toutes les activités</div>
     </div>
+  </div>
 
-    <div id="activity-search-panel" class="hidden">
-      <div style="padding:0 20px 10px;">
-        <div style="background:#fff; border-radius:18px; padding:14px 16px; box-shadow:0 4px 14px rgba(62,31,68,0.08);">
-          <div style="display:flex; gap:8px; margin-bottom:10px;">
-            <input class="form-input" id="activity-search-input" type="text" placeholder="🔍 Rechercher une activité…" style="flex:1; margin-bottom:0;" oninput="onActivityFiltersChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault(); onActivityFiltersChanged();}">
-            <button class="btn-primary" style="width:auto; margin-top:0; padding:0 18px;" onclick="onActivityFiltersChanged()">Rechercher</button>
-          </div>
-          <select class="form-input" id="activity-category-filter" style="margin-bottom:10px;" onchange="onActivityFiltersChanged()">
-            <option value="tous">Toutes catégories</option>
-          </select>
-          <input class="form-input" id="activity-city-filter" type="text" placeholder="📍 Ville ou lieu…" style="margin-bottom:10px;" oninput="onActivityFiltersChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault(); onActivityFiltersChanged();}">
-          <div class="time-filter-row" id="activity-date-chip-row">
-            <div class="time-chip active" data-date="toutes" onclick="setActivityDateFilterChip(this,'toutes')">Toutes dates</div>
-            <div class="time-chip" data-date="today" onclick="setActivityDateFilterChip(this,'today')">Aujourd'hui</div>
-            <div class="time-chip" data-date="week" onclick="setActivityDateFilterChip(this,'week')">Cette semaine</div>
-            <div class="time-chip" data-date="weekend" onclick="setActivityDateFilterChip(this,'weekend')">Ce week-end</div>
-            <div class="time-chip" data-date="later" onclick="setActivityDateFilterChip(this,'later')">Plus tard</div>
-          </div>
-          <div class="time-filter-row" id="activity-passion-chip-row" style="margin-top:6px;">
-            <div class="time-chip" id="activity-passion-chip" onclick="toggleActivityPassionOnly()">❤️ Mes passions</div>
-          </div>
-          <div class="form-label">Rayon des activités <span id="activity-radius-value"></span></div>
-          <input type="range" min="1" max="100" id="activity-radius-input" oninput="setActivityRadius(this.value)">
-          <div class="form-hint" style="margin-top:2px;">Distance indépendante de celle utilisée dans Découvrir</div>
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
-            <button class="btn-secondary" style="width:auto; padding:8px 16px; font-size:13px;" onclick="onActivityFiltersChanged()">Appliquer les filtres</button>
-            <div id="activity-filters-active" class="report-link" style="display:none; cursor:pointer;" onclick="resetActivityFilters()">✕ Réinitialiser les filtres</div>
-          </div>
-        </div>
+  <!-- ACTIVITY SEARCH MODAL : vrai panneau superposé, pas un bloc qui pousse la page -->
+  <div class="tag-comment-overlay" id="activity-search-overlay">
+    <div class="tag-comment-card" id="activity-search-card" style="max-width:400px; max-height:85vh; overflow-y:auto; text-align:left;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+        <div class="tag-comment-title" style="margin-bottom:0;">🔍 Rechercher une activité</div>
+        <div style="font-size:20px; color:#B7ACBA; cursor:pointer; line-height:1;" onclick="toggleActivitySearchPanel(false)">✕</div>
       </div>
-      <div id="activity-results-summary" style="padding:10px 20px 0; font-size:12.5px; color:var(--plum-soft); font-weight:600;"></div>
-      <div id="activity-suggestions-section" style="padding:0 20px;"></div>
-      <div id="activities-real-list" style="padding:0 20px;"></div>
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <input class="form-input" id="activity-search-input" type="text" placeholder="Rechercher une activité…" style="flex:1; margin-bottom:0;" oninput="onActivityFiltersChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault(); onActivityFiltersChanged();}">
+        <button class="btn-primary" style="width:auto; margin-top:0; padding:0 16px;" onclick="onActivityFiltersChanged()">OK</button>
+      </div>
+      <select class="form-input" id="activity-category-filter" style="margin-bottom:10px;" onchange="onActivityFiltersChanged()">
+        <option value="tous">Toutes catégories</option>
+      </select>
+      <input class="form-input" id="activity-city-filter" type="text" placeholder="📍 Ville ou lieu…" style="margin-bottom:10px;" oninput="onActivityFiltersChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault(); onActivityFiltersChanged();}">
+      <div class="time-filter-row" id="activity-date-chip-row">
+        <div class="time-chip active" data-date="toutes" onclick="setActivityDateFilterChip(this,'toutes')">Toutes dates</div>
+        <div class="time-chip" data-date="today" onclick="setActivityDateFilterChip(this,'today')">Aujourd'hui</div>
+        <div class="time-chip" data-date="week" onclick="setActivityDateFilterChip(this,'week')">Cette semaine</div>
+        <div class="time-chip" data-date="weekend" onclick="setActivityDateFilterChip(this,'weekend')">Ce week-end</div>
+        <div class="time-chip" data-date="later" onclick="setActivityDateFilterChip(this,'later')">Plus tard</div>
+      </div>
+      <div class="time-filter-row" id="activity-passion-chip-row" style="margin-top:6px;">
+        <div class="time-chip" id="activity-passion-chip" onclick="toggleActivityPassionOnly()">❤️ Mes passions</div>
+      </div>
+      <div class="form-label">Rayon des activités <span id="activity-radius-value"></span></div>
+      <input type="range" min="1" max="100" id="activity-radius-input" oninput="setActivityRadius(this.value)">
+      <div class="form-hint" style="margin-top:2px;">Distance indépendante de celle utilisée dans Découvrir</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+        <button class="btn-secondary" style="width:auto; padding:8px 16px; font-size:13px;" onclick="onActivityFiltersChanged()">Appliquer</button>
+        <div id="activity-filters-active" class="report-link" style="display:none; cursor:pointer;" onclick="resetActivityFilters()">✕ Réinitialiser</div>
+      </div>
+      <div id="activity-results-summary" style="padding:10px 0 0; font-size:12.5px; color:var(--plum-soft); font-weight:600;"></div>
+      <div id="activity-suggestions-section" style="padding-top:6px;"></div>
+      <div id="activities-real-list" style="padding-top:6px;"></div>
     </div>
   </div>
 
@@ -3156,7 +3183,7 @@ function showScreen(name){
     nav.classList.remove('hidden');
     topBar.classList.remove('hidden');
     incoming.classList.add('has-topbar');
-    const showFab = name === 'activities-list';
+    const showFab = false; // bouton flottant retiré de Activités : remplacé par le bouton "Créer" en haut, pour éviter toute superposition avec les cartes
     if(fab) fab.classList.toggle('hidden', !showFab);
     if(fabPlate) fabPlate.classList.toggle('hidden', !showFab);
     document.getElementById('nav-home').classList.toggle('active', name==='home' || name==='swipe');
@@ -6613,7 +6640,6 @@ function toggleSuggestionDetail(id){
 async function buildActivityCardHtml(a){
   const cat = categories.find(c => c.key === a.category);
   const emoji = cat ? cat.emoji : '🎉';
-  const bg = cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
 
   let participantCount = 0;
   try{
@@ -6636,34 +6662,51 @@ async function buildActivityCardHtml(a){
   currentActivitiesData.push({
     id: a.id, title: a.title, description: a.description, category: a.category,
     activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
-    organizerName, organizerId: a.organizer_profile_id, emoji, bg,
+    organizerName, organizerId: a.organizer_profile_id, emoji,
+    bg: cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)',
     maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode, meetingPoint: a.meeting_point
   });
 
   const dateLabel = a.activity_date
-    ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long'})
-    : 'Date à définir';
-  const maxLabel = a.max_participants ? `/${a.max_participants}` : '';
+    ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'short'})
+    : null;
   const isFull = a.max_participants != null && participantCount >= a.max_participants;
-  const mediaStyle = resolvedPhotoUrl
-    ? `background-image:url('${resolvedPhotoUrl}'); background-size:cover; background-position:center;`
-    : `background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;`;
-  const modeTagHtml = a.mode === 'love'
-    ? `<span class="msg-mode-tag love">Rencontre</span>`
-    : `<span class="msg-mode-tag friend">Amitié</span>`;
-  const proximityTag = (a.distanceKm != null && a.distanceKm <= 10) ? `<span class="msg-mode-tag friend" style="background:var(--lavender); color:var(--plum-soft);">📍 À proximité</span>` : '';
-  const passionTag = a.matchesPassion ? `<span class="msg-mode-tag friend" style="background:var(--lavender); color:var(--plum-soft);">❤️ Correspond à vos passions</span>` : '';
-  const fullTag = isFull ? `<span class="msg-mode-tag" style="background:#F0E4E6; color:#A8465A;">🚫 Complet</span>` : '';
+  const remaining = a.max_participants != null ? Math.max(a.max_participants - participantCount, 0) : null;
+
+  // Jamais de photo cassée : l'image réelle est tentée en premier, et si son
+  // chargement échoue (URL expirée, fichier introuvable...), le repli sur
+  // l'emoji de la catégorie est géré directement au niveau du <img> (onerror),
+  // sans jamais laisser une icône d'image cassée à l'écran.
+  const mediaHtml = resolvedPhotoUrl
+    ? `<img src="${resolvedPhotoUrl}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'activity-card-emoji-fallback',textContent:'${emoji}',style:'font-size:28px;width:100%;height:100%;display:flex;align-items:center;justify-content:center;'}))">`
+    : `<span>${emoji}</span>`;
+
+  // Jamais "distance non disponible" : quand la distance réelle est inconnue,
+  // on affiche uniquement le lieu, sans mention de son absence.
+  const locationLine = a.location
+    ? `📍 ${escapeHtml(a.location)}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm*10)/10+' km' : ''}`
+    : (a.distanceKm != null ? `📍 ${Math.round(a.distanceKm*10)/10} km` : '');
+
+  // Places restantes uniquement si un maximum réel est défini ; sinon on
+  // affiche juste le nombre réel d'inscrits, sans rien inventer.
+  const peopleLine = isFull
+    ? `👥 Complet`
+    : (remaining != null ? `👥 ${remaining} place${remaining>1?'s':''} restante${remaining>1?'s':''}` : `👥 ${participantCount} participant${participantCount>1?'s':''}`);
+
+  const modeTag = a.mode === 'love' ? 'Rencontre' : 'Amitié';
+  const passionTagHtml = a.matchesPassion ? `<span class="activity-card-tag">❤️ Passion</span>` : '';
+  const fullTagHtml = isFull ? `<span class="activity-card-tag full">Complet</span>` : '';
 
   return `
-    <div class="card" onclick="openActivityDetail('${a.id}')">
-      <div class="card-media" style="${mediaStyle}">${resolvedPhotoUrl ? '' : emoji}</div>
-      <div class="card-body">
-        <h3>${escapeHtml(a.title)}</h3>
-        <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
-        <div class="card-meta"><span>📍 ${escapeHtml(a.location) || 'Lieu à définir'}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm)+' km' : ' · distance non disponible'}</span></div>
-        <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${escapeHtml(organizerName)}</span></div>
-        <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">${modeTagHtml}${proximityTag}${passionTag}${fullTag}</div>
+    <div class="activity-card" onclick="openActivityDetail('${a.id}')">
+      <div class="activity-card-media" style="${resolvedPhotoUrl ? '' : `background:${cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)'};`}">${mediaHtml}</div>
+      <div class="activity-card-body">
+        <div class="activity-card-title">${escapeHtml(a.title)}</div>
+        <div class="activity-card-meta">📅 ${dateLabel ? dateLabel : 'Date à définir'}${a.activity_time ? ' · '+a.activity_time : ''}</div>
+        ${locationLine ? `<div class="activity-card-meta">${locationLine}</div>` : ''}
+        <div class="activity-card-meta">${peopleLine}</div>
+        <div class="activity-card-tags">${passionTagHtml}${fullTagHtml}</div>
+        <div class="activity-card-cta">Voir l'activité →</div>
       </div>
     </div>
   `;
@@ -6695,6 +6738,21 @@ function getActivityDistanceKm(a){
 // à l'utilisateur (passions ou mode compatible) — jamais un remplissage par
 // défaut si rien ne correspond vraiment.
 // "Près de chez vous" : classées uniquement par distance réelle connue.
+async function getRealParticipantCount(activityId){
+  try{
+    const { count } = await supabaseClient
+      .from('activity_participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('activity_id', activityId);
+    return count || 0;
+  } catch(e){ return 0; }
+}
+
+// "Pour vous" = correspond réellement aux passions/mode de l'utilisateur.
+// "Près de chez vous" = proximité géographique réelle, uniquement.
+// Dans les deux cas : jamais d'activité complète, passée ou indisponible —
+// la vérification du nombre réel de participants se fait ici, sur un petit
+// nombre de candidats seulement, avant de choisir les 3-4 finalistes.
 async function renderActivityRecommendations(){
   const universSection = document.getElementById('activity-univers-section');
   const nearbySection = document.getElementById('activity-nearby-section');
@@ -6715,29 +6773,43 @@ async function renderActivityRecommendations(){
       matchesMode: myModes.includes(a.mode)
     }));
 
-    // Univers : seulement celles qui correspondent réellement (passion ou mode) —
-    // triées par date la plus proche à disponibilité égale.
-    const universPicks = withScore
+    // Candidats "Pour vous" (pool élargi avant filtrage des complètes)
+    const universCandidates = withScore
       .filter(a => a.matchesPassion || a.matchesMode)
       .sort((x,y) => (y.matchesPassion - x.matchesPassion) || ((x.activity_date||'9999') > (y.activity_date||'9999') ? 1 : -1))
-      .slice(0, 3);
+      .slice(0, 8);
 
-    // Près de chez vous : seulement celles avec une distance réellement connue.
-    const nearbyPicks = withScore
+    // Candidats "Près de chez vous" (pool élargi avant filtrage des complètes)
+    const nearbyCandidates = withScore
       .filter(a => a.distanceKm != null)
       .sort((x,y) => x.distanceKm - y.distanceKm)
-      .slice(0, 4);
+      .slice(0, 8);
+
+    // Vérifie la disponibilité réelle (participants actuels vs maximum) et
+    // exclut celles qui sont complètes — jamais recommandées en priorité,
+    // seulement visibles dans "Toutes les activités" avec leur badge "Complet".
+    async function keepOnlyAvailable(list, limit){
+      const withAvailability = await Promise.all(list.map(async (a) => {
+        if(a.max_participants == null) return { a, available: true };
+        const count = await getRealParticipantCount(a.id);
+        return { a, available: count < a.max_participants };
+      }));
+      return withAvailability.filter(x => x.available).map(x => x.a).slice(0, limit);
+    }
+
+    const universPicks = await keepOnlyAvailable(universCandidates, 3);
+    const nearbyPicks = await keepOnlyAvailable(nearbyCandidates, 4);
 
     if(universPicks.length){
       const cards = await Promise.all(universPicks.map(buildActivityCardHtml));
-      universSection.innerHTML = `<div class="section-label">Dans votre univers</div>${cards.join('')}`;
+      universSection.innerHTML = `<div class="section-label">✨ Pour vous</div><p style="font-size:11.5px; color:#9584A0; margin:-6px 0 8px;">Des activités qui correspondent à vos passions</p>${cards.join('')}`;
     } else {
       universSection.innerHTML = '';
     }
 
     if(nearbyPicks.length){
       const cards = await Promise.all(nearbyPicks.map(buildActivityCardHtml));
-      nearbySection.innerHTML = `<div class="section-label">Près de chez vous</div>${cards.join('')}`;
+      nearbySection.innerHTML = `<div class="section-label">📍 Près de chez vous</div>${cards.join('')}`;
     } else {
       nearbySection.innerHTML = '';
     }
@@ -6747,12 +6819,12 @@ async function renderActivityRecommendations(){
 }
 
 function toggleActivitySearchPanel(forceShow){
-  const panel = document.getElementById('activity-search-panel');
-  if(!panel) return;
-  const show = forceShow != null ? forceShow : panel.classList.contains('hidden');
-  panel.classList.toggle('hidden', !show);
+  const overlay = document.getElementById('activity-search-overlay');
+  if(!overlay) return;
+  const show = forceShow != null ? forceShow : !overlay.classList.contains('show');
+  overlay.classList.toggle('show', show);
   if(show){
-    panel.scrollIntoView({behavior:'auto', block:'start'});
+    renderActivitySuggestionsView();
     renderActivitiesList();
   }
 }
