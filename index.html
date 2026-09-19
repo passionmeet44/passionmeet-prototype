@@ -35,7 +35,6 @@
     background: var(--cream);
     margin:0;
     min-height:100vh;
-    min-height:100dvh;
     width:100%;
   }
   .phone{
@@ -62,7 +61,6 @@
     width:100%;
     max-width:100%;
     min-height:100vh;
-    min-height:100dvh;
     display:none;
     flex-direction:column;
     overflow-y:auto;
@@ -115,6 +113,11 @@
     font-size:16px; padding:15px 38px; border-radius:30px; cursor:pointer;
     box-shadow: 0 8px 18px rgba(229,114,42,0.4);
   }
+  .btn-secondary{
+    background:var(--lavender); color:var(--plum); border:none; font-family:var(--font-display);
+    font-weight:600; font-size:14px; padding:12px 28px; border-radius:24px; cursor:pointer;
+  }
+  #activity-search-panel.hidden{display:none;}
 
   /* ---------- Login screen (fond clair, carré, centré) ---------- */
   #screen-login, #screen-login-methods{
@@ -354,34 +357,34 @@
   .pill.sel{background:var(--plum); color:#fff;}
 
   /* ---------- Home ---------- */
-  #screen-home{ padding-left:20px; padding-right:20px; padding-bottom: calc(56px + env(safe-area-inset-bottom) + 14px); }
-  .home-header{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:3px;}
-  .home-header h1{font-family:var(--font-display); font-size:24px; font-weight:700; color:var(--plum); line-height:1.1;}
+  #screen-home{ padding-left:20px; padding-right:20px; padding-bottom: calc(56px + env(safe-area-inset-bottom) + 24px); }
+  .home-header{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px;}
+  .home-header h1{font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--plum); line-height:1.15;}
   .home-location{
-    font-size:11px; color:var(--orange-deep); font-weight:700; margin-bottom:8px; letter-spacing:0.02em;
+    font-size:11px; color:var(--orange-deep); font-weight:700; margin-bottom:10px; letter-spacing:0.02em;
     display:inline-flex; align-items:center; background:#FDEEE0; padding:5px 11px; border-radius:12px;
   }
   .home-step.hidden{display:none;}
-  .home-question{font-family:var(--font-display); font-size:15px; font-weight:600; color:var(--plum-soft); margin-bottom:14px; line-height:1.35;}
+  .home-question{font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--plum-soft); margin-bottom:20px; line-height:1.4;}
   .home-step-back{font-size:12.5px; color:#9584A0; font-weight:700; margin-bottom:14px; cursor:pointer;}
   .home-browse-link{text-align:center; font-size:12px; color:var(--plum-soft); text-decoration:underline; cursor:pointer; margin:18px 0 4px;}
 
   /* Trois boutons d'intention premium : 2 cartes carrées + 1 carte large */
   .intent-grid-3{
-    display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:10px; margin-bottom:6px;
+    display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:12px; margin-bottom:6px;
   }
   .intent-card.wide{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:5px; padding:16px 10px; border-radius:20px; min-height:120px;
+    text-align:center; gap:6px; padding:20px 12px; border-radius:22px; min-height:150px;
     box-shadow:var(--shadow-soft); cursor:pointer;
     transition: transform .15s ease, box-shadow .15s ease;
   }
   .intent-card.wide:active{ transform:scale(0.97); }
-  .intent-card.wide h4{ order:1; font-size:14px; margin-bottom:0; line-height:1.18; }
-  .intent-card.wide p{ order:2; font-size:10.5px; line-height:1.25; margin-bottom:2px; }
+  .intent-card.wide h4{ order:1; font-size:14.5px; margin-bottom:0; line-height:1.2; }
+  .intent-card.wide p{ order:2; font-size:11px; line-height:1.3; margin-bottom:4px; }
   .intent-card.wide .intent-icon{
-    order:3; width:46px; height:46px; border-radius:50%; background:var(--lavender);
-    display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;
+    order:3; width:50px; height:50px; border-radius:50%; background:var(--lavender);
+    display:flex; align-items:center; justify-content:center; font-size:23px; flex-shrink:0;
   }
   .intent-card.wide.featured{
     background:linear-gradient(155deg, var(--plum) 0%, #5A2E63 100%); box-shadow:var(--shadow-elevated);
@@ -403,11 +406,11 @@
   .intent-card.wide.accent-teal .intent-icon{ background:#AACFF2; }
   .intent-card.wide.full{
     grid-column:1 / -1; flex-direction:row; justify-content:flex-start; text-align:left;
-    gap:13px; padding:13px 16px; min-height:0;
+    gap:14px; padding:16px 18px; min-height:0;
   }
   .intent-card.wide.full .intent-text{ display:flex; flex-direction:column; gap:2px; }
   .intent-card.wide.full h4, .intent-card.wide.full p{ order:0; margin:0; }
-  .intent-card.wide.full .intent-icon{ order:0; width:42px; height:42px; font-size:18px; }
+  .intent-card.wide.full .intent-icon{ order:0; width:46px; height:46px; font-size:20px; }
   .intent-card.wide.full.accent-orange{
     background:linear-gradient(120deg, var(--orange) 0%, var(--orange-deep) 100%); box-shadow:var(--shadow-elevated);
   }
@@ -421,31 +424,31 @@
     box-shadow:0 4px 12px rgba(62,31,68,0.08);
   }
   .home-choice-item:active{transform:scale(0.98);}
-  .digest-title{font-family:var(--font-display); font-size:13.5px; font-weight:700; color:var(--plum); margin:18px 0 8px; letter-spacing:0.01em;}
+  .digest-title{font-family:var(--font-display); font-size:14px; font-weight:700; color:var(--plum); margin:26px 0 12px; letter-spacing:0.01em;}
   .digest-row{
-    display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px 2px; margin:0 -20px; padding-left:20px; padding-right:20px;
-    margin-bottom:0; -ms-overflow-style:none; scrollbar-width:none; scroll-snap-type:x mandatory; scroll-padding-left:20px;
+    display:flex; gap:12px; overflow-x:auto; padding:2px 2px 14px 2px; margin:0 -20px; padding-left:20px; padding-right:20px;
+    margin-bottom:4px; -ms-overflow-style:none; scrollbar-width:none; scroll-snap-type:x mandatory; scroll-padding-left:20px;
   }
   .digest-row::-webkit-scrollbar{display:none;}
   .digest-card{
-    flex-shrink:0; width:136px; height:152px; background:var(--cream-card); border-radius:var(--radius-md); overflow:hidden;
+    flex-shrink:0; width:148px; height:176px; background:var(--cream-card); border-radius:var(--radius-md); overflow:hidden;
     box-shadow:var(--shadow-soft); cursor:pointer; position:relative; scroll-snap-align:start;
     display:flex; flex-direction:column;
   }
   .digest-score{
-    position:absolute; top:7px; right:7px; background:rgba(255,255,255,0.94); color:var(--plum); font-size:10px; font-weight:800;
-    padding:2px 7px; border-radius:9px; z-index:2; box-shadow:0 2px 6px rgba(62,31,68,0.15);
+    position:absolute; top:9px; right:9px; background:rgba(255,255,255,0.94); color:var(--plum); font-size:10.5px; font-weight:800;
+    padding:3px 8px; border-radius:10px; z-index:2; box-shadow:0 2px 6px rgba(62,31,68,0.15);
   }
   .digest-emoji{
-    width:100%; height:62px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:24px;
+    width:100%; height:84px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:28px;
   }
-  .digest-card-body{padding:9px 10px 10px; flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between;}
+  .digest-card-body{padding:10px 11px 12px; flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between;}
   .digest-card h4{
-    font-family:var(--font-display); font-size:11.5px; font-weight:700; color:var(--plum); margin-bottom:3px; line-height:1.22;
+    font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--plum); margin-bottom:4px; line-height:1.25;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
   }
   .digest-card p{
-    font-size:10px; color:var(--plum-soft); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-size:10.5px; color:var(--plum-soft); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .cat-grid.hidden{display:none;}
   .intent-card{
@@ -1150,7 +1153,7 @@
     height:40px; width:auto; max-width:70%;
     object-fit:contain; display:block; margin:0 auto; transform:none;
   }
-  .screen.has-topbar{padding-top: calc(56px + env(safe-area-inset-top) + 6px);}
+  .screen.has-topbar{padding-top: calc(56px + env(safe-area-inset-top) + 12px);}
   .bottom-nav{
     position:fixed; bottom:0; left:0; right:0; height:calc(56px + env(safe-area-inset-bottom)); background:var(--plum);
     display:flex; z-index:40; box-sizing:border-box;
@@ -1912,31 +1915,55 @@
 
   <!-- ACTIVITIES LIST (réelles, Supabase) -->
   <div class="screen" id="screen-activities-list">
-    <div class="msg-header"><h1>Activités</h1></div>
-    <div style="padding:0 20px 14px;">
-      <button class="btn-primary" style="width:100%;" onclick="openCreateActivityReal()">➕ Créer une activité</button>
+    <div class="msg-header">
+      <h1>Activités</h1>
+      <p style="font-size:12.5px; color:#9584A0; margin-top:2px;">Rejoignez une sortie déjà organisée, ou proposez la vôtre.</p>
     </div>
-    <div style="padding:0 20px 10px;">
-      <div style="background:#fff; border-radius:18px; padding:14px 16px; box-shadow:0 4px 14px rgba(62,31,68,0.08);">
-        <input class="form-input" id="activity-search-input" type="text" placeholder="🔍 Rechercher une activité…" style="margin-bottom:10px;" oninput="onActivityFiltersChanged()">
-        <select class="form-input" id="activity-category-filter" style="margin-bottom:10px;" onchange="onActivityFiltersChanged()">
-          <option value="tous">Toutes catégories</option>
-        </select>
-        <div class="time-filter-row" id="activity-date-chip-row">
-          <div class="time-chip active" data-date="toutes" onclick="setActivityDateFilterChip(this,'toutes')">Toutes dates</div>
-          <div class="time-chip" data-date="today" onclick="setActivityDateFilterChip(this,'today')">Aujourd'hui</div>
-          <div class="time-chip" data-date="week" onclick="setActivityDateFilterChip(this,'week')">Cette semaine</div>
-          <div class="time-chip" data-date="weekend" onclick="setActivityDateFilterChip(this,'weekend')">Ce week-end</div>
-          <div class="time-chip" data-date="later" onclick="setActivityDateFilterChip(this,'later')">Plus tard</div>
+    <div style="padding:0 20px 14px; display:flex; gap:10px;">
+      <button class="btn-primary" style="flex:1; width:auto; margin-top:0;" onclick="openCreateActivityReal()">➕ Créer une activité</button>
+      <button class="btn-secondary" style="flex:1; width:auto;" onclick="toggleActivitySearchPanel()">🔍 Rechercher</button>
+    </div>
+
+    <div id="activity-univers-section" style="padding:0 20px;"></div>
+    <div id="activity-nearby-section" style="padding:0 20px;"></div>
+    <div style="padding:4px 20px 14px;">
+      <div class="report-link" style="cursor:pointer; text-align:center;" onclick="toggleActivitySearchPanel(true)">Voir toutes les activités</div>
+    </div>
+
+    <div id="activity-search-panel" class="hidden">
+      <div style="padding:0 20px 10px;">
+        <div style="background:#fff; border-radius:18px; padding:14px 16px; box-shadow:0 4px 14px rgba(62,31,68,0.08);">
+          <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <input class="form-input" id="activity-search-input" type="text" placeholder="🔍 Rechercher une activité…" style="flex:1; margin-bottom:0;" oninput="onActivityFiltersChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault(); onActivityFiltersChanged();}">
+            <button class="btn-primary" style="width:auto; margin-top:0; padding:0 18px;" onclick="onActivityFiltersChanged()">Rechercher</button>
+          </div>
+          <select class="form-input" id="activity-category-filter" style="margin-bottom:10px;" onchange="onActivityFiltersChanged()">
+            <option value="tous">Toutes catégories</option>
+          </select>
+          <input class="form-input" id="activity-city-filter" type="text" placeholder="📍 Ville ou lieu…" style="margin-bottom:10px;" oninput="onActivityFiltersChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault(); onActivityFiltersChanged();}">
+          <div class="time-filter-row" id="activity-date-chip-row">
+            <div class="time-chip active" data-date="toutes" onclick="setActivityDateFilterChip(this,'toutes')">Toutes dates</div>
+            <div class="time-chip" data-date="today" onclick="setActivityDateFilterChip(this,'today')">Aujourd'hui</div>
+            <div class="time-chip" data-date="week" onclick="setActivityDateFilterChip(this,'week')">Cette semaine</div>
+            <div class="time-chip" data-date="weekend" onclick="setActivityDateFilterChip(this,'weekend')">Ce week-end</div>
+            <div class="time-chip" data-date="later" onclick="setActivityDateFilterChip(this,'later')">Plus tard</div>
+          </div>
+          <div class="time-filter-row" id="activity-passion-chip-row" style="margin-top:6px;">
+            <div class="time-chip" id="activity-passion-chip" onclick="toggleActivityPassionOnly()">❤️ Mes passions</div>
+          </div>
+          <div class="form-label">Rayon des activités <span id="activity-radius-value"></span></div>
+          <input type="range" min="1" max="100" id="activity-radius-input" oninput="setActivityRadius(this.value)">
+          <div class="form-hint" style="margin-top:2px;">Distance indépendante de celle utilisée dans Découvrir</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+            <button class="btn-secondary" style="width:auto; padding:8px 16px; font-size:13px;" onclick="onActivityFiltersChanged()">Appliquer les filtres</button>
+            <div id="activity-filters-active" class="report-link" style="display:none; cursor:pointer;" onclick="resetActivityFilters()">✕ Réinitialiser les filtres</div>
+          </div>
         </div>
-        <div class="form-label">Rayon des activités <span id="activity-radius-value"></span></div>
-        <input type="range" min="1" max="100" id="activity-radius-input" oninput="setActivityRadius(this.value)">
-        <div class="form-hint" style="margin-top:2px;">Distance indépendante de celle utilisée dans Découvrir</div>
-        <div id="activity-filters-active" class="report-link" style="display:none; text-align:left; margin-top:8px;" onclick="resetActivityFilters()">✕ Réinitialiser les filtres</div>
       </div>
+      <div id="activity-results-summary" style="padding:10px 20px 0; font-size:12.5px; color:var(--plum-soft); font-weight:600;"></div>
+      <div id="activity-suggestions-section" style="padding:0 20px;"></div>
+      <div id="activities-real-list" style="padding:0 20px;"></div>
     </div>
-    <div id="activity-suggestions-section" style="padding:0 20px;"></div>
-    <div id="activities-real-list" style="padding:0 20px;"></div>
   </div>
 
   <!-- MATCHES LIST -->
@@ -3140,7 +3167,7 @@ function showScreen(name){
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
     if(name==='swipe'){ updateDiscoverFiltersBadge(); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
-    if(name==='activities-list'){ renderActivitiesList(); renderActivitySuggestions(); }
+    if(name==='activities-list'){ renderActivitySuggestions(); renderActivityRecommendations(); }
     if(name==='matches'){ renderMatchesList(); }
     if(name==='messages'){ renderMessagesList(); }
     if(name==='profile'){ renderProfileScreen(); }
@@ -6107,13 +6134,25 @@ let currentActivitiesData = [];
 let activitySearchQuery = '';
 let activityCategoryFilter = 'tous';
 let activityDateFilter = 'toutes';
+let activityCityFilter = '';
+let activityPassionOnly = false;
 
 function onActivityFiltersChanged(){
-  activitySearchQuery = document.getElementById('activity-search-input').value.trim().toLowerCase();
+  activitySearchQuery = normalizeText(document.getElementById('activity-search-input').value);
   activityCategoryFilter = document.getElementById('activity-category-filter').value;
-  const active = activitySearchQuery || activityCategoryFilter !== 'tous' || activityDateFilter !== 'toutes';
+  activityCityFilter = normalizeText(document.getElementById('activity-city-filter').value);
+  const active = activitySearchQuery || activityCategoryFilter !== 'tous' || activityDateFilter !== 'toutes' || activityCityFilter || activityPassionOnly;
   document.getElementById('activity-filters-active').style.display = active ? 'block' : 'none';
+  renderActivitySuggestionsView();
   renderActivitiesList();
+  const screenEl = document.getElementById('screen-activities-list');
+  if(screenEl) screenEl.scrollTop = 0;
+}
+
+function toggleActivityPassionOnly(){
+  activityPassionOnly = !activityPassionOnly;
+  document.getElementById('activity-passion-chip').classList.toggle('active', activityPassionOnly);
+  onActivityFiltersChanged();
 }
 
 function setActivityDateFilterChip(el, value){
@@ -6126,14 +6165,19 @@ function setActivityDateFilterChip(el, value){
 function resetActivityFilters(){
   document.getElementById('activity-search-input').value = '';
   document.getElementById('activity-category-filter').value = 'tous';
+  document.getElementById('activity-city-filter').value = '';
   document.querySelectorAll('#activity-date-chip-row .time-chip').forEach(c =>
     c.classList.toggle('active', c.getAttribute('data-date') === 'toutes')
   );
+  document.getElementById('activity-passion-chip').classList.remove('active');
   setActivityRadius(20);
   activitySearchQuery = '';
   activityCategoryFilter = 'tous';
   activityDateFilter = 'toutes';
+  activityCityFilter = '';
+  activityPassionOnly = false;
   document.getElementById('activity-filters-active').style.display = 'none';
+  renderActivitySuggestionsView();
   renderActivitiesList();
 }
 
@@ -6304,6 +6348,18 @@ function escapeHtml(str){
   return String(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Normalisation centralisée : "Cinéma", "cinema" et "CINÉMA" doivent être
+// reconnus comme la même chose, aussi bien pour les catégories que pour le
+// texte libre tapé dans la recherche. Retire accents, casse et espaces superflus.
+function normalizeText(str){
+  if(str == null) return '';
+  return String(str)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // retire les accents
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 // Liste courte et volontairement non exhaustive, à compléter selon vos propres
@@ -6483,54 +6539,222 @@ async function submitRealActivity(){
   }
 }
 
-let activitySuggestionsLoaded = false;
+let activitySuggestionsRawData = null;
 
-// Les suggestions PassionMeet sont chargées une seule fois par session — ce sont
-// des idées permanentes, pas des données qui changent au fil des filtres.
+// Les suggestions PassionMeet sont chargées une seule fois par session (ce sont
+// des idées permanentes, pas des données qui changent), mais leur AFFICHAGE est
+// recalculé à chaque changement de filtre : avant, cette section restait toujours
+// visible telle quelle même en pleine recherche, ce qui faisait apparaître des
+// idées hors catégorie pendant qu'on cherchait autre chose. Corrigé ici.
 async function renderActivitySuggestions(){
-  if(activitySuggestionsLoaded) return;
   const section = document.getElementById('activity-suggestions-section');
   if(!section || !supabaseClient) return;
-  try{
-    const { data, error } = await supabaseClient
-      .from('activity_suggestions')
-      .select('id, title, description, category, zone, suggested_location, practical_info')
-      .eq('is_active', true)
-      .order('category', { ascending: true });
-    if(error) throw error;
-    if(!data || data.length === 0){ activitySuggestionsLoaded = true; return; }
+  if(activitySuggestionsRawData === null){
+    try{
+      const { data, error } = await supabaseClient
+        .from('activity_suggestions')
+        .select('id, title, description, category, zone, suggested_location, practical_info')
+        .eq('is_active', true)
+        .order('category', { ascending: true });
+      if(error) throw error;
+      activitySuggestionsRawData = data || [];
+    } catch(e){
+      console.warn('[Suggestions] Chargement impossible :', e.message);
+      activitySuggestionsRawData = [];
+      return;
+    }
+  }
+  renderActivitySuggestionsView();
+}
 
-    const cat = (key) => categories.find(c => c.label && c.label.toLowerCase() === (key||'').toLowerCase());
+function renderActivitySuggestionsView(){
+  const section = document.getElementById('activity-suggestions-section');
+  if(!section || activitySuggestionsRawData === null) return;
 
-    section.innerHTML = `<div class="section-label">💡 Idées PassionMeet à découvrir</div>` +
-      data.map(s => {
-        const c = cat(s.category);
-        const emoji = c ? c.emoji : '💡';
-        const bg = c ? c.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
-        return `
-          <div class="card" onclick="toggleSuggestionDetail('${s.id}')">
-            <div class="card-media" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;">${emoji}</div>
-            <div class="card-body">
-              <span class="msg-mode-tag friend" style="margin-bottom:6px; display:inline-block;">💡 Idée PassionMeet</span>
-              <h3>${escapeHtml(s.title)}</h3>
-              <div class="card-meta"><span>📍 ${escapeHtml(s.zone || '')}${s.suggested_location ? ' · '+escapeHtml(s.suggested_location) : ''}</span></div>
-              <div id="suggestion-detail-${s.id}" class="suggestion-detail hidden" style="margin-top:8px; font-size:12.5px; color:#6B5872; line-height:1.5;">
-                <p>${escapeHtml(s.description || '')}</p>
-                ${s.practical_info ? `<p style="margin-top:4px; color:#9584A0;">${escapeHtml(s.practical_info)}</p>` : ''}
-              </div>
+  // Dès qu'un filtre est actif (recherche, catégorie, ville, date, passions),
+  // on masque ces idées génériques : elles ne correspondent à aucun filtre
+  // réel et ne doivent jamais remplir artificiellement des résultats filtrés.
+  const anyFilterActive = activitySearchQuery || activityCategoryFilter !== 'tous' ||
+    activityDateFilter !== 'toutes' || activityCityFilter || activityPassionOnly;
+  if(anyFilterActive || activitySuggestionsRawData.length === 0){
+    section.innerHTML = '';
+    return;
+  }
+
+  const cat = (key) => categories.find(c => c.label && normalizeText(c.label) === normalizeText(key || ''));
+
+  section.innerHTML = `<div class="section-label">💡 Idées PassionMeet à découvrir</div>` +
+    activitySuggestionsRawData.map(s => {
+      const c = cat(s.category);
+      const emoji = c ? c.emoji : '💡';
+      const bg = c ? c.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
+      return `
+        <div class="card" onclick="toggleSuggestionDetail('${s.id}')">
+          <div class="card-media" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;">${emoji}</div>
+          <div class="card-body">
+            <span class="msg-mode-tag friend" style="margin-bottom:6px; display:inline-block;">💡 Idée PassionMeet</span>
+            <h3>${escapeHtml(s.title)}</h3>
+            <div class="card-meta"><span>📍 ${escapeHtml(s.zone || '')}${s.suggested_location ? ' · '+escapeHtml(s.suggested_location) : ''}</span></div>
+            <div id="suggestion-detail-${s.id}" class="suggestion-detail hidden" style="margin-top:8px; font-size:12.5px; color:#6B5872; line-height:1.5;">
+              <p>${escapeHtml(s.description || '')}</p>
+              ${s.practical_info ? `<p style="margin-top:4px; color:#9584A0;">${escapeHtml(s.practical_info)}</p>` : ''}
             </div>
           </div>
-        `;
-      }).join('');
-    activitySuggestionsLoaded = true;
-  } catch(e){
-    console.warn('[Suggestions] Chargement impossible :', e.message);
-  }
+        </div>
+      `;
+    }).join('');
 }
 
 function toggleSuggestionDetail(id){
   const el = document.getElementById('suggestion-detail-'+id);
   if(el) el.classList.toggle('hidden');
+}
+
+async function buildActivityCardHtml(a){
+  const cat = categories.find(c => c.key === a.category);
+  const emoji = cat ? cat.emoji : '🎉';
+  const bg = cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
+
+  let participantCount = 0;
+  try{
+    const { count } = await supabaseClient
+      .from('activity_participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('activity_id', a.id);
+    participantCount = count || 0;
+  } catch(e){}
+
+  let organizerName = 'Membre';
+  try{
+    const { data: org } = await supabaseClient
+      .from('profiles').select('first_name').eq('id', a.organizer_profile_id).maybeSingle();
+    if(org && org.first_name) organizerName = org.first_name;
+  } catch(e){}
+
+  const resolvedPhotoUrl = await resolveActivityPhotoUrl(a.photo_url, a.id);
+
+  currentActivitiesData.push({
+    id: a.id, title: a.title, description: a.description, category: a.category,
+    activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
+    organizerName, organizerId: a.organizer_profile_id, emoji, bg,
+    maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode, meetingPoint: a.meeting_point
+  });
+
+  const dateLabel = a.activity_date
+    ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long'})
+    : 'Date à définir';
+  const maxLabel = a.max_participants ? `/${a.max_participants}` : '';
+  const isFull = a.max_participants != null && participantCount >= a.max_participants;
+  const mediaStyle = resolvedPhotoUrl
+    ? `background-image:url('${resolvedPhotoUrl}'); background-size:cover; background-position:center;`
+    : `background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;`;
+  const modeTagHtml = a.mode === 'love'
+    ? `<span class="msg-mode-tag love">Rencontre</span>`
+    : `<span class="msg-mode-tag friend">Amitié</span>`;
+  const proximityTag = (a.distanceKm != null && a.distanceKm <= 10) ? `<span class="msg-mode-tag friend" style="background:var(--lavender); color:var(--plum-soft);">📍 À proximité</span>` : '';
+  const passionTag = a.matchesPassion ? `<span class="msg-mode-tag friend" style="background:var(--lavender); color:var(--plum-soft);">❤️ Correspond à vos passions</span>` : '';
+  const fullTag = isFull ? `<span class="msg-mode-tag" style="background:#F0E4E6; color:#A8465A;">🚫 Complet</span>` : '';
+
+  return `
+    <div class="card" onclick="openActivityDetail('${a.id}')">
+      <div class="card-media" style="${mediaStyle}">${resolvedPhotoUrl ? '' : emoji}</div>
+      <div class="card-body">
+        <h3>${escapeHtml(a.title)}</h3>
+        <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
+        <div class="card-meta"><span>📍 ${escapeHtml(a.location) || 'Lieu à définir'}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm)+' km' : ' · distance non disponible'}</span></div>
+        <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${escapeHtml(organizerName)}</span></div>
+        <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">${modeTagHtml}${proximityTag}${passionTag}${fullTag}</div>
+      </div>
+    </div>
+  `;
+}
+
+// Récupère une seule fois les activités actives et pas encore passées — partagée
+// entre "Dans votre univers", "Près de chez vous" et la liste complète filtrée,
+// pour ne jamais interroger Supabase deux fois pour la même chose.
+async function fetchActiveUpcomingActivities(){
+  const { data: rawData, error } = await supabaseClient
+    .from('activities')
+    .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point')
+    .order('created_at', { ascending: false });
+  if(error) throw error;
+  const todayStr = new Date().toISOString().slice(0,10);
+  return (rawData || []).filter(a =>
+    (a.moderation_status || 'active') === 'active' &&
+    (!a.activity_date || a.activity_date >= todayStr)
+  );
+}
+
+function getActivityDistanceKm(a){
+  return (a.latitude != null && a.longitude != null)
+    ? haversineKm(userCoords[0], userCoords[1], a.latitude, a.longitude)
+    : null;
+}
+
+// "Dans votre univers" : uniquement des activités qui correspondent réellement
+// à l'utilisateur (passions ou mode compatible) — jamais un remplissage par
+// défaut si rien ne correspond vraiment.
+// "Près de chez vous" : classées uniquement par distance réelle connue.
+async function renderActivityRecommendations(){
+  const universSection = document.getElementById('activity-univers-section');
+  const nearbySection = document.getElementById('activity-nearby-section');
+  if(!universSection || !nearbySection || !supabaseClient) return;
+  try{
+    const data = await fetchActiveUpcomingActivities();
+    if(!data.length){ universSection.innerHTML = ''; nearbySection.innerHTML = ''; return; }
+
+    const passionCategoryKeys = new Set(
+      categories.filter(c => (myProfile.interests || []).some(i => i.includes(c.label))).map(c => c.key)
+    );
+    const myModes = myProfile.modes || [];
+
+    const withScore = data.map(a => ({
+      ...a,
+      distanceKm: getActivityDistanceKm(a),
+      matchesPassion: passionCategoryKeys.has(a.category),
+      matchesMode: myModes.includes(a.mode)
+    }));
+
+    // Univers : seulement celles qui correspondent réellement (passion ou mode) —
+    // triées par date la plus proche à disponibilité égale.
+    const universPicks = withScore
+      .filter(a => a.matchesPassion || a.matchesMode)
+      .sort((x,y) => (y.matchesPassion - x.matchesPassion) || ((x.activity_date||'9999') > (y.activity_date||'9999') ? 1 : -1))
+      .slice(0, 3);
+
+    // Près de chez vous : seulement celles avec une distance réellement connue.
+    const nearbyPicks = withScore
+      .filter(a => a.distanceKm != null)
+      .sort((x,y) => x.distanceKm - y.distanceKm)
+      .slice(0, 4);
+
+    if(universPicks.length){
+      const cards = await Promise.all(universPicks.map(buildActivityCardHtml));
+      universSection.innerHTML = `<div class="section-label">Dans votre univers</div>${cards.join('')}`;
+    } else {
+      universSection.innerHTML = '';
+    }
+
+    if(nearbyPicks.length){
+      const cards = await Promise.all(nearbyPicks.map(buildActivityCardHtml));
+      nearbySection.innerHTML = `<div class="section-label">Près de chez vous</div>${cards.join('')}`;
+    } else {
+      nearbySection.innerHTML = '';
+    }
+  } catch(e){
+    console.warn('[Activités] Recommandations impossibles :', e.message);
+  }
+}
+
+function toggleActivitySearchPanel(forceShow){
+  const panel = document.getElementById('activity-search-panel');
+  if(!panel) return;
+  const show = forceShow != null ? forceShow : panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !show);
+  if(show){
+    panel.scrollIntoView({behavior:'auto', block:'start'});
+    renderActivitiesList();
+  }
 }
 
 async function renderActivitiesList(){
@@ -6546,15 +6770,7 @@ async function renderActivitiesList(){
   if(radiusInput) radiusInput.value = activityRadius;
   if(radiusValueEl) radiusValueEl.textContent = activityRadius + ' km';
   try{
-    const { data: rawData, error } = await supabaseClient
-      .from('activities')
-      .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point')
-      .order('created_at', { ascending: false });
-    if(error) throw error;
-
-    // Seules les activités actives apparaissent dans la découverte publique —
-    // même si la sécurité (RLS) l'impose déjà côté base, on le confirme ici aussi.
-    const data = (rawData || []).filter(a => (a.moderation_status || 'active') === 'active');
+    const data = await fetchActiveUpcomingActivities();
 
     // Remplit le menu des catégories une seule fois, sans écraser le choix actuel
     const catSelect = document.getElementById('activity-category-filter');
@@ -6572,28 +6788,50 @@ async function renderActivitiesList(){
       return;
     }
 
-    // Distance à l'utilisateur : calculée uniquement pour les activités qui ont
-    // des coordonnées. Utilise désormais un rayon dédié aux activités
-    // (activityRadius), totalement indépendant de celui de Découvrir. Une
-    // activité sans coordonnées n'est jamais exclue, juste affichée sans distance connue.
-    const getActivityDistance = (a) => (a.latitude != null && a.longitude != null)
-      ? haversineKm(userCoords[0], userCoords[1], a.latitude, a.longitude)
-      : null;
+    // Catégories correspondant aux passions du profil — calculé avant le filtre
+    // pour pouvoir aussi bien classer que filtrer strictement sur "Mes passions".
+    const passionCategoryKeys = new Set(
+      categories.filter(c => (myProfile.interests || []).some(i => i.includes(c.label))).map(c => c.key)
+    );
 
-    // Recherche + catégorie + date + distance : ne masquent jamais brutalement
-    // tout, juste un état vide clair avec réinitialisation si rien ne correspond
+    // Recherche + catégorie + ville + date + distance + passions : ne masquent
+    // jamais brutalement tout, juste un état vide clair avec réinitialisation
+    // si rien ne correspond. La correspondance catégorie utilise la clé exacte
+    // enregistrée (jamais un mot vague dans la description) ; le texte libre est
+    // normalisé (accents/majuscules) pour que "cinema" trouve aussi "Cinéma".
     const filteredData = data.filter(a => {
       if(activityCategoryFilter !== 'tous' && a.category !== activityCategoryFilter) return false;
+      if(activityPassionOnly && !passionCategoryKeys.has(a.category)) return false;
       if(!matchesActivityDatePeriod(a.activity_date, activityDateFilter)) return false;
-      const dist = getActivityDistance(a);
+      const dist = getActivityDistanceKm(a);
       if(dist != null && dist > activityRadius) return false; // filtre uniquement si la distance est connue
+      if(activityCityFilter && !normalizeText(a.location || '').includes(activityCityFilter)) return false;
       if(activitySearchQuery){
         const catLabel = (categories.find(c => c.key === a.category) || {}).label || '';
-        const haystack = `${a.title || ''} ${a.description || ''} ${catLabel}`.toLowerCase();
+        const haystack = normalizeText(`${a.title || ''} ${a.description || ''} ${catLabel}`);
         if(!haystack.includes(activitySearchQuery)) return false;
       }
       return true;
     });
+
+    // Résumé des résultats + rappel des filtres actifs, affiché même quand la
+    // liste est vide, pour que l'utilisateur comprenne toujours ce qu'il voit.
+    const summaryEl = document.getElementById('activity-results-summary');
+    if(summaryEl){
+      const activeChips = [];
+      if(activityCategoryFilter !== 'tous'){
+        const c = categories.find(c => c.key === activityCategoryFilter);
+        if(c) activeChips.push(`${c.emoji} ${c.label}`);
+      }
+      if(activityCityFilter) activeChips.push(`📍 ${document.getElementById('activity-city-filter').value.trim()}`);
+      if(activityRadius < 100) activeChips.push(`${activityRadius} km`);
+      const dateChip = document.querySelector('#activity-date-chip-row .time-chip.active');
+      if(dateChip && dateChip.getAttribute('data-date') !== 'toutes') activeChips.push(dateChip.textContent);
+      if(activityPassionOnly) activeChips.push('❤️ Mes passions');
+      const count = filteredData.length;
+      summaryEl.innerHTML = `${count} activité${count > 1 ? 's' : ''} trouvée${count > 1 ? 's' : ''}` +
+        (activeChips.length ? `<div style="color:#9584A0; font-weight:500; margin-top:2px;">${activeChips.join(' · ')}</div>` : '');
+    }
 
     if(filteredData.length === 0){
       list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>🔍</span>Aucune activité ne correspond à ces critères.<br><span class="report-link" style="cursor:pointer;" onclick="resetActivityFilters()">Réinitialiser les filtres</span></div>`;
@@ -6603,14 +6841,11 @@ async function renderActivitiesList(){
     // Classement intelligent : passions communes, puis mode compatible, puis
     // distance connue la plus proche, puis date la plus proche — jamais
     // d'exclusion, seulement un réordonnancement.
-    const passionCategoryKeys = new Set(
-      categories.filter(c => (myProfile.interests || []).some(i => i.includes(c.label))).map(c => c.key)
-    );
     const myModes = myProfile.modes || [];
     const scored = filteredData.map(a => {
       const passionScore = passionCategoryKeys.has(a.category) ? 1 : 0;
       const modeScore = myModes.includes(a.mode) ? 1 : 0;
-      const dist = getActivityDistance(a);
+      const dist = getActivityDistanceKm(a);
       const distanceValue = dist != null ? dist : Infinity; // distance inconnue = jamais prioritaire, jamais exclue
       let dayDiff = 9999;
       if(a.activity_date){
@@ -6626,63 +6861,7 @@ async function renderActivitiesList(){
     scored.sort((x,y) => (y.passionScore - x.passionScore) || (y.modeScore - x.modeScore) || (x.distanceValue - y.distanceValue) || (x.dayDiff - y.dayDiff));
     const sortedData = scored.map(s => ({ ...s.a, distanceKm: s.distanceKm, matchesPassion: s.passionScore > 0 }));
 
-    const cards = await Promise.all(sortedData.map(async (a) => {
-      const cat = categories.find(c => c.key === a.category);
-      const emoji = cat ? cat.emoji : '🎉';
-      const bg = cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
-
-      let participantCount = 0;
-      try{
-        const { count } = await supabaseClient
-          .from('activity_participants')
-          .select('id', { count: 'exact', head: true })
-          .eq('activity_id', a.id);
-        participantCount = count || 0;
-      } catch(e){}
-
-      let organizerName = 'Membre';
-      try{
-        const { data: org } = await supabaseClient
-          .from('profiles').select('first_name').eq('id', a.organizer_profile_id).maybeSingle();
-        if(org && org.first_name) organizerName = org.first_name;
-      } catch(e){}
-
-      const resolvedPhotoUrl = await resolveActivityPhotoUrl(a.photo_url, a.id);
-
-      currentActivitiesData.push({
-        id: a.id, title: a.title, description: a.description, category: a.category,
-        activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
-        organizerName, organizerId: a.organizer_profile_id, emoji, bg,
-        maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode, meetingPoint: a.meeting_point
-      });
-
-      const dateLabel = a.activity_date
-        ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long'})
-        : 'Date à définir';
-      const maxLabel = a.max_participants ? `/${a.max_participants}` : '';
-      const mediaStyle = resolvedPhotoUrl
-        ? `background-image:url('${resolvedPhotoUrl}'); background-size:cover; background-position:center;`
-        : `background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;`;
-      const modeTagHtml = a.mode === 'love'
-        ? `<span class="msg-mode-tag love">Rencontre</span>`
-        : `<span class="msg-mode-tag friend">Amitié</span>`;
-      const proximityTag = (a.distanceKm != null && a.distanceKm <= 10) ? `<span class="msg-mode-tag friend" style="background:var(--lavender); color:var(--plum-soft);">📍 À proximité</span>` : '';
-      const passionTag = a.matchesPassion ? `<span class="msg-mode-tag friend" style="background:var(--lavender); color:var(--plum-soft);">❤️ Correspond à vos passions</span>` : '';
-
-      return `
-        <div class="card" onclick="openActivityDetail('${a.id}')">
-          <div class="card-media" style="${mediaStyle}">${resolvedPhotoUrl ? '' : emoji}</div>
-          <div class="card-body">
-            <h3>${escapeHtml(a.title)}</h3>
-            <div class="card-meta"><span>📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}</span></div>
-            <div class="card-meta"><span>📍 ${escapeHtml(a.location) || 'Lieu à définir'}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm)+' km' : ' · distance non disponible'}</span></div>
-            <div class="card-meta"><span>👥 ${participantCount}${maxLabel} participant${participantCount>1?'s':''} · Organisé par ${escapeHtml(organizerName)}</span></div>
-            <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">${modeTagHtml}${proximityTag}${passionTag}</div>
-          </div>
-        </div>
-      `;
-    }));
-
+    const cards = await Promise.all(sortedData.map(buildActivityCardHtml));
     list.innerHTML = cards.join('');
   } catch(e){
     console.warn('[Activités] Chargement impossible :', e.message);
