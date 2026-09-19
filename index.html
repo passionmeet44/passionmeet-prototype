@@ -261,6 +261,23 @@
     display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s ease; padding:24px;
   }
   .tag-comment-overlay.show{opacity:1; pointer-events:auto;}
+
+  /* Modal dédié à la recherche d'activités : règles explicites (pas seulement
+     héritées) pour garantir un centrage réel et fiable sur iPhone. */
+  .activity-search-overlay{
+    position:fixed; top:0; left:0; right:0; bottom:0; z-index:320;
+    background:rgba(30,15,35,0.62);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px; box-sizing:border-box;
+    opacity:0; pointer-events:none; transition:opacity .18s ease;
+  }
+  .activity-search-overlay.show{opacity:1; pointer-events:auto;}
+  .activity-search-modal{
+    background:#fff; border-radius:22px; width:100%; max-width:380px;
+    max-height:min(80vh, 640px); overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:20px; box-shadow:0 20px 50px rgba(62,31,68,0.35);
+  }
+  #activity-full-list-section.hidden{display:none;}
   .tag-comment-card{
     background:#fff; border-radius:22px; padding:22px; width:100%; max-width:320px;
     box-shadow:0 20px 40px rgba(62,31,68,0.28);
@@ -1951,25 +1968,34 @@
     <div id="activity-univers-section" style="padding:0 20px;"></div>
     <div id="activity-nearby-section" style="padding:0 20px;"></div>
     <div style="padding:4px 20px 14px;">
-      <div class="report-link" style="cursor:pointer; text-align:center;" onclick="toggleActivitySearchPanel(true)">Voir toutes les activités</div>
+      <div class="report-link" style="cursor:pointer; text-align:center;" onclick="showActivityFullList()">Voir toutes les activités</div>
+    </div>
+
+    <!-- Résultats de recherche / liste complète : vivent sur la page, jamais
+         dans le modal, pour rester visibles une fois celui-ci refermé. -->
+    <div id="activity-full-list-section" class="hidden">
+      <div id="activity-results-summary" style="padding:0 20px; font-size:12.5px; color:var(--plum-soft); font-weight:600;"></div>
+      <div id="activity-suggestions-section" style="padding:0 20px;"></div>
+      <div id="activities-real-list" style="padding:0 20px;"></div>
     </div>
   </div>
 
-  <!-- ACTIVITY SEARCH MODAL : vrai panneau superposé, pas un bloc qui pousse la page -->
-  <div class="tag-comment-overlay" id="activity-search-overlay">
-    <div class="tag-comment-card" id="activity-search-card" style="max-width:400px; max-height:85vh; overflow-y:auto; text-align:left;">
+  <!-- ACTIVITY SEARCH MODAL : uniquement les contrôles de filtre, pas les
+       résultats — le panneau peut donc se refermer sans rien faire disparaître. -->
+  <div class="activity-search-overlay" id="activity-search-overlay">
+    <div class="activity-search-modal" id="activity-search-card" style="text-align:left;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
         <div class="tag-comment-title" style="margin-bottom:0;">🔍 Rechercher une activité</div>
         <div style="font-size:20px; color:#B7ACBA; cursor:pointer; line-height:1;" onclick="toggleActivitySearchPanel(false)">✕</div>
       </div>
       <div style="display:flex; gap:8px; margin-bottom:10px;">
-        <input class="form-input" id="activity-search-input" type="text" placeholder="Rechercher une activité…" style="flex:1; margin-bottom:0;" oninput="onActivityFiltersChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault(); onActivityFiltersChanged();}">
-        <button class="btn-primary" style="width:auto; margin-top:0; padding:0 16px;" onclick="onActivityFiltersChanged()">OK</button>
+        <input class="form-input" id="activity-search-input" type="text" placeholder="Rechercher une activité…" style="flex:1; margin-bottom:0;" onkeydown="if(event.key==='Enter'){event.preventDefault(); applyActivitySearchAndClose();}">
+        <button class="btn-primary" style="width:auto; margin-top:0; padding:0 16px;" onclick="applyActivitySearchAndClose()">OK</button>
       </div>
       <select class="form-input" id="activity-category-filter" style="margin-bottom:10px;" onchange="onActivityFiltersChanged()">
         <option value="tous">Toutes catégories</option>
       </select>
-      <input class="form-input" id="activity-city-filter" type="text" placeholder="📍 Ville ou lieu…" style="margin-bottom:10px;" oninput="onActivityFiltersChanged()" onkeydown="if(event.key==='Enter'){event.preventDefault(); onActivityFiltersChanged();}">
+      <input class="form-input" id="activity-city-filter" type="text" placeholder="📍 Ville ou lieu…" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter'){event.preventDefault(); applyActivitySearchAndClose();}">
       <div class="time-filter-row" id="activity-date-chip-row">
         <div class="time-chip active" data-date="toutes" onclick="setActivityDateFilterChip(this,'toutes')">Toutes dates</div>
         <div class="time-chip" data-date="today" onclick="setActivityDateFilterChip(this,'today')">Aujourd'hui</div>
@@ -1983,13 +2009,10 @@
       <div class="form-label">Rayon des activités <span id="activity-radius-value"></span></div>
       <input type="range" min="1" max="100" id="activity-radius-input" oninput="setActivityRadius(this.value)">
       <div class="form-hint" style="margin-top:2px;">Distance indépendante de celle utilisée dans Découvrir</div>
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
-        <button class="btn-secondary" style="width:auto; padding:8px 16px; font-size:13px;" onclick="onActivityFiltersChanged()">Appliquer</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+        <button class="btn-primary" style="width:auto; margin-top:0; padding:10px 20px; font-size:13.5px;" onclick="applyActivitySearchAndClose()">Appliquer</button>
         <div id="activity-filters-active" class="report-link" style="display:none; cursor:pointer;" onclick="resetActivityFilters()">✕ Réinitialiser</div>
       </div>
-      <div id="activity-results-summary" style="padding:10px 0 0; font-size:12.5px; color:var(--plum-soft); font-weight:600;"></div>
-      <div id="activity-suggestions-section" style="padding-top:6px;"></div>
-      <div id="activities-real-list" style="padding-top:6px;"></div>
     </div>
   </div>
 
@@ -6608,21 +6631,22 @@ function renderActivitySuggestionsView(){
     return;
   }
 
-  const cat = (key) => categories.find(c => c.label && normalizeText(c.label) === normalizeText(key || ''));
+  const cat = (key) => categories.find(c =>
+    c.key === key || (c.label && normalizeText(c.label) === normalizeText(key || ''))
+  );
 
   section.innerHTML = `<div class="section-label">💡 Idées PassionMeet à découvrir</div>` +
     activitySuggestionsRawData.map(s => {
       const c = cat(s.category);
       const emoji = c ? c.emoji : '💡';
-      const bg = c ? c.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
       return `
-        <div class="card" onclick="toggleSuggestionDetail('${s.id}')">
-          <div class="card-media" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:32px;">${emoji}</div>
-          <div class="card-body">
-            <span class="msg-mode-tag friend" style="margin-bottom:6px; display:inline-block;">💡 Idée PassionMeet</span>
-            <h3>${escapeHtml(s.title)}</h3>
-            <div class="card-meta"><span>📍 ${escapeHtml(s.zone || '')}${s.suggested_location ? ' · '+escapeHtml(s.suggested_location) : ''}</span></div>
-            <div id="suggestion-detail-${s.id}" class="suggestion-detail hidden" style="margin-top:8px; font-size:12.5px; color:#6B5872; line-height:1.5;">
+        <div class="activity-card" onclick="toggleSuggestionDetail('${s.id}')">
+          <div class="activity-card-media" style="${c ? `background:${c.bg};` : 'background:linear-gradient(135deg,#8B5A8C,#3D1F45);'}"><span>${emoji}</span></div>
+          <div class="activity-card-body">
+            <div class="activity-card-tags" style="margin-top:0; margin-bottom:2px;"><span class="activity-card-tag">💡 Idée</span></div>
+            <div class="activity-card-title">${escapeHtml(s.title)}</div>
+            <div class="activity-card-meta">📍 ${escapeHtml(s.zone || '')}${s.suggested_location ? ' · '+escapeHtml(s.suggested_location) : ''}</div>
+            <div id="suggestion-detail-${s.id}" class="suggestion-detail hidden" style="margin-top:6px; font-size:11.5px; color:#6B5872; line-height:1.4;">
               <p>${escapeHtml(s.description || '')}</p>
               ${s.practical_info ? `<p style="margin-top:4px; color:#9584A0;">${escapeHtml(s.practical_info)}</p>` : ''}
             </div>
@@ -6722,10 +6746,19 @@ async function fetchActiveUpcomingActivities(){
     .order('created_at', { ascending: false });
   if(error) throw error;
   const todayStr = new Date().toISOString().slice(0,10);
-  return (rawData || []).filter(a =>
+  const active = (rawData || []).filter(a =>
     (a.moderation_status || 'active') === 'active' &&
     (!a.activity_date || a.activity_date >= todayStr)
   );
+  // Déduplication défensive par identifiant réel, centralisée ici pour que
+  // tous les écrans (recommandations, liste complète) en bénéficient : une
+  // même activité ne peut jamais apparaître deux fois côté affichage.
+  const seenIds = new Set();
+  return active.filter(a => {
+    if(seenIds.has(a.id)) return false;
+    seenIds.add(a.id);
+    return true;
+  });
 }
 
 function getActivityDistanceKm(a){
@@ -6773,18 +6806,6 @@ async function renderActivityRecommendations(){
       matchesMode: myModes.includes(a.mode)
     }));
 
-    // Candidats "Pour vous" (pool élargi avant filtrage des complètes)
-    const universCandidates = withScore
-      .filter(a => a.matchesPassion || a.matchesMode)
-      .sort((x,y) => (y.matchesPassion - x.matchesPassion) || ((x.activity_date||'9999') > (y.activity_date||'9999') ? 1 : -1))
-      .slice(0, 8);
-
-    // Candidats "Près de chez vous" (pool élargi avant filtrage des complètes)
-    const nearbyCandidates = withScore
-      .filter(a => a.distanceKm != null)
-      .sort((x,y) => x.distanceKm - y.distanceKm)
-      .slice(0, 8);
-
     // Vérifie la disponibilité réelle (participants actuels vs maximum) et
     // exclut celles qui sont complètes — jamais recommandées en priorité,
     // seulement visibles dans "Toutes les activités" avec leur badge "Complet".
@@ -6797,7 +6818,26 @@ async function renderActivityRecommendations(){
       return withAvailability.filter(x => x.available).map(x => x.a).slice(0, limit);
     }
 
+    // "Pour vous" : 1) passions/préférences, 2) disponibilité, 3) date, 4) distance.
+    const universCandidates = withScore
+      .filter(a => a.matchesPassion || a.matchesMode)
+      .sort((x,y) => (y.matchesPassion - x.matchesPassion) || (y.matchesMode - x.matchesMode)
+        || ((x.activity_date||'9999') > (y.activity_date||'9999') ? 1 : -1)
+        || ((x.distanceKm ?? Infinity) - (y.distanceKm ?? Infinity)))
+      .slice(0, 8);
     const universPicks = await keepOnlyAvailable(universCandidates, 3);
+
+    // Déduplication croisée : toute activité déjà retenue dans "Pour vous" est
+    // exclue du pool de "Près de chez vous", par identifiant réel — jamais par titre.
+    const usedIds = new Set(universPicks.map(a => a.id));
+
+    // "Près de chez vous" : 1) proximité, 2) disponibilité, 3) date, 4) passions.
+    const nearbyCandidates = withScore
+      .filter(a => a.distanceKm != null && !usedIds.has(a.id))
+      .sort((x,y) => (x.distanceKm - y.distanceKm)
+        || ((x.activity_date||'9999') > (y.activity_date||'9999') ? 1 : -1)
+        || (y.matchesPassion - x.matchesPassion))
+      .slice(0, 8);
     const nearbyPicks = await keepOnlyAvailable(nearbyCandidates, 4);
 
     if(universPicks.length){
@@ -6820,13 +6860,30 @@ async function renderActivityRecommendations(){
 
 function toggleActivitySearchPanel(forceShow){
   const overlay = document.getElementById('activity-search-overlay');
+  const screenEl = document.getElementById('screen-activities-list');
   if(!overlay) return;
   const show = forceShow != null ? forceShow : !overlay.classList.contains('show');
   overlay.classList.toggle('show', show);
-  if(show){
-    renderActivitySuggestionsView();
-    renderActivitiesList();
-  }
+  // La page derrière ne doit pas défiler pendant que le panneau est ouvert —
+  // seul le contenu du panneau lui-même doit pouvoir défiler.
+  if(screenEl) screenEl.style.overflowY = show ? 'hidden' : '';
+}
+
+// Rend visible la section "résultats" sur la page (jamais dans le modal) et
+// (ré)affiche la liste selon les filtres actuellement sélectionnés.
+function showActivityFullList(){
+  const section = document.getElementById('activity-full-list-section');
+  if(section) section.classList.remove('hidden');
+  renderActivitySuggestionsView();
+  renderActivitiesList();
+}
+
+// Appliquer/OK/Entrée dans le panneau : on relit les champs, on ferme le
+// panneau, puis on affiche immédiatement les résultats sur la page.
+function applyActivitySearchAndClose(){
+  onActivityFiltersChanged();
+  toggleActivitySearchPanel(false);
+  showActivityFullList();
 }
 
 async function renderActivitiesList(){
