@@ -3217,7 +3217,7 @@ function showScreen(name){
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
     if(name==='swipe'){ updateDiscoverFiltersBadge(); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
-    if(name==='activities-list'){ renderActivitySuggestions(); renderActivityRecommendations(); }
+    if(name==='activities-list'){ renderActivityRecommendations(); }
     if(name==='matches'){ renderMatchesList(); }
     if(name==='messages'){ renderMessagesList(); }
     if(name==='profile'){ renderProfileScreen(); }
@@ -6193,7 +6193,6 @@ function onActivityFiltersChanged(){
   activityCityFilter = normalizeText(document.getElementById('activity-city-filter').value);
   const active = activitySearchQuery || activityCategoryFilter !== 'tous' || activityDateFilter !== 'toutes' || activityCityFilter || activityPassionOnly;
   document.getElementById('activity-filters-active').style.display = active ? 'block' : 'none';
-  renderActivitySuggestionsView();
   renderActivitiesList();
   const screenEl = document.getElementById('screen-activities-list');
   if(screenEl) screenEl.scrollTop = 0;
@@ -6227,7 +6226,6 @@ function resetActivityFilters(){
   activityCityFilter = '';
   activityPassionOnly = false;
   document.getElementById('activity-filters-active').style.display = 'none';
-  renderActivitySuggestionsView();
   renderActivitiesList();
 }
 
@@ -6614,7 +6612,6 @@ async function renderActivitySuggestions(){
       return;
     }
   }
-  renderActivitySuggestionsView();
 }
 
 function renderActivitySuggestionsView(){
@@ -6786,10 +6783,17 @@ async function getRealParticipantCount(activityId){
 // Dans les deux cas : jamais d'activité complète, passée ou indisponible —
 // la vérification du nombre réel de participants se fait ici, sur un petit
 // nombre de candidats seulement, avant de choisir les 3-4 finalistes.
+// Un seul Set, partagé par tout le rendu de la page Activités : garantit
+// qu'une même activité (même ID réel) ne peut jamais s'afficher deux fois,
+// que ce soit dans "Pour vous", "Près de chez vous" ou "Toutes les activités".
+// Réinitialisé à chaque nouvel affichage de l'écran (voir renderActivityRecommendations).
+let displayedActivityIds = new Set();
+
 async function renderActivityRecommendations(){
   const universSection = document.getElementById('activity-univers-section');
   const nearbySection = document.getElementById('activity-nearby-section');
   if(!universSection || !nearbySection || !supabaseClient) return;
+  displayedActivityIds = new Set(); // nouvelle visite de l'écran = nouvelle page, on repart de zéro
   try{
     const data = await fetchActiveUpcomingActivities();
     if(!data.length){ universSection.innerHTML = ''; nearbySection.innerHTML = ''; return; }
@@ -6809,13 +6813,17 @@ async function renderActivityRecommendations(){
     // Vérifie la disponibilité réelle (participants actuels vs maximum) et
     // exclut celles qui sont complètes — jamais recommandées en priorité,
     // seulement visibles dans "Toutes les activités" avec leur badge "Complet".
+    // Exclut également, par sécurité, tout ID déjà présent dans displayedActivityIds.
     async function keepOnlyAvailable(list, limit){
       const withAvailability = await Promise.all(list.map(async (a) => {
+        if(displayedActivityIds.has(a.id)) return { a, available: false };
         if(a.max_participants == null) return { a, available: true };
         const count = await getRealParticipantCount(a.id);
         return { a, available: count < a.max_participants };
       }));
-      return withAvailability.filter(x => x.available).map(x => x.a).slice(0, limit);
+      const kept = withAvailability.filter(x => x.available).map(x => x.a).slice(0, limit);
+      kept.forEach(a => displayedActivityIds.add(a.id)); // marquées affichées dès leur sélection
+      return kept;
     }
 
     // "Pour vous" : 1) passions/préférences, 2) disponibilité, 3) date, 4) distance.
@@ -6827,13 +6835,10 @@ async function renderActivityRecommendations(){
       .slice(0, 8);
     const universPicks = await keepOnlyAvailable(universCandidates, 3);
 
-    // Déduplication croisée : toute activité déjà retenue dans "Pour vous" est
-    // exclue du pool de "Près de chez vous", par identifiant réel — jamais par titre.
-    const usedIds = new Set(universPicks.map(a => a.id));
-
     // "Près de chez vous" : 1) proximité, 2) disponibilité, 3) date, 4) passions.
+    // displayedActivityIds contient déjà les picks de "Pour vous" à ce stade.
     const nearbyCandidates = withScore
-      .filter(a => a.distanceKm != null && !usedIds.has(a.id))
+      .filter(a => a.distanceKm != null && !displayedActivityIds.has(a.id))
       .sort((x,y) => (x.distanceKm - y.distanceKm)
         || ((x.activity_date||'9999') > (y.activity_date||'9999') ? 1 : -1)
         || (y.matchesPassion - x.matchesPassion))
@@ -6874,7 +6879,6 @@ function toggleActivitySearchPanel(forceShow){
 function showActivityFullList(){
   const section = document.getElementById('activity-full-list-section');
   if(section) section.classList.remove('hidden');
-  renderActivitySuggestionsView();
   renderActivitiesList();
 }
 
@@ -6940,6 +6944,14 @@ async function renderActivitiesList(){
         const haystack = normalizeText(`${a.title || ''} ${a.description || ''} ${catLabel}`);
         if(!haystack.includes(activitySearchQuery)) return false;
       }
+      // Sans filtre actif, "Toutes les activités" masque ce qui est déjà visible
+      // plus haut dans "Pour vous" / "Près de chez vous" — même règle d'unicité
+      // sur toute la page. Dès qu'une recherche ou un filtre précis est utilisé,
+      // on affiche le résultat complet et exact, y compris ce qui est déjà visible
+      // ailleurs (chercher "cinéma" doit montrer TOUTES les activités cinéma).
+      const anyFilterActive = activitySearchQuery || activityCategoryFilter !== 'tous' ||
+        activityDateFilter !== 'toutes' || activityCityFilter || activityPassionOnly;
+      if(!anyFilterActive && displayedActivityIds.has(a.id)) return false;
       return true;
     });
 
