@@ -6998,16 +6998,31 @@ const PREMIUM_DEFAULT_BG = 'linear-gradient(155deg,#F1E9E4 0%,#FBF6F1 100%)';
 // Palette vive et distincte par catégorie — chaque catégorie a sa vraie
 // identité colorée (demandé explicitement), tout en restant cohérente avec
 // l'univers PassionMeet (pas de couleurs criardes/néon).
+// Photos réelles de catégorie (Pexels, "Free to use", pas d'attribution
+// obligatoire d'après Pexels — mais on garde quand même la source et l'auteur
+// pour la traçabilité, comme demandé). Utilisées uniquement en repli quand
+// une activité réelle n'a pas sa propre photo (photo_url) — jamais l'inverse.
+// Réseau bloqué depuis cet environnement : impossible de les héberger en
+// local (base64) cette fois, on référence donc directement le CDN Pexels.
 const CATALOG_CATEGORIES = [
-  { label: '🏎️ Sensations & Adrénaline', emoji: '🏎️', bg: 'linear-gradient(135deg,#FF9159,#E5722A)', bgLight: 'linear-gradient(135deg,#FF9159,#E5722A)', accent: '#E5722A' },
-  { label: '🎨 Créatif & Manuel', emoji: '🎨', bg: 'linear-gradient(135deg,#EC8FB0,#C1527A)', bgLight: 'linear-gradient(135deg,#EC8FB0,#C1527A)', accent: '#C1527A' },
-  { label: '🍳 Cuisine & Gastronomie', emoji: '🍳', bg: 'linear-gradient(135deg,#F5C451,#D9962A)', bgLight: 'linear-gradient(135deg,#F5C451,#D9962A)', accent: '#B9822A' },
-  { label: '🎵 Musique & Culture', emoji: '🎵', bg: 'linear-gradient(135deg,#9B7FE0,#6247B3)', bgLight: 'linear-gradient(135deg,#9B7FE0,#6247B3)', accent: '#6247B3' },
-  { label: '🎲 Jeux & Social', emoji: '🎲', bg: 'linear-gradient(135deg,#4FD1D9,#2A9BA8)', bgLight: 'linear-gradient(135deg,#4FD1D9,#2A9BA8)', accent: '#2A9BA8' },
-  { label: '🌿 Nature & Outdoor', emoji: '🌿', bg: 'linear-gradient(135deg,#7ED88F,#3F9C52)', bgLight: 'linear-gradient(135deg,#7ED88F,#3F9C52)', accent: '#3F9C52' },
-  { label: '🏋️ Sport & Bien-être', emoji: '🏋️', bg: 'linear-gradient(135deg,#5FD1B0,#2E8C6E)', bgLight: 'linear-gradient(135deg,#5FD1B0,#2E8C6E)', accent: '#2E8C6E' },
-  { label: '🎬 Sorties', emoji: '🎬', bg: 'linear-gradient(135deg,#B87DDE,#7A4CA8)', bgLight: 'linear-gradient(135deg,#B87DDE,#7A4CA8)', accent: '#7A4CA8' },
-  { label: '🌙 Sorties & Vie nocturne', emoji: '🌙', bg: 'linear-gradient(135deg,#6E5FC4,#3D2E7A)', bgLight: 'linear-gradient(135deg,#6E5FC4,#3D2E7A)', accent: '#3D2E7A' },
+  { label: '🏎️ Sensations & Adrénaline', emoji: '🏎️', bg: 'linear-gradient(135deg,#FF9159,#E5722A)', bgLight: 'linear-gradient(135deg,#FF9159,#E5722A)', accent: '#E5722A',
+    photoUrl: 'https://images.pexels.com/photos/18625960/pexels-photo-18625960.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/two-go-kart-drivers-racing-on-a-track-18625960/', photoAuthor: 'Jonathan Valdes', photoLicense: 'Pexels License (free to use)' },
+  { label: '🎨 Créatif & Manuel', emoji: '🎨', bg: 'linear-gradient(135deg,#EC8FB0,#C1527A)', bgLight: 'linear-gradient(135deg,#EC8FB0,#C1527A)', accent: '#C1527A',
+    photoUrl: 'https://images.pexels.com/photos/33878979/pexels-photo-33878979.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/hands-crafting-pottery-on-a-spinning-wheel-33878979/', photoAuthor: 'Finalchoice', photoLicense: 'Pexels License (free to use)' },
+  { label: '🍳 Cuisine & Gastronomie', emoji: '🍳', bg: 'linear-gradient(135deg,#F5C451,#D9962A)', bgLight: 'linear-gradient(135deg,#F5C451,#D9962A)', accent: '#B9822A',
+    photoUrl: 'https://images.pexels.com/photos/18115910/pexels-photo-18115910.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/chef-learning-how-to-cook-18115910/', photoAuthor: 'Nisy Ripoll', photoLicense: 'Pexels License (free to use)' },
+  { label: '🎵 Musique & Culture', emoji: '🎵', bg: 'linear-gradient(135deg,#9B7FE0,#6247B3)', bgLight: 'linear-gradient(135deg,#9B7FE0,#6247B3)', accent: '#6247B3',
+    photoUrl: 'https://images.pexels.com/photos/16844637/pexels-photo-16844637.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/musician-playing-the-guitar-on-stage-at-the-concert-16844637/', photoAuthor: 'Luan Kawee', photoLicense: 'Pexels License (free to use)' },
+  { label: '🎲 Jeux & Social', emoji: '🎲', bg: 'linear-gradient(135deg,#4FD1D9,#2A9BA8)', bgLight: 'linear-gradient(135deg,#4FD1D9,#2A9BA8)', accent: '#2A9BA8',
+    photoUrl: 'https://images.pexels.com/photos/8111352/pexels-photo-8111352.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/friends-playing-a-board-game-together-8111352/', photoAuthor: 'Pavel Danilyuk', photoLicense: 'Pexels License (free to use)' },
+  { label: '🌿 Nature & Outdoor', emoji: '🌿', bg: 'linear-gradient(135deg,#7ED88F,#3F9C52)', bgLight: 'linear-gradient(135deg,#7ED88F,#3F9C52)', accent: '#3F9C52',
+    photoUrl: 'https://images.pexels.com/photos/7625268/pexels-photo-7625268.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/people-hiking-in-a-forest-7625268/', photoAuthor: 'PNW Production', photoLicense: 'Pexels License (free to use)' },
+  { label: '🏋️ Sport & Bien-être', emoji: '🏋️', bg: 'linear-gradient(135deg,#5FD1B0,#2E8C6E)', bgLight: 'linear-gradient(135deg,#5FD1B0,#2E8C6E)', accent: '#2E8C6E',
+    photoUrl: 'https://images.pexels.com/photos/8436571/pexels-photo-8436571.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/people-doing-yoga-8436571/', photoAuthor: 'Yan Krukau', photoLicense: 'Pexels License (free to use)' },
+  { label: '🎬 Sorties', emoji: '🎬', bg: 'linear-gradient(135deg,#B87DDE,#7A4CA8)', bgLight: 'linear-gradient(135deg,#B87DDE,#7A4CA8)', accent: '#7A4CA8',
+    photoUrl: 'https://images.pexels.com/photos/15047884/pexels-photo-15047884.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/museum-15047884/', photoAuthor: 'Bo Ponomari', photoLicense: 'Pexels License (free to use)' },
+  { label: '🌙 Sorties & Vie nocturne', emoji: '🌙', bg: 'linear-gradient(135deg,#6E5FC4,#3D2E7A)', bgLight: 'linear-gradient(135deg,#6E5FC4,#3D2E7A)', accent: '#3D2E7A',
+    photoUrl: 'https://images.pexels.com/photos/14516853/pexels-photo-14516853.jpeg?auto=compress&cs=tinysrgb&w=1200', photoSourceUrl: 'https://www.pexels.com/photo/composition-with-cocktail-14516853/', photoAuthor: 'Ertuğrul Akcaba', photoLicense: 'Pexels License (free to use)' },
 ];
 function catalogCategoryInfo(label){
   return CATALOG_CATEGORIES.find(c => c.label === label) || { emoji: '🎉', bg: 'linear-gradient(135deg,#8B5A8C,#3D1F45)', bgLight: 'linear-gradient(155deg,#EDE3F0 0%,#F6F0F8 100%)', accent: '#8B5A8C' };
@@ -7084,13 +7099,17 @@ function buildVenueCardHtml(act, venue, distanceKm){
   const cat = catalogCategoryInfo(act.category);
   const resa = reservationBadge(act.reservation_status);
   const distLabel = distanceKm != null ? `📍 ${distanceKm < 1 ? Math.round(distanceKm*1000)+' m' : distanceKm.toFixed(1)+' km'}` : null;
-  // Aucune vraie photo n'est encore disponible dans les données du catalogue :
-  // dégradé pastel propre à la catégorie + emoji en petit badge, jamais une
-  // grosse icône centrale ni un fond neutre uniforme.
+  // Priorité réelle : photo de l'activité si elle existe un jour (champ prêt,
+  // absent des données actuelles) > photo de catégorie (Pexels, réelle,
+  // sourcée) > emoji si même cette photo échoue à charger.
+  const photoUrl = act.photo_url || cat.photoUrl;
+  const mediaContent = photoUrl
+    ? `<img src="${photoUrl}" alt="" loading="lazy" onerror="this.parentElement.style.background='${cat.bgLight}'; this.outerHTML='<span style=&quot;font-size:34px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))&quot;>${cat.emoji}</span>';">`
+    : `<span style="font-size:34px; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.25));">${cat.emoji}</span>`;
   return `
     <div class="venue-card" onclick="openVenueDetail('${act.id}')">
-      <div class="venue-card-media" style="background:${cat.bgLight}; display:flex; align-items:center; justify-content:center;">
-        <div style="font-size:34px; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.25));">${cat.emoji}</div>
+      <div class="venue-card-media" style="${photoUrl ? '' : `background:${cat.bgLight};`} display:flex; align-items:center; justify-content:center;">
+        ${mediaContent}
         <div class="venue-card-cat">${act.category.replace(/^\S+\s/, '')}</div>
         ${resa ? `<div class="venue-card-resa">${resa}</div>` : ''}
       </div>
@@ -7117,10 +7136,17 @@ function buildVenueTileHtml(act, venue, distanceKm){
     : act.reservation_status === 'PHONE_OR_CONTACT_RESERVATION_CONFIRMED_BY_REVIEWS' ? '📞'
     : null;
   const distLabel = distanceKm != null ? (distanceKm < 1 ? Math.round(distanceKm*1000)+'m' : distanceKm.toFixed(1)+'km') : null;
+  // Priorité réelle : photo de l'activité si elle existe un jour (champ prêt,
+  // absent des données actuelles) > photo de catégorie (Pexels, réelle,
+  // sourcée) > emoji si même cette photo échoue à charger.
+  const photoUrl = act.photo_url || cat.photoUrl;
+  const mediaContent = photoUrl
+    ? `<img src="${photoUrl}" alt="" loading="lazy" onerror="this.parentElement.style.background='${cat.bgLight}'; this.outerHTML='<span style=&quot;font-size:26px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))&quot;>${cat.emoji}</span>';">`
+    : `<span style="font-size:26px; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.25));">${cat.emoji}</span>`;
   return `
     <div class="venue-tile" onclick="openVenueDetail('${act.id}')">
-      <div class="venue-tile-media" style="background:${cat.bgLight};">
-        <div class="venue-tile-emoji-badge">${cat.emoji}</div>
+      <div class="venue-tile-media" style="${photoUrl ? '' : `background:${cat.bgLight};`}">
+        ${mediaContent}
         <div class="venue-tile-cat">${act.category.replace(/^\S+\s/, '')}</div>
         ${resa ? `<div class="venue-tile-resa">${resa}</div>` : ''}
       </div>
@@ -7314,6 +7340,10 @@ async function openVenueDetail(activityId){
   const cat = catalogCategoryInfo(act.category);
   const resa = reservationBadge(act.reservation_status);
   const distanceKm = (venue && venue.latitude != null) ? haversineKm(userCoords[0], userCoords[1], venue.latitude, venue.longitude) : null;
+  const detailPhotoUrl = act.photo_url || cat.photoUrl;
+  const detailMediaContent = detailPhotoUrl
+    ? `<img src="${detailPhotoUrl}" alt="" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block; border-radius:14px;" onerror="this.parentElement.style.background='${cat.bgLight}'; this.outerHTML='<span style=&quot;font-size:44px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))&quot;>${cat.emoji}</span>';">`
+    : `<span style="font-size:44px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));">${cat.emoji}</span>`;
 
   let bookingHtml = '';
   if(act.reservation_status === 'NO_RESERVATION_REQUIRED'){
@@ -7331,8 +7361,8 @@ async function openVenueDetail(activityId){
       <div class="tag-comment-title" style="margin-bottom:0;">${escapeHtml(act.activity_name)}</div>
       <div style="font-size:20px; color:#B7ACBA; cursor:pointer; line-height:1;" onclick="closeVenueDetail()">✕</div>
     </div>
-    <div class="venue-card-media" style="background:${cat.bgLight}; border-radius:14px; height:120px; margin-bottom:12px; display:flex; align-items:center; justify-content:center;">
-      <div style="font-size:44px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));">${cat.emoji}</div>
+    <div class="venue-card-media" style="${detailPhotoUrl ? '' : `background:${cat.bgLight};`} border-radius:14px; height:120px; margin-bottom:12px; display:flex; align-items:center; justify-content:center;">
+      ${detailMediaContent}
     </div>
     <div class="venue-card-title" style="font-size:14px;">${escapeHtml(venue ? venue.name : '')}</div>
     <div class="venue-card-meta" style="margin-top:4px;">
