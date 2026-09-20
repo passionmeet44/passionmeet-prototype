@@ -373,7 +373,7 @@
   .pill.sel{background:var(--plum); color:#fff;}
 
   /* ---------- Home ---------- */
-  #screen-home{ padding-left:20px; padding-right:20px; padding-bottom: calc(56px + env(safe-area-inset-bottom) + 16px); }
+  #screen-home{ min-height:auto; padding-left:20px; padding-right:20px; padding-bottom: calc(56px + env(safe-area-inset-bottom) + 16px); }
   .home-header{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:2px;}
   .home-header h1{font-family:var(--font-display); font-size:22px; font-weight:700; color:var(--plum); line-height:1.15;}
   .home-location{
@@ -392,24 +392,34 @@
   .intent-card.wide{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:4px; padding:14px 10px; border-radius:18px; min-height:104px;
-    background:#fff; border:1px solid var(--lavender); box-shadow:0 2px 8px rgba(62,31,68,0.06); cursor:pointer;
+    box-shadow:0 3px 10px rgba(62,31,68,0.07); cursor:pointer;
     transition: transform .15s ease, box-shadow .15s ease;
   }
   .intent-card.wide:active{ transform:scale(0.97); }
   .intent-card.wide h4{ order:1; font-size:12.5px; margin-bottom:0; line-height:1.2; color:var(--plum); }
-  .intent-card.wide p{ order:2; font-size:9.5px; line-height:1.25; margin-bottom:2px; color:#9584A0; }
+  .intent-card.wide p{ order:2; font-size:9.5px; line-height:1.25; margin-bottom:2px; color:var(--plum-soft); opacity:0.85; }
   .intent-card.wide .intent-icon{
-    order:3; width:38px; height:38px; border-radius:50%; background:var(--lavender);
+    order:3; width:38px; height:38px; border-radius:50%;
     display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;
   }
-  /* Un seul accent intentionnel : l'action principale (Rencontre) ressort,
-     les trois autres restent neutres — la couleur hiérarchise, elle ne
-     décore pas chaque carte. */
-  .intent-card.wide.featured{ border-color:var(--plum); }
+  /* Chaque carte garde une identité pastel douce et différenciée — jamais
+     saturée, mais jamais uniformément blanche non plus. */
+  .intent-card.wide.featured{
+    background:linear-gradient(155deg, #EDE3F0 0%, #F6F0F8 100%); border:1px solid #DCC8E3;
+  }
   .intent-card.wide.featured .intent-icon{ background:var(--plum); color:#fff; }
-  .intent-card.wide.accent-green .intent-icon,
-  .intent-card.wide.accent-orange .intent-icon,
-  .intent-card.wide.accent-teal .intent-icon{ background:var(--lavender); }
+  .intent-card.wide.accent-green{
+    background:linear-gradient(155deg, #DFF3E6 0%, #F2FAF5 100%); border:1px solid #C3E8D0;
+  }
+  .intent-card.wide.accent-green .intent-icon{ background:#B8E4C6; }
+  .intent-card.wide.accent-orange{
+    background:linear-gradient(155deg, #FDECDA 0%, #FFF7EF 100%); border:1px solid #F5D3AE;
+  }
+  .intent-card.wide.accent-orange .intent-icon{ background:#F9D5AC; }
+  .intent-card.wide.accent-teal{
+    background:linear-gradient(155deg, #DDEBFB 0%, #F1F7FE 100%); border:1px solid #C0D9F2;
+  }
+  .intent-card.wide.accent-teal .intent-icon{ background:#B9D6F5; }
   .home-choice-list{display:flex; flex-direction:column; gap:12px;}
   .home-choice-item{
     background:var(--cream-card); border-radius:16px; padding:16px 18px; cursor:pointer;
@@ -434,7 +444,7 @@
   }
   .digest-emoji{
     width:100%; height:56px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:21px;
-    background:var(--lavender);
+    background:linear-gradient(155deg, #EDE3F0 0%, #F6F0F8 100%);
   }
   .digest-card-body{padding:7px 8px 8px; flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between;}
   .digest-card h4{
