@@ -6962,6 +6962,44 @@ function catalogCategoryInfo(label){
   return CATALOG_CATEGORIES.find(c => c.label === label) || { emoji: '🎉', bg: 'linear-gradient(135deg,#8B5A8C,#3D1F45)' };
 }
 
+// Les passions du profil sont stockées avec le vocabulaire de l'ancien
+// système de catégories de l'app ("🍽️ Culinaire", "🕺 Sortie nocturne"...),
+// qui ne correspond presque jamais textuellement aux 9 catégories du
+// catalogue ("🍳 Cuisine & Gastronomie", "🌙 Sorties & Vie nocturne"...).
+// Une simple comparaison de sous-chaînes ne trouvait donc quasiment jamais
+// de vraie correspondance. Cette table fait le vrai pont entre les deux.
+const INTEREST_KEY_TO_CATALOG_CATEGORIES = {
+  sport: ['🏋️ Sport & Bien-être', '🏎️ Sensations & Adrénaline'],
+  culinaire: ['🍳 Cuisine & Gastronomie'],
+  bar: ['🌙 Sorties & Vie nocturne'],
+  course: ['🏋️ Sport & Bien-être'],
+  theatre: ['🎬 Sorties'],
+  concert: ['🎵 Musique & Culture'],
+  vin: ['🍳 Cuisine & Gastronomie'],
+  randonnee: ['🌿 Nature & Outdoor'],
+  cinema: ['🎬 Sorties'],
+  jeux: ['🎲 Jeux & Social'],
+  bienetre: ['🏋️ Sport & Bien-être'],
+  voyage: ['🌿 Nature & Outdoor'],
+  nocturne: ['🌙 Sorties & Vie nocturne'],
+  karaoke: ['🎲 Jeux & Social'],
+};
+
+// Convertit les vraies passions du profil connecté en un ensemble de
+// catégories du catalogue réellement concernées — jamais une liste fixe
+// ni choisie arbitrairement, toujours dérivée de myProfile.interests.
+function getMyCatalogCategoriesFromPassions(){
+  const interests = myProfile.interests || [];
+  const result = new Set();
+  interests.forEach(interestLabel => {
+    const matchedCat = categories.find(c => interestLabel.includes(c.label));
+    if(matchedCat && INTEREST_KEY_TO_CATALOG_CATEGORIES[matchedCat.key]){
+      INTEREST_KEY_TO_CATALOG_CATEGORIES[matchedCat.key].forEach(c => result.add(c));
+    }
+  });
+  return result;
+}
+
 let venuesCache = null, venueActivitiesCache = null;
 
 async function fetchVenuesCatalog(){
@@ -7059,15 +7097,14 @@ async function renderVenueRecommendations(){
   if(!activities.length){ pourVousSection.innerHTML = ''; nearbySection.innerHTML = ''; return; }
 
   const venueById = Object.fromEntries(venues.map(v => [v.id, v]));
-  const passionInterests = myProfile.interests || [];
+  const myCatalogCategories = getMyCatalogCategoriesFromPassions();
 
   const scored = activities.map(a => {
     const venue = venueById[a.venue_id];
     if(!venue) return null;
     const distanceKm = (venue.latitude != null && venue.longitude != null)
       ? haversineKm(userCoords[0], userCoords[1], venue.latitude, venue.longitude) : null;
-    const catLabel = a.category.replace(/^\S+\s/, ''); // sans l'emoji, pour comparer au texte des passions
-    const matchesPassion = passionInterests.some(i => catLabel && (i.includes(catLabel) || catLabel.includes(i)));
+    const matchesPassion = myCatalogCategories.has(a.category);
     return { ...a, venue, distanceKm, matchesPassion };
   }).filter(Boolean);
 
