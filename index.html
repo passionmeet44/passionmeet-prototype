@@ -657,6 +657,29 @@
   .cat-explorer-item:active{transform:scale(0.96);}
   .cat-explorer-item .emoji{font-size:19px;}
   .cat-explorer-item span{font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--plum); line-height:1.2;}
+
+  /* Tuiles compactes 3×2 pour Pour vous / Près de chez vous */
+  .venue-tile-grid{padding:0 20px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px;}
+  .venue-tile{
+    background:#fff; border-radius:16px; overflow:hidden; cursor:pointer;
+    box-shadow:0 4px 12px rgba(62,31,68,0.09); transition:transform .15s ease;
+    display:flex; flex-direction:column;
+  }
+  .venue-tile:active{transform:scale(0.95);}
+  .venue-tile-media{
+    width:100%; aspect-ratio:1/1; position:relative; display:flex; align-items:center; justify-content:center;
+    font-size:24px; flex-shrink:0;
+  }
+  .venue-tile-media img{width:100%; height:100%; object-fit:cover; display:block;}
+  .venue-tile-resa{position:absolute; top:5px; right:5px; font-size:10px; background:rgba(255,255,255,0.92); border-radius:8px; padding:2px 4px; line-height:1;}
+  .venue-tile-body{padding:7px 7px 8px;}
+  .venue-tile-title{
+    font-family:var(--font-display); font-size:10.5px; font-weight:700; color:var(--plum); line-height:1.2;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:25px;
+  }
+  .venue-tile-meta{
+    font-size:9px; color:#9584A0; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
   .card-body{padding:14px 16px 16px;}
   .card-body h3{font-family:var(--font-display); font-size:15.5px; color:var(--plum); margin-bottom:4px;}
   .card-meta{font-size:11.5px; color:#9584A0; display:flex; gap:10px;}
@@ -6991,6 +7014,30 @@ function buildVenueCardHtml(act, venue, distanceKm){
   `;
 }
 
+// Tuile compacte pour la grille 3×2 "Pour vous" / "Près de chez vous" —
+// même donnée que buildVenueCardHtml, présentation beaucoup plus dense.
+function buildVenueTileHtml(act, venue, distanceKm){
+  const cat = catalogCategoryInfo(act.category);
+  const resa = act.reservation_status === 'ONLINE_BOOKING_VERIFIED' ? '🎫'
+    : act.reservation_status === 'EMAIL_RESERVATION' ? '✉️'
+    : act.reservation_status === 'PHONE_OR_CONTACT_RESERVATION_CONFIRMED_BY_REVIEWS' ? '📞'
+    : null;
+  const distLabel = distanceKm != null ? (distanceKm < 1 ? Math.round(distanceKm*1000)+'m' : distanceKm.toFixed(1)+'km') : null;
+  return `
+    <div class="venue-tile" onclick="openVenueDetail('${act.id}')">
+      <div class="venue-tile-media" style="background:${cat.bg};">
+        <span>${cat.emoji}</span>
+        ${resa ? `<div class="venue-tile-resa">${resa}</div>` : ''}
+      </div>
+      <div class="venue-tile-body">
+        <div class="venue-tile-title">${escapeHtml(act.activity_name)}</div>
+        <div class="venue-tile-meta">${escapeHtml(venue.name)}${distLabel ? ' · '+distLabel : ''}</div>
+      </div>
+    </div>
+  `;
+}
+
+
 let venueDisplayedIds = new Set();
 
 async function renderVenueRecommendations(){
@@ -7024,14 +7071,15 @@ async function renderVenueRecommendations(){
     return { ...a, venue, distanceKm, matchesPassion };
   }).filter(Boolean);
 
-  // "Pour vous" : passions d'abord, puis proximité en tie-break
+  // "Pour vous" : passions d'abord (score de pertinence), distance seulement
+  // en critère secondaire pour départager — jamais l'inverse.
   const pourVousPicks = scored
     .filter(a => a.matchesPassion)
     .sort((x,y) => ((x.distanceKm ?? Infinity) - (y.distanceKm ?? Infinity)))
     .slice(0, 3);
   pourVousPicks.forEach(a => venueDisplayedIds.add(a.id));
 
-  // "Près de chez vous" : uniquement la distance, en excluant "Pour vous"
+  // "Près de chez vous" : uniquement la distance réelle, en excluant "Pour vous"
   const nearbyPicks = scored
     .filter(a => a.distanceKm != null && !venueDisplayedIds.has(a.id))
     .sort((x,y) => x.distanceKm - y.distanceKm)
@@ -7042,7 +7090,7 @@ async function renderVenueRecommendations(){
     pourVousSection.innerHTML = `
       <div class="act-section-title"><h2>💜 Pour vous</h2></div>
       <div class="act-section-sub">Des activités qui correspondent à vos passions</div>
-      <div class="venue-card-row">${pourVousPicks.map(a => buildVenueCardHtml(a, a.venue, a.distanceKm)).join('')}</div>
+      <div class="venue-tile-grid">${pourVousPicks.map(a => buildVenueTileHtml(a, a.venue, a.distanceKm)).join('')}</div>
     `;
   } else {
     pourVousSection.innerHTML = '';
@@ -7051,7 +7099,7 @@ async function renderVenueRecommendations(){
   if(nearbyPicks.length){
     nearbySection.innerHTML = `
       <div class="act-section-title"><h2>📍 Près de chez vous</h2></div>
-      <div class="venue-card-row">${nearbyPicks.map(a => buildVenueCardHtml(a, a.venue, a.distanceKm)).join('')}</div>
+      <div class="venue-tile-grid">${nearbyPicks.map(a => buildVenueTileHtml(a, a.venue, a.distanceKm)).join('')}</div>
     `;
   } else {
     nearbySection.innerHTML = '';
@@ -7086,15 +7134,17 @@ async function openVenueDetail(activityId){
   const resa = reservationBadge(act.reservation_status);
   const distanceKm = (venue && venue.latitude != null) ? haversineKm(userCoords[0], userCoords[1], venue.latitude, venue.longitude) : null;
 
-  let actionHtml = '';
+  let bookingHtml = '';
   if(act.reservation_status === 'NO_RESERVATION_REQUIRED'){
-    actionHtml = `<div class="form-hint" style="margin-top:10px;">📍 Aucune réservation nécessaire — rendez-vous directement sur place.</div>`;
+    bookingHtml = `<div class="form-hint" style="margin-top:10px;">📍 Aucune réservation nécessaire — rendez-vous directement sur place.</div>`;
   } else if(act.booking_url){
-    actionHtml = `<a href="${act.booking_url}" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-align:center; text-decoration:none; margin-top:14px; width:auto;">Réserver →</a>`;
+    bookingHtml = `<a href="${act.booking_url}" target="_blank" rel="noopener" class="btn-secondary" style="display:block; text-align:center; text-decoration:none; margin-top:12px; width:auto; padding:11px;">Réserver auprès de l'établissement →</a>`;
   } else if(resa){
-    actionHtml = `<div class="form-hint" style="margin-top:10px;">${resa} — contactez directement l'établissement.</div>`;
+    bookingHtml = `<div class="form-hint" style="margin-top:10px;">${resa} — contactez directement l'établissement.</div>`;
   }
 
+  // Statut réel de participation PassionMeet — jamais de faux participant
+  let participationHtml = `<div class="form-hint" style="margin-top:14px;">Chargement…</div>`;
   document.getElementById('venue-detail-card').innerHTML = `
     <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px;">
       <div class="tag-comment-title" style="margin-bottom:0;">${escapeHtml(act.activity_name)}</div>
@@ -7108,13 +7158,174 @@ async function openVenueDetail(activityId){
     </div>
     ${venue && venue.address ? `<div class="form-hint" style="margin-top:8px;">${escapeHtml(venue.address)}</div>` : ''}
     ${venue && venue.official_website ? `<a href="${venue.official_website}" target="_blank" rel="noopener" style="font-size:12px; color:var(--plum-soft); display:block; margin-top:6px;">Site officiel de l'établissement ↗</a>` : ''}
-    ${actionHtml}
+    ${bookingHtml}
+    <div id="venue-detail-participation">${participationHtml}</div>
   `;
   document.getElementById('venue-detail-overlay').classList.add('show');
+
+  // Charge le vrai statut de participation (nombre de PassionMeet ayant
+  // rejoint, et si l'utilisateur connecté en fait partie) après affichage,
+  // pour ne jamais bloquer l'ouverture de la fiche sur cette requête.
+  try{
+    const { data: shadow } = await supabaseClient
+      .from('activities').select('id, max_participants').eq('venue_activity_id', act.id).maybeSingle();
+    const box = document.getElementById('venue-detail-participation');
+    if(!box) return;
+    if(!shadow){
+      box.innerHTML = `
+        <div class="form-hint" style="margin:10px 0 6px;">👥 Personne n'a encore rejoint — sois le premier !</div>
+        <button class="btn-primary" style="width:100%; margin-top:2px;" onclick="joinVenueActivity('${act.id}')">Rejoindre l'activité →</button>
+      `;
+      return;
+    }
+    const { count } = await supabaseClient
+      .from('activity_participants').select('id', { count:'exact', head:true }).eq('activity_id', shadow.id);
+    const { data: mine } = await supabaseClient
+      .from('activity_participants').select('id').eq('activity_id', shadow.id).eq('profile_id', myProfile.supabaseId).maybeSingle();
+    const maxLabel = shadow.max_participants ? `/${shadow.max_participants}` : '';
+    const isFull = shadow.max_participants != null && (count||0) >= shadow.max_participants && !mine;
+
+    box.innerHTML = `
+      <div class="form-hint" style="margin:10px 0 6px;">👥 ${count||0}${maxLabel} PassionMeet ${count>1?'ont':'a'} rejoint cette activité</div>
+      ${mine
+        ? `<div style="display:flex; align-items:center; gap:6px; color:#3E9C5C; font-weight:700; font-size:13px; margin-bottom:8px;">✓ Vous participez</div>
+           <button class="btn-secondary" style="width:100%;" onclick="leaveVenueActivity('${act.id}','${shadow.id}')">Quitter l'activité</button>`
+        : isFull
+          ? `<button class="btn-secondary" style="width:100%;" disabled>Complet</button>`
+          : `<button class="btn-primary" style="width:100%; margin-top:2px;" onclick="joinVenueActivity('${act.id}')">Rejoindre l'activité →</button>`
+      }
+    `;
+  } catch(e){
+    console.warn('[Participation] Statut indisponible :', e.message);
+  }
 }
 function closeVenueDetail(){
   document.getElementById('venue-detail-overlay').classList.remove('show');
 }
+
+// ============================================================
+// PARTICIPATION À UNE ACTIVITÉ DU CATALOGUE
+// Réutilise entièrement activity_participants + getOrCreateActivityGroup
+// déjà existants — aucun deuxième système créé.
+// ============================================================
+
+const MAX_SIMULTANEOUS_ACTIVITIES = 3; // configurable ici, en un seul endroit
+
+function mapCatalogCategoryToAppKey(catalogLabel){
+  const map = {
+    '🏎️ Sensations & Adrénaline': 'sport',
+    '🎨 Créatif & Manuel': 'jeux',
+    '🍳 Cuisine & Gastronomie': 'culinaire',
+    '🎵 Musique & Culture': 'concert',
+    '🎲 Jeux & Social': 'jeux',
+    '🌿 Nature & Outdoor': 'randonnee',
+    '🏋️ Sport & Bien-être': 'bienetre',
+    '🎬 Sorties': 'theatre',
+    '🌙 Sorties & Vie nocturne': 'nocturne',
+  };
+  return map[catalogLabel] || 'jeux';
+}
+
+// Combien d'activités actives l'utilisateur a-t-il déjà rejointes ?
+async function countMyActiveParticipations(){
+  if(!supabaseClient || !myProfile.supabaseId) return 0;
+  try{
+    const { data, error } = await supabaseClient
+      .from('activity_participants')
+      .select('activity_id, activities!inner(moderation_status)')
+      .eq('profile_id', myProfile.supabaseId)
+      .eq('activities.moderation_status', 'active');
+    if(error) throw error;
+    return (data || []).length;
+  } catch(e){
+    console.warn('[Participation] Comptage impossible :', e.message);
+    return 0;
+  }
+}
+
+// Retrouve la ligne activities déjà liée à cette activité du catalogue,
+// ou la crée si c'est la toute première personne à la rejoindre.
+// Jamais de date, de capacité ou de prix inventés.
+async function getOrCreateShadowActivity(act, venue){
+  const { data: existing, error: selErr } = await supabaseClient
+    .from('activities').select('*').eq('venue_activity_id', act.id).maybeSingle();
+  if(selErr) throw selErr;
+  if(existing) return existing;
+
+  const { data: created, error: insErr } = await supabaseClient
+    .from('activities').insert({
+      venue_activity_id: act.id,
+      organizer_profile_id: myProfile.supabaseId,
+      title: act.activity_name,
+      description: venue ? `Chez ${venue.name}` : null,
+      category: mapCatalogCategoryToAppKey(act.category),
+      location: venue ? `${venue.name}, ${venue.city}` : null,
+      meeting_point: venue ? venue.address : null,
+      latitude: venue ? venue.latitude : null,
+      longitude: venue ? venue.longitude : null,
+      activity_date: null,
+      activity_time: null,
+      max_participants: null, // aucune capacité réelle connue : jamais inventée
+      mode: 'friend',
+      moderation_status: 'active',
+    }).select().maybeSingle();
+  if(insErr) throw insErr;
+  return created;
+}
+
+async function joinVenueActivity(venueActivityId){
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  const { venues, activities } = await fetchVenuesCatalog();
+  const act = activities.find(a => a.id === venueActivityId);
+  if(!act) return;
+  const venue = venues.find(v => v.id === act.venue_id);
+
+  const current = await countMyActiveParticipations();
+  if(current >= MAX_SIMULTANEOUS_ACTIVITIES){
+    showToast(`Tu participes déjà à ${MAX_SIMULTANEOUS_ACTIVITIES} activités. Quitte une activité avant d'en rejoindre une nouvelle.`, '🚫');
+    return;
+  }
+
+  try{
+    const shadow = await getOrCreateShadowActivity(act, venue);
+    if(!shadow) throw new Error('Création impossible');
+
+    const { error } = await supabaseClient
+      .from('activity_participants')
+      .insert({ activity_id: shadow.id, profile_id: myProfile.supabaseId });
+    if(error){
+      if(error.message && error.message.includes('duplicate')){
+        showToast('Tu participes déjà à cette activité', 'ℹ️');
+      } else {
+        throw error;
+      }
+    } else {
+      showToast('Participation confirmée !', '🎉');
+    }
+    await getOrCreateActivityGroup(shadow.id);
+    await openVenueDetail(venueActivityId); // rafraîchit la fiche avec le nouveau statut
+  } catch(e){
+    console.warn('[Participation] Impossible de rejoindre :', e.message);
+    showToast('Une erreur est survenue, réessaye', '⚠️');
+  }
+}
+
+async function leaveVenueActivity(venueActivityId, shadowActivityId){
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { error } = await supabaseClient
+      .from('activity_participants').delete()
+      .eq('activity_id', shadowActivityId).eq('profile_id', myProfile.supabaseId);
+    if(error) throw error;
+    await leaveActivityGroup(shadowActivityId);
+    showToast('Tu as quitté l\'activité', '👋');
+    await openVenueDetail(venueActivityId);
+  } catch(e){
+    console.warn('[Participation] Impossible de quitter :', e.message);
+    showToast('Une erreur est survenue, réessaye', '⚠️');
+  }
+}
+
 
 // "Voir toutes les activités" et l'explorateur de catégories partagent cette
 // même liste complète, filtrable par texte, catégorie et distance.
