@@ -7071,19 +7071,52 @@ async function renderVenueRecommendations(){
     return { ...a, venue, distanceKm, matchesPassion };
   }).filter(Boolean);
 
-  // "Pour vous" : passions d'abord (score de pertinence), distance seulement
-  // en critère secondaire pour départager — jamais l'inverse.
-  const pourVousPicks = scored
+  function reservationRank(status){
+    if(status === 'ONLINE_BOOKING_VERIFIED') return 0;
+    if(status === 'EMAIL_RESERVATION') return 1;
+    if(status === 'PHONE_OR_CONTACT_RESERVATION_CONFIRMED_BY_REVIEWS') return 2;
+    return 3;
+  }
+
+  // Sélectionne jusqu'à `limit` activités en respectant l'ordre de pertinence
+  // déjà trié, mais en évitant de répéter une même catégorie tant que
+  // d'autres catégories pertinentes existent réellement. Si les seules
+  // activités disponibles partagent la même catégorie, on les affiche quand
+  // même — la diversité ne fabrique ni n'exclut jamais une vraie activité.
+  function pickDiverse(sortedCandidates, limit, excludeIds){
+    const picked = [];
+    const usedCategories = new Set();
+    for(const a of sortedCandidates){
+      if(picked.length >= limit) break;
+      if(excludeIds.has(a.id) || usedCategories.has(a.category)) continue;
+      picked.push(a);
+      usedCategories.add(a.category);
+    }
+    if(picked.length < limit){
+      for(const a of sortedCandidates){
+        if(picked.length >= limit) break;
+        if(excludeIds.has(a.id) || picked.includes(a)) continue;
+        picked.push(a);
+      }
+    }
+    return picked;
+  }
+
+  // "Pour vous" : ne considère que les activités qui correspondent réellement
+  // aux passions du profil, triées par proximité puis qualité de réservation,
+  // avec diversité de catégorie en couche secondaire.
+  const pourVousSorted = scored
     .filter(a => a.matchesPassion)
-    .sort((x,y) => ((x.distanceKm ?? Infinity) - (y.distanceKm ?? Infinity)))
-    .slice(0, 3);
+    .sort((x,y) => ((x.distanceKm ?? Infinity) - (y.distanceKm ?? Infinity)) || (reservationRank(x.reservation_status) - reservationRank(y.reservation_status)));
+  const pourVousPicks = pickDiverse(pourVousSorted, 3, venueDisplayedIds);
   pourVousPicks.forEach(a => venueDisplayedIds.add(a.id));
 
-  // "Près de chez vous" : uniquement la distance réelle, en excluant "Pour vous"
-  const nearbyPicks = scored
-    .filter(a => a.distanceKm != null && !venueDisplayedIds.has(a.id))
-    .sort((x,y) => x.distanceKm - y.distanceKm)
-    .slice(0, 3);
+  // "Près de chez vous" : la distance réelle reste le critère principal,
+  // la diversité de catégorie n'intervient qu'en cas d'égalité de pertinence.
+  const nearbySorted = scored
+    .filter(a => a.distanceKm != null)
+    .sort((x,y) => (x.distanceKm - y.distanceKm) || (reservationRank(x.reservation_status) - reservationRank(y.reservation_status)));
+  const nearbyPicks = pickDiverse(nearbySorted, 3, venueDisplayedIds);
   nearbyPicks.forEach(a => venueDisplayedIds.add(a.id));
 
   if(pourVousPicks.length){
@@ -7209,7 +7242,8 @@ function closeVenueDetail(){
 // déjà existants — aucun deuxième système créé.
 // ============================================================
 
-const MAX_SIMULTANEOUS_ACTIVITIES = 3; // configurable ici, en un seul endroit
+const FREE_MAX_SIMULTANEOUS_ACTIVITIES = 3;      // configurable ici, en un seul endroit
+const PREMIUM_MAX_SIMULTANEOUS_ACTIVITIES = 10;  // configurable ici, en un seul endroit
 
 function mapCatalogCategoryToAppKey(catalogLabel){
   const map = {
@@ -7281,8 +7315,12 @@ async function joinVenueActivity(venueActivityId){
   const venue = venues.find(v => v.id === act.venue_id);
 
   const current = await countMyActiveParticipations();
-  if(current >= MAX_SIMULTANEOUS_ACTIVITIES){
-    showToast(`Tu participes déjà à ${MAX_SIMULTANEOUS_ACTIVITIES} activités. Quitte une activité avant d'en rejoindre une nouvelle.`, '🚫');
+  const limit = myProfile.isPremiumActive ? PREMIUM_MAX_SIMULTANEOUS_ACTIVITIES : FREE_MAX_SIMULTANEOUS_ACTIVITIES;
+  if(current >= limit){
+    const msg = myProfile.isPremiumActive
+      ? `Tu participes déjà à ${limit} activités. Quitte une activité avant d'en rejoindre une nouvelle.`
+      : `Tu participes déjà à ${limit} activités. Passe à Premium pour pouvoir en rejoindre davantage, ou quitte une activité.`;
+    showToast(msg, '🚫');
     return;
   }
 
