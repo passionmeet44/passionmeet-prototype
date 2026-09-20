@@ -387,20 +387,20 @@
 
   /* Trois boutons d'intention premium : 2 cartes carrées + 1 carte large */
   .intent-grid-3{
-    display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:9px; margin-bottom:4px;
+    display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:11px; margin-bottom:6px;
   }
   .intent-card.wide{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:4px; padding:14px 10px; border-radius:18px; min-height:104px;
-    box-shadow:0 3px 10px rgba(62,31,68,0.07); cursor:pointer;
+    text-align:center; gap:6px; padding:20px 12px; border-radius:20px; min-height:138px;
+    box-shadow:0 4px 12px rgba(62,31,68,0.08); cursor:pointer;
     transition: transform .15s ease, box-shadow .15s ease;
   }
   .intent-card.wide:active{ transform:scale(0.97); }
-  .intent-card.wide h4{ order:1; font-size:12.5px; margin-bottom:0; line-height:1.2; color:var(--plum); }
-  .intent-card.wide p{ order:2; font-size:9.5px; line-height:1.25; margin-bottom:2px; color:var(--plum-soft); opacity:0.85; }
+  .intent-card.wide h4{ order:1; font-size:14.5px; margin-bottom:0; line-height:1.2; color:var(--plum); }
+  .intent-card.wide p{ order:2; font-size:11px; line-height:1.3; margin-bottom:2px; color:var(--plum-soft); opacity:0.85; }
   .intent-card.wide .intent-icon{
-    order:3; width:38px; height:38px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;
+    order:3; width:50px; height:50px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:23px; flex-shrink:0;
   }
   /* Chaque carte garde une identité pastel douce et différenciée — jamais
      saturée, mais jamais uniformément blanche non plus. */
@@ -429,13 +429,11 @@
   .home-choice-item:active{transform:scale(0.98);}
   .digest-title{font-family:var(--font-display); font-size:13px; font-weight:700; color:var(--plum); margin:16px 0 8px; letter-spacing:0.01em;}
   .digest-row{
-    display:flex; gap:9px; overflow-x:auto; padding:2px 2px 10px 2px; margin:0 -20px; padding-left:20px; padding-right:20px;
-    margin-bottom:2px; -ms-overflow-style:none; scrollbar-width:none; scroll-snap-type:x mandatory; scroll-padding-left:20px;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:2px 0 4px;
   }
-  .digest-row::-webkit-scrollbar{display:none;}
   .digest-card{
-    flex-shrink:0; width:118px; height:132px; background:#fff; border:1px solid var(--lavender); border-radius:14px; overflow:hidden;
-    box-shadow:0 2px 8px rgba(62,31,68,0.06); cursor:pointer; position:relative; scroll-snap-align:start;
+    width:100%; height:130px; background:#fff; border:1px solid var(--lavender); border-radius:14px; overflow:hidden;
+    box-shadow:0 2px 8px rgba(62,31,68,0.06); cursor:pointer; position:relative;
     display:flex; flex-direction:column;
   }
   .digest-score{
@@ -596,6 +594,10 @@
     margin:0 20px 12px; text-align:center; font-size:12px; font-weight:700; color:var(--orange-deep);
     cursor:pointer; padding:2px;
   }
+  .act-see-all{
+    text-align:center; font-size:12.5px; font-weight:700; color:var(--plum); cursor:pointer;
+    padding:6px; text-decoration:none;
+  }
 
   .act-section-title{
     padding:0 20px; display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2px;
@@ -630,10 +632,10 @@
 
   /* Bouton discret "Créer une activité" — secondaire, jamais envahissant */
   .act-create-fab{
-    position:fixed; z-index:39; bottom:calc(56px + env(safe-area-inset-bottom) + 8px); right:16px;
-    width:38px; height:38px; border-radius:50%; background:#fff; border:1.5px solid var(--lavender);
-    color:var(--orange-deep); font-size:16px; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 3px 10px rgba(62,31,68,0.18); cursor:pointer;
+    position:fixed; z-index:39; bottom:calc(56px + env(safe-area-inset-bottom) + 10px); right:16px;
+    width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,var(--orange),var(--orange-deep));
+    color:#fff; font-size:20px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 12px rgba(229,114,42,0.4); cursor:pointer;
   }
 
   /* Explorateur de catégories : feuille compacte, pas de gros pavés */
@@ -2064,7 +2066,7 @@
     <div id="venues-nearby-section"></div>
 
     <div style="padding:4px 20px 18px;">
-      <div class="report-link" style="cursor:pointer; text-align:center;" onclick="showActivityFullList()">Voir toutes les activités →</div>
+      <div class="act-see-all" onclick="showActivityFullList()">Voir toutes les activités →</div>
     </div>
 
     <!-- Résultats de recherche / liste complète : vivent sur la page, jamais
@@ -4682,7 +4684,7 @@ function renderWeeklyDigest(){
   const candidates = buildActivityCandidates().filter(x => x.dist <= currentRadius);
   candidates.forEach(x => x.score = computeActivityScore(x));
   candidates.sort((a, b) => b.score - a.score);
-  const top = candidates.slice(0, 5);
+  const top = candidates.slice(0, 3); // exactement 3 pour tenir sans scroll horizontal ni carte coupée
   if(top.length === 0){ container.innerHTML = ''; return; }
   container.innerHTML = `
     <div class="digest-title">✨ Tes opportunités de la semaine</div>
@@ -6963,16 +6965,20 @@ let displayedActivityIds = new Set();
 // programmées (voir architecture venues validée).
 // ============================================================
 
+// Palette premium consolidée : un fond partagé crème/violet très doux pour la
+// majorité des catégories, et seulement 3 accents subtils autorisés (sauge,
+// bleu profond, terracotta) — jamais 9 pastels différents.
+const PREMIUM_DEFAULT_BG = 'linear-gradient(155deg,#F1E9E4 0%,#FBF6F1 100%)';
 const CATALOG_CATEGORIES = [
-  { label: '🏎️ Sensations & Adrénaline', emoji: '🏎️', bg: 'linear-gradient(135deg,#E5722A,#3E1F44)', bgLight: 'linear-gradient(155deg,#FDE3D6 0%,#FFF4EC 100%)', accent: '#E5722A' },
-  { label: '🎨 Créatif & Manuel', emoji: '🎨', bg: 'linear-gradient(135deg,#C77DBB,#3E1F44)', bgLight: 'linear-gradient(155deg,#F7E1DD 0%,#FCF3F1 100%)', accent: '#C77D6B' },
-  { label: '🍳 Cuisine & Gastronomie', emoji: '🍳', bg: 'linear-gradient(135deg,#E5A62A,#8B4513)', bgLight: 'linear-gradient(155deg,#FBEECB 0%,#FFFAF0 100%)', accent: '#C99A2E' },
-  { label: '🎵 Musique & Culture', emoji: '🎵', bg: 'linear-gradient(135deg,#6B4472,#3E1F44)', bgLight: 'linear-gradient(155deg,#E4E0F5 0%,#F5F3FC 100%)', accent: '#6B5AA8' },
-  { label: '🎲 Jeux & Social', emoji: '🎲', bg: 'linear-gradient(135deg,#4BA3E5,#3E1F44)', bgLight: 'linear-gradient(155deg,#DCF0F1 0%,#F1FAFB 100%)', accent: '#3D9DA3' },
-  { label: '🌿 Nature & Outdoor', emoji: '🌿', bg: 'linear-gradient(135deg,#4BA35E,#1F4426)', bgLight: 'linear-gradient(155deg,#DEF0DE 0%,#F2FAF2 100%)', accent: '#4B9A5E' },
-  { label: '🏋️ Sport & Bien-être', emoji: '🏋️', bg: 'linear-gradient(135deg,#E5722A,#8B5A2A)', bgLight: 'linear-gradient(155deg,#E2EEE4 0%,#F5FAF6 100%)', accent: '#5C9A72' },
-  { label: '🎬 Sorties', emoji: '🎬', bg: 'linear-gradient(135deg,#8B5A8C,#3D1F45)', bgLight: 'linear-gradient(155deg,#E5E6F7 0%,#F5F6FC 100%)', accent: '#6E6EB0' },
-  { label: '🌙 Sorties & Vie nocturne', emoji: '🌙', bg: 'linear-gradient(135deg,#2A2A5E,#0F0F2A)', bgLight: 'linear-gradient(155deg,#E9DCEB 0%,#F6EEF7 100%)', accent: '#7A4E82' },
+  { label: '🏎️ Sensations & Adrénaline', emoji: '🏎️', bg: 'linear-gradient(135deg,#E5722A,#3E1F44)', bgLight: PREMIUM_DEFAULT_BG, accent: '#E5722A' },
+  { label: '🎨 Créatif & Manuel', emoji: '🎨', bg: 'linear-gradient(135deg,#C77DBB,#3E1F44)', bgLight: 'linear-gradient(155deg,#F1E1DA 0%,#FAF2EE 100%)', accent: '#B5674F' },
+  { label: '🍳 Cuisine & Gastronomie', emoji: '🍳', bg: 'linear-gradient(135deg,#E5A62A,#8B4513)', bgLight: PREMIUM_DEFAULT_BG, accent: '#C99A2E' },
+  { label: '🎵 Musique & Culture', emoji: '🎵', bg: 'linear-gradient(135deg,#6B4472,#3E1F44)', bgLight: 'linear-gradient(155deg,#E2E5EF 0%,#F3F5FA 100%)', accent: '#3E4E7A' },
+  { label: '🎲 Jeux & Social', emoji: '🎲', bg: 'linear-gradient(135deg,#4BA3E5,#3E1F44)', bgLight: 'linear-gradient(155deg,#E2E5EF 0%,#F3F5FA 100%)', accent: '#3E4E7A' },
+  { label: '🌿 Nature & Outdoor', emoji: '🌿', bg: 'linear-gradient(135deg,#4BA35E,#1F4426)', bgLight: 'linear-gradient(155deg,#E4EDE4 0%,#F5FAF5 100%)', accent: '#4B7A5E' },
+  { label: '🏋️ Sport & Bien-être', emoji: '🏋️', bg: 'linear-gradient(135deg,#E5722A,#8B5A2A)', bgLight: 'linear-gradient(155deg,#E4EDE4 0%,#F5FAF5 100%)', accent: '#4B7A5E' },
+  { label: '🎬 Sorties', emoji: '🎬', bg: 'linear-gradient(135deg,#8B5A8C,#3D1F45)', bgLight: PREMIUM_DEFAULT_BG, accent: '#8B5A8C' },
+  { label: '🌙 Sorties & Vie nocturne', emoji: '🌙', bg: 'linear-gradient(135deg,#2A2A5E,#0F0F2A)', bgLight: PREMIUM_DEFAULT_BG, accent: '#4A1D52' },
 ];
 function catalogCategoryInfo(label){
   return CATALOG_CATEGORIES.find(c => c.label === label) || { emoji: '🎉', bg: 'linear-gradient(135deg,#8B5A8C,#3D1F45)', bgLight: 'linear-gradient(155deg,#EDE3F0 0%,#F6F0F8 100%)', accent: '#8B5A8C' };
