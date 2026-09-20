@@ -591,21 +591,21 @@
   .badge.premium-badge{position:absolute; bottom:10px; right:10px; z-index:2; background:#D9A62E; color:#4A2E00;}
 
   /* ---------- Nouvel écran Activités (catalogue venues) ---------- */
-  .act-header{padding:18px 20px 4px;}
-  .act-header h1{font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--plum); line-height:1.1;}
-  .act-header p{font-size:13px; color:var(--plum-soft); margin-top:3px;}
+  .act-header{padding:14px 20px 2px;}
+  .act-header h1{font-family:var(--font-display); font-size:23px; font-weight:700; color:var(--plum); line-height:1.1;}
+  .act-header p{font-size:12px; color:var(--plum-soft); margin-top:2px;}
 
   .act-search-bar{
-    margin:14px 20px 6px; padding:14px 16px; background:#fff; border-radius:20px;
+    margin:10px 20px 4px; padding:11px 15px; background:#fff; border-radius:18px;
     box-shadow:0 4px 16px rgba(62,31,68,0.09); display:flex; align-items:center; gap:10px;
     cursor:pointer; transition:transform .15s ease;
   }
   .act-search-bar:active{transform:scale(0.98);}
-  .act-search-bar .icon{font-size:17px;}
-  .act-search-bar span{font-family:var(--font-body); font-size:14px; color:#9584A0; font-weight:500;}
+  .act-search-bar .icon{font-size:16px;}
+  .act-search-bar span{font-family:var(--font-body); font-size:13.5px; color:#9584A0; font-weight:500;}
   .act-explore-link{
-    margin:0 20px 18px; text-align:center; font-size:12.5px; font-weight:700; color:var(--orange-deep);
-    cursor:pointer; padding:4px;
+    margin:0 20px 12px; text-align:center; font-size:12px; font-weight:700; color:var(--orange-deep);
+    cursor:pointer; padding:2px;
   }
 
   .act-section-title{
@@ -655,11 +655,13 @@
     border-radius:14px; cursor:pointer; transition:transform .12s ease;
   }
   .cat-explorer-item:active{transform:scale(0.96);}
+  .cat-explorer-item.sel{background:var(--plum); }
+  .cat-explorer-item.sel span{color:#fff;}
   .cat-explorer-item .emoji{font-size:19px;}
   .cat-explorer-item span{font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--plum); line-height:1.2;}
 
   /* Tuiles compactes 3×2 pour Pour vous / Près de chez vous */
-  .venue-tile-grid{padding:0 20px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px;}
+  .venue-tile-grid{padding:0 20px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;}
   .venue-tile{
     background:#fff; border-radius:16px; overflow:hidden; cursor:pointer;
     box-shadow:0 4px 12px rgba(62,31,68,0.09); transition:transform .15s ease;
@@ -1836,8 +1838,11 @@
     </div>
 
     <div class="profile-card">
-      <div class="profile-card-title">❤️ Centres d'intérêt</div>
-      <div class="pills" id="profile-interests">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div class="profile-card-title" style="margin-bottom:0;">❤️ Centres d'intérêt</div>
+        <div class="report-link" style="cursor:pointer; font-size:12px;" onclick="openInterestsEditor()">✏️ Modifier</div>
+      </div>
+      <div class="pills" id="profile-interests" style="margin-top:10px;">
       <div class="pill sel">🥾 Randonnée</div>
       <div class="pill sel">🍳 Cuisine</div>
     </div>
@@ -2083,6 +2088,19 @@
         <div style="font-size:20px; color:#B7ACBA; cursor:pointer; line-height:1;" onclick="closeCategoryExplorer()">✕</div>
       </div>
       <div class="cat-explorer-grid" id="category-explorer-grid"></div>
+    </div>
+  </div>
+
+  <!-- ÉDITEUR DES 9 CATÉGORIES OFFICIELLES : centres d'intérêt du profil -->
+  <div class="activity-search-overlay" id="interests-editor-overlay">
+    <div class="activity-search-modal" id="interests-editor-card" style="text-align:left;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+        <div class="tag-comment-title" style="margin-bottom:0;">Mes centres d'intérêt</div>
+        <div style="font-size:20px; color:#B7ACBA; cursor:pointer; line-height:1;" onclick="closeInterestsEditor()">✕</div>
+      </div>
+      <p style="font-size:12px; color:#9584A0; margin-bottom:12px;">Choisis ce qui te correspond — utilisé pour tes recommandations dans Activités.</p>
+      <div class="cat-explorer-grid" id="interests-editor-grid"></div>
+      <button class="btn-primary" style="width:100%; margin-top:16px;" onclick="saveInterestsEditor()">Enregistrer</button>
     </div>
   </div>
 
@@ -4448,6 +4466,7 @@ function computeProfileCompletion(){
 }
 
 function renderProfileScreen(){
+  migrateOldInterestsIfNeeded(); // convertit silencieusement les anciennes catégories vers les 9 officielles
   const nameEl = document.getElementById('profile-name');
   if(nameEl) nameEl.textContent = myProfile.name + (myProfile.age ? ', ' + myProfile.age + ' ans' : '');
   const adminLinkEl = document.getElementById('admin-access-link');
@@ -4485,8 +4504,7 @@ function renderProfileScreen(){
     pillsEl.innerHTML = myProfile.interests.length
       ? myProfile.interests.map(i => `<span class="pill sel">${i}</span>`).join('')
       : '<span style="font-size:12px; color:#B7ACBA;">Aucun centre d\'intérêt sélectionné</span>';
-  }
-  const prefsEl = document.getElementById('profile-prefs');
+  }  const prefsEl = document.getElementById('profile-prefs');
   if(prefsEl) prefsEl.textContent = `Recherche entre ${myProfile.ageMin} et ${myProfile.ageMax} ans · dans un rayon de ${myProfile.radiusKm} km`;
 
   const pct = computeProfileCompletion();
@@ -7169,11 +7187,60 @@ async function renderVenueRecommendations(){
   if(nearbyPicks.length){
     nearbySection.innerHTML = `
       <div class="act-section-title"><h2>📍 Près de chez vous</h2></div>
+      <div class="act-section-sub">Les activités les plus proches de vous</div>
       <div class="venue-tile-grid">${nearbyPicks.map(a => buildVenueTileHtml(a, a.venue, a.distanceKm)).join('')}</div>
     `;
   } else {
     nearbySection.innerHTML = '';
   }
+}
+
+// Migration silencieuse des anciennes catégories (Sport, Bar, Concert...)
+// vers les 9 catégories officielles, directement sur le profil connecté.
+// Ne force jamais une association douteuse : utilise la même table de
+// correspondance déjà validée pour les recommandations.
+function migrateOldInterestsIfNeeded(){
+  const current = myProfile.interests || [];
+  if(!current.length) return;
+  let changed = false;
+  const migrated = current.map(oldLabel => {
+    // Déjà une des 9 catégories officielles : rien à faire
+    if(CATALOG_CATEGORIES.some(c => c.label === oldLabel)) return oldLabel;
+    const matchedOld = categories.find(c => oldLabel.includes(c.label));
+    const newCats = matchedOld ? INTEREST_KEY_TO_CATALOG_CATEGORIES[matchedOld.key] : null;
+    if(newCats && newCats.length){
+      changed = true;
+      return newCats[0]; // la correspondance la plus proche, une seule pour ne pas gonfler la liste
+    }
+    return oldLabel; // ancienne valeur non reconnue : conservée telle quelle, l'utilisateur pourra la corriger via l'éditeur
+  });
+  if(changed){
+    myProfile.interests = Array.from(new Set(migrated)); // dédoublonne (ex: Sport + Bien-être migrent tous deux vers Sport & Bien-être)
+    saveProfileToSupabase();
+  }
+}
+
+function openInterestsEditor(){
+  const grid = document.getElementById('interests-editor-grid');
+  const current = new Set(myProfile.interests || []);
+  grid.innerHTML = CATALOG_CATEGORIES.map(c => `
+    <div class="cat-explorer-item ${current.has(c.label) ? 'sel' : ''}" data-label="${c.label.replace(/"/g,'&quot;')}" onclick="this.classList.toggle('sel')">
+      <span class="emoji">${c.emoji}</span><span>${c.label.replace(/^\S+\s/, '')}</span>
+    </div>
+  `).join('');
+  document.getElementById('interests-editor-overlay').classList.add('show');
+}
+function closeInterestsEditor(){
+  document.getElementById('interests-editor-overlay').classList.remove('show');
+}
+async function saveInterestsEditor(){
+  const selected = Array.from(document.querySelectorAll('#interests-editor-grid .cat-explorer-item.sel'))
+    .map(el => el.getAttribute('data-label'));
+  myProfile.interests = selected;
+  closeInterestsEditor();
+  renderProfileScreen();
+  await saveProfileToSupabase();
+  showToast('Centres d\'intérêt mis à jour', '❤️');
 }
 
 function openCategoryExplorer(){
