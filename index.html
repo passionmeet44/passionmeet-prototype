@@ -2501,7 +2501,7 @@
           }
         },
         ()=>{ usingRealLocation = false; updateLocationLabel(); },
-        { timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 5000 }
       );
     }
   }
@@ -3896,6 +3896,51 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.premiumUntil = row.premium_until || null;
   myProfile.isPremiumActive = !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date());
   myProfile.isAdmin = !!row.is_admin;
+
+  // PRIORITÉ 2 — position enregistrée en base : dès que le profil est chargé,
+  // on en fait la position active tant qu'une position GPS fraîche (PRIORITÉ 1)
+  // ne l'a pas encore remplacée. Sans cette synchronisation, userCoords restait
+  // bloqué sur le repli Nantes-centre pour toute session qui ne redemande pas
+  // la localisation (voir initGeolocationPriority, appelé juste après).
+  if(row.latitude != null && row.longitude != null){
+    userCoords = [row.latitude, row.longitude];
+    usingRealLocation = true;
+  }
+}
+
+// Point d'entrée unique de la logique de géolocalisation, appelé une fois le
+// profil chargé (Supabase ou local). Ordre de priorité STRICT :
+//   1. Position GPS fraîche, uniquement si la permission est DÉJÀ accordée
+//      (jamais de demande intrusive à chaque ouverture) ;
+//   2. Coordonnées persistées du profil (déjà appliquées ci-dessus par
+//      mapSupabaseProfileToMyProfile, ou reprises ici pour le profil local) ;
+//   3. Repli géographique Nantes-centre, seulement si aucune des deux
+//      premières sources n'a fourni de position réelle.
+async function initGeolocationPriority(){
+  // PRIORITÉ 2 (profil local, hors Supabase) : si mapSupabaseProfileToMyProfile
+  // n'a pas tourné (profil restauré depuis localStorage) mais que des
+  // coordonnées existent déjà sur myProfile, on les applique aussi.
+  if(!usingRealLocation && myProfile.latitude != null && myProfile.longitude != null){
+    userCoords = [myProfile.latitude, myProfile.longitude];
+    usingRealLocation = true;
+  }
+  updateLocationLabel();
+
+  // PRIORITÉ 1 : tentative de position fraîche, mais UNIQUEMENT si la
+  // permission est déjà accordée — jamais de popup système non sollicitée.
+  if(!navigator.geolocation) return;
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      const status = await navigator.permissions.query({ name: 'geolocation' });
+      if(status.state === 'granted'){
+        requestLocation();
+      }
+      // state 'prompt' ou 'denied' : on ne redemande jamais ici — PRIORITÉ 2
+      // (déjà appliquée ci-dessus) ou PRIORITÉ 3 (repli par défaut) restent actives.
+    }
+  } catch(e){
+    console.warn('[Géolocalisation] Vérification de permission impossible :', e.message);
+  }
 }
 
 async function saveProfileToSupabase(){
@@ -4184,6 +4229,8 @@ try{
         try{ renderProfileScreen(); } catch(e){ console.warn('[Auth] renderProfileScreen a échoué :', e.message); }
         window.__PM_AUTH_STEP = 'renderCategoryGrid';
         try{ renderCategoryGrid(); } catch(e){ console.warn('[Auth] renderCategoryGrid a échoué :', e.message); }
+        window.__PM_AUTH_STEP = 'initGeolocationPriority';
+        try{ initGeolocationPriority(); } catch(e){ console.warn('[Auth] initGeolocationPriority a échoué :', e.message); }
         window.__PM_AUTH_STEP = 'showScreen(home)';
         console.info('[Auth] 4. Navigation vers l\'accueil');
         showScreen('home');
