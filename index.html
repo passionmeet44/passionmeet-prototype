@@ -7286,12 +7286,19 @@ async function renderVenueRecommendations(){
   pourVousPicks.forEach(a => venueDisplayedIds.add(a.id));
 
   // "Près de chez vous" : la distance réelle reste le critère principal,
+  // plafonnée à activityRadius (déjà existant, aucun nouveau système de rayon),
   // la diversité de catégorie n'intervient qu'en cas d'égalité de pertinence.
   const nearbySorted = scored
-    .filter(a => a.distanceKm != null)
+    .filter(a => a.distanceKm != null && a.distanceKm <= activityRadius)
     .sort((x,y) => (x.distanceKm - y.distanceKm) || (reservationRank(x.reservation_status) - reservationRank(y.reservation_status)));
   const nearbyPicks = pickDiverse(nearbySorted, 3, venueDisplayedIds);
   nearbyPicks.forEach(a => venueDisplayedIds.add(a.id));
+
+  // Indicateur discret : n'apparaît que si la position utilisée pour les
+  // distances n'est pas une position GPS réelle/fraîche — jamais de ville,
+  // d'adresse ou de coordonnée révélée.
+  const approxLocationNote = !usingRealLocation
+    ? `<div class="act-section-sub" style="margin-top:-4px;">📍 Distance approximative</div>` : '';
 
   if(pourVousPicks.length){
     pourVousSection.innerHTML = `
@@ -7300,13 +7307,22 @@ async function renderVenueRecommendations(){
       <div class="venue-tile-grid">${pourVousPicks.map(a => buildVenueTileHtml(a, a.venue, a.distanceKm)).join('')}</div>
     `;
   } else {
-    pourVousSection.innerHTML = '';
+    // État vide propre : jamais de remplissage artificiel, la section reste
+    // visible avec une invitation à compléter ses passions.
+    pourVousSection.innerHTML = `
+      <div class="act-section-title"><h2>💜 Pour vous</h2></div>
+      <div class="act-section-sub" style="padding:14px 20px; background:#fff; border-radius:16px; margin:0 20px 20px; text-align:center; box-shadow:0 3px 10px rgba(62,31,68,0.06);">
+        Aucune activité ne correspond encore à vos passions.<br>
+        <span style="color:var(--orange-deep); font-weight:700; cursor:pointer;" onclick="openInterestsEditor()">Modifiez vos centres d'intérêt →</span>
+      </div>
+    `;
   }
 
   if(nearbyPicks.length){
     nearbySection.innerHTML = `
       <div class="act-section-title"><h2>📍 Près de chez vous</h2></div>
       <div class="act-section-sub">Les activités les plus proches de vous</div>
+      ${approxLocationNote}
       <div class="venue-tile-grid">${nearbyPicks.map(a => buildVenueTileHtml(a, a.venue, a.distanceKm)).join('')}</div>
     `;
   } else {
