@@ -7093,7 +7093,9 @@ const INTEREST_KEY_TO_CATALOG_CATEGORIES = {
   cinema: ['🎬 Sorties'],
   jeux: ['🎲 Jeux & Social'],
   bienetre: ['🏋️ Sport & Bien-être'],
-  voyage: ['🌿 Nature & Outdoor'],
+  // "voyage" n'est volontairement PAS mappé : "✈️ Voyage & escapades" reste un
+  // intérêt secondaire indépendant, décision explicite du client — jamais
+  // traité comme une 10e catégorie d'activité, ni migré vers Nature & Outdoor.
   nocturne: ['🌙 Sorties & Vie nocturne'],
   karaoke: ['🎲 Jeux & Social'],
 };
@@ -7353,7 +7355,11 @@ function closeInterestsEditor(){
 async function saveInterestsEditor(){
   const selected = Array.from(document.querySelectorAll('#interests-editor-grid .cat-explorer-item.sel'))
     .map(el => el.getAttribute('data-label'));
-  myProfile.interests = selected;
+  // Préserve les intérêts secondaires hors des 9 catégories officielles
+  // (ex. "✈️ Voyage & escapades") : cet éditeur ne gère que les 9 catégories,
+  // il ne doit jamais effacer silencieusement autre chose.
+  const preserved = (myProfile.interests || []).filter(i => !CATALOG_CATEGORIES.some(c => c.label === i));
+  myProfile.interests = [...selected, ...preserved];
   closeInterestsEditor();
   renderProfileScreen();
   await saveProfileToSupabase();
