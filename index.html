@@ -7107,6 +7107,16 @@ function getMyCatalogCategoriesFromPassions(){
   const interests = myProfile.interests || [];
   const result = new Set();
   interests.forEach(interestLabel => {
+    // Correspondance exacte à l'une des 9 catégories officielles : ajout
+    // direct, jamais via l'ancien mapping par sous-chaîne (qui provoquait
+    // une collision, ex. "Sport" contenu dans "Sport & Bien-être" ajoutait
+    // aussi à tort "Sensations & Adrénaline").
+    if(CATALOG_CATEGORIES.some(c => c.label === interestLabel)){
+      result.add(interestLabel);
+      return;
+    }
+    // Ancien mapping conservé uniquement pour compatibilité avec les profils
+    // qui contiendraient encore réellement un ancien libellé non migré.
     const matchedCat = categories.find(c => interestLabel.includes(c.label));
     if(matchedCat && INTEREST_KEY_TO_CATALOG_CATEGORIES[matchedCat.key]){
       INTEREST_KEY_TO_CATALOG_CATEGORIES[matchedCat.key].forEach(c => result.add(c));
