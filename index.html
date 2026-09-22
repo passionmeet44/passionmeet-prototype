@@ -7086,6 +7086,16 @@ function getMyCatalogCategoriesFromPassions(){
   const interests = myProfile.interests || [];
   const result = new Set();
   interests.forEach(interestLabel => {
+    // Correspondance exacte à l'une des 9 catégories officielles : ajout
+    // direct, jamais via l'ancien mapping par sous-chaîne (qui provoquait
+    // une collision, ex. "Sport" contenu dans "Sport & Bien-être" ajoutait
+    // aussi à tort "Sensations & Adrénaline").
+    if(CATALOG_CATEGORIES.some(c => c.label === interestLabel)){
+      result.add(interestLabel);
+      return;
+    }
+    // Ancien mapping conservé uniquement pour compatibilité avec les profils
+    // qui contiendraient encore réellement un ancien libellé non migré.
     const matchedCat = categories.find(c => interestLabel.includes(c.label));
     if(matchedCat && INTEREST_KEY_TO_CATALOG_CATEGORIES[matchedCat.key]){
       INTEREST_KEY_TO_CATALOG_CATEGORIES[matchedCat.key].forEach(c => result.add(c));
@@ -7281,7 +7291,15 @@ async function renderVenueRecommendations(){
       <div class="venue-tile-grid">${pourVousPicks.map(a => buildVenueTileHtml(a, a.venue, a.distanceKm)).join('')}</div>
     `;
   } else {
-    pourVousSection.innerHTML = '';
+    // État vide propre : jamais de remplissage artificiel, la section reste
+    // visible avec une invitation à compléter ses passions.
+    pourVousSection.innerHTML = `
+      <div class="act-section-title"><h2>💜 Pour vous</h2></div>
+      <div class="act-section-sub" style="padding:14px 20px; background:#fff; border-radius:16px; margin:0 20px 20px; text-align:center; box-shadow:0 3px 10px rgba(62,31,68,0.06);">
+        Aucune activité ne correspond encore à vos passions.<br>
+        <span style="color:var(--orange-deep); font-weight:700; cursor:pointer;" onclick="openInterestsEditor()">Modifiez vos centres d'intérêt →</span>
+      </div>
+    `;
   }
 
   if(nearbyPicks.length){
