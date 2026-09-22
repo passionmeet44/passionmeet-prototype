@@ -7934,64 +7934,42 @@ let currentActivityDetail = null;
 // correspondent exactement aux vrais participants de activity_participants.
 async function getOrCreateActivityGroup(activityId){
   if(!supabaseClient || !myProfile.supabaseId) return null;
-  showToast('[DEBUG] activityId reçu = ' + activityId, '🛠️');
   try{
     let conversationId;
     const { data: existing, error: selErr } = await supabaseClient
       .from('conversations').select('id').eq('activity_id', activityId).eq('type','activity_group').maybeSingle();
-    if(selErr){ showToast('[DEBUG select conv] ' + selErr.message, '🛠️'); throw selErr; }
+    if(selErr) throw selErr;
 
     if(existing){
       conversationId = existing.id;
     } else {
       const { data: created, error: insErr } = await supabaseClient
         .from('conversations').insert({ type:'activity_group', activity_id: activityId }).select().maybeSingle();
-      if(insErr){ showToast('[DEBUG insert conv] ' + insErr.message, '🛠️'); throw insErr; }
-      if(!created){ showToast('[DEBUG] insert conv sans erreur mais sans ligne retournée', '🛠️'); return null; }
+      if(insErr) throw insErr;
+      if(!created) return null;
       conversationId = created.id;
     }
-    showToast('[DEBUG] conversationId = ' + conversationId, '🛠️');
 
-    // Synchronise les membres avec les vrais participants (n'ajoute que ceux qui manquent)
-    const { data: participants, error: partErr } = await supabaseClient
+    // Ajoute chaque vrai participant, un par un — jamais en lot, et sans
+    // présupposer qui est déjà membre : la policy de lecture sur
+    // conversation_members ne montre les membres qu'à quelqu'un qui en fait
+    // déjà partie, donc cette liste serait de toute façon peu fiable pour un
+    // tout premier ajout. Un doublon (participant déjà membre) est un cas
+    // normal, ignoré silencieusement, sans jamais bloquer l'ajout réel d'un
+    // autre participant dans la même synchronisation.
+    const { data: participants } = await supabaseClient
       .from('activity_participants').select('profile_id').eq('activity_id', activityId);
-    if(partErr) showToast('[DEBUG select participants] ' + partErr.message, '🛠️');
-    const { data: currentMembers, error: memErr } = await supabaseClient
-      .from('conversation_members').select('profile_id').eq('conversation_id', conversationId);
-    if(memErr) showToast('[DEBUG select members] ' + memErr.message, '🛠️');
-    const currentIds = new Set((currentMembers || []).map(m => m.profile_id));
-    // La liste "membres actuels" ci-dessus n'est fiable que si l'utilisateur
-    // courant est déjà membre du groupe (policy de lecture restrictive) —
-    // pour un tout premier ajout, elle est vide même si d'autres membres
-    // existent déjà. On ne s'en sert donc plus que pour l'affichage de debug,
-    // pas pour décider qui insérer.
-    const missing = (participants || []).filter(p => !currentIds.has(p.profile_id));
-    showToast(`[DEBUG] participants=${(participants||[]).length} membres=${(currentMembers||[]).length} manquants=${missing.length}`, '🛠️');
-
-    // Insertion un par un, jamais en lot : un doublon sur un participant déjà
-    // membre (ex. le premier arrivé, invisible pour le second à cause de la
-    // policy de lecture ci-dessus) ne doit jamais bloquer l'ajout réel d'un
-    // autre participant dans le même envoi.
     for(const p of (participants || [])){
       const { error: syncErr } = await supabaseClient.from('conversation_members').insert(
         { conversation_id: conversationId, profile_id: p.profile_id }
       );
-      if(syncErr){
-        const isDuplicate = syncErr.code === '23505' || (syncErr.message || '').toLowerCase().includes('duplicate');
-        if(isDuplicate){
-          showToast('[DEBUG ajout membre] ' + p.profile_id.slice(0,8) + '… déjà membre (doublon ignoré)', '🛠️');
-        } else {
-          console.warn('[Groupes] Synchronisation des membres impossible :', syncErr.message);
-          showToast('[DEBUG ajout membre] ' + p.profile_id.slice(0,8) + '… erreur : ' + syncErr.message, '🛠️');
-        }
-      } else {
-        showToast('[DEBUG ajout membre] ' + p.profile_id.slice(0,8) + '… réussi', '🛠️');
+      if(syncErr && syncErr.code !== '23505' && !(syncErr.message || '').toLowerCase().includes('duplicate')){
+        console.warn('[Groupes] Ajout d\'un membre impossible :', syncErr.message);
       }
     }
     return conversationId;
   } catch(e){
     console.warn('[Groupes] Récupération/création du groupe impossible :', e.message);
-    showToast('[DEBUG catch global] ' + e.message, '🛠️');
     return null;
   }
 }
