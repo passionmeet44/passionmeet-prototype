@@ -7958,22 +7958,20 @@ async function getOrCreateActivityGroup(activityId){
     const currentIds = new Set((currentMembers || []).map(m => m.profile_id));
     const missing = (participants || []).filter(p => !currentIds.has(p.profile_id));
     if(missing.length){
-      const { error: syncErr } = await supabaseClient.from('conversation_members').insert(
-        missing.map(p => ({ conversation_id: conversationId, profile_id: p.profile_id }))
+      // upsert + ignoreDuplicates plutôt qu'un simple insert : la vérification
+      // "déjà membre ?" ci-dessus peut être périmée de quelques instants (deux
+      // participations proches dans le temps) — l'upsert rend cette étape
+      // fiable quoi qu'il arrive, sans jamais échouer sur un doublon bénin
+      // (la personne est de toute façon déjà membre, ce qui est l'état voulu).
+      const { error: syncErr } = await supabaseClient.from('conversation_members').upsert(
+        missing.map(p => ({ conversation_id: conversationId, profile_id: p.profile_id })),
+        { onConflict: 'conversation_id,profile_id', ignoreDuplicates: true }
       );
-      // TEMPORAIRE — diagnostic du bug "groupe jamais créé" : affiche l'erreur
-      // réelle au lieu de l'avaler silencieusement. À retirer une fois la
-      // vraie cause confirmée dans les logs Supabase.
-      if(syncErr){
-        console.warn('[Groupes] Synchronisation des membres impossible :', syncErr.message);
-        showToast('[DEBUG membres] ' + syncErr.message, '🛠️');
-      }
+      if(syncErr) console.warn('[Groupes] Synchronisation des membres impossible :', syncErr.message);
     }
     return conversationId;
   } catch(e){
-    // TEMPORAIRE — même diagnostic, sur la création/recherche du groupe elle-même.
     console.warn('[Groupes] Récupération/création du groupe impossible :', e.message);
-    showToast('[DEBUG groupe] ' + e.message, '🛠️');
     return null;
   }
 }
