@@ -7960,28 +7960,32 @@ async function getOrCreateActivityGroup(activityId){
       .from('conversation_members').select('profile_id').eq('conversation_id', conversationId);
     if(memErr) showToast('[DEBUG select members] ' + memErr.message, '🛠️');
     const currentIds = new Set((currentMembers || []).map(m => m.profile_id));
+    // La liste "membres actuels" ci-dessus n'est fiable que si l'utilisateur
+    // courant est déjà membre du groupe (policy de lecture restrictive) —
+    // pour un tout premier ajout, elle est vide même si d'autres membres
+    // existent déjà. On ne s'en sert donc plus que pour l'affichage de debug,
+    // pas pour décider qui insérer.
     const missing = (participants || []).filter(p => !currentIds.has(p.profile_id));
     showToast(`[DEBUG] participants=${(participants||[]).length} membres=${(currentMembers||[]).length} manquants=${missing.length}`, '🛠️');
-    if(missing.length){
-      // insert simple, pas upsert : l'upsert avec ignoreDuplicates déclenchait
-      // une lecture soumise à la policy conversation_members_select_own, qui
-      // exige d'être déjà membre — impossible pour un tout premier ajout
-      // (dépendance circulaire). Un doublon éventuel (deux participations
-      // proches dans le temps) est un cas normal, traité ci-dessous sans
-      // jamais remonter d'erreur à l'utilisateur.
+
+    // Insertion un par un, jamais en lot : un doublon sur un participant déjà
+    // membre (ex. le premier arrivé, invisible pour le second à cause de la
+    // policy de lecture ci-dessus) ne doit jamais bloquer l'ajout réel d'un
+    // autre participant dans le même envoi.
+    for(const p of (participants || [])){
       const { error: syncErr } = await supabaseClient.from('conversation_members').insert(
-        missing.map(p => ({ conversation_id: conversationId, profile_id: p.profile_id }))
+        { conversation_id: conversationId, profile_id: p.profile_id }
       );
       if(syncErr){
         const isDuplicate = syncErr.code === '23505' || (syncErr.message || '').toLowerCase().includes('duplicate');
         if(isDuplicate){
-          showToast('[DEBUG ajout membre] déjà membre (doublon ignoré)', '🛠️');
+          showToast('[DEBUG ajout membre] ' + p.profile_id.slice(0,8) + '… déjà membre (doublon ignoré)', '🛠️');
         } else {
           console.warn('[Groupes] Synchronisation des membres impossible :', syncErr.message);
-          showToast('[DEBUG ajout membre] ' + syncErr.message, '🛠️');
+          showToast('[DEBUG ajout membre] ' + p.profile_id.slice(0,8) + '… erreur : ' + syncErr.message, '🛠️');
         }
       } else {
-        showToast('[DEBUG ajout membre] réussi', '🛠️');
+        showToast('[DEBUG ajout membre] ' + p.profile_id.slice(0,8) + '… réussi', '🛠️');
       }
     }
     return conversationId;
