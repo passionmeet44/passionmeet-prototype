@@ -7934,6 +7934,7 @@ let currentActivityDetail = null;
 // correspondent exactement aux vrais participants de activity_participants.
 async function getOrCreateActivityGroup(activityId){
   if(!supabaseClient || !myProfile.supabaseId) return null;
+  showToast('[DEBUG] activityId reçu = ' + activityId, '🛠️');
   try{
     let conversationId;
     const { data: existing, error: selErr } = await supabaseClient
