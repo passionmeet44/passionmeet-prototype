@@ -1504,6 +1504,14 @@
       <div class="switch" id="switch-newcomer" onclick="this.classList.toggle('on')"></div>
     </div>
 
+    <div class="checkbox-row">
+      <div>
+        <h4>Je suis parent solo</h4>
+        <p>Distinct de « j'ai des enfants » — utilisé pour des recommandations adaptées</p>
+      </div>
+      <div class="switch" id="switch-single-parent" onclick="this.classList.toggle('on')"></div>
+    </div>
+
     <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="showScreen('signup-photos')">Continuer</button>
   </div>
 
@@ -1627,24 +1635,24 @@
     <div class="home-step" id="home-step-1">
       <div class="home-question">Qu'est-ce que tu vas découvrir aujourd'hui ?</div>
       <div class="intent-grid intent-grid-3">
-        <div class="intent-card wide featured" onclick="setHomeIntent('rencontre')">
+        <div class="intent-card wide featured" onclick="showScreen('swipe')">
           <div class="intent-icon">💜</div>
           <h4>Faire une rencontre</h4>
           <p>Une intention plus romantique</p>
         </div>
-        <div class="intent-card wide accent-green" onclick="setHomeIntent('amis')">
+        <div class="intent-card wide accent-green" onclick="showScreen('activities-list')">
           <div class="intent-icon">🤝</div>
           <h4>Nouveaux amis</h4>
           <p>Élargir son cercle</p>
         </div>
         <div class="intent-card wide accent-orange" onclick="openCreateActivityReal()">
           <div class="intent-icon">🧡</div>
-          <h4>Faire une activité</h4>
+          <h4>Créer une activité</h4>
           <p>Créer et publier une activité</p>
         </div>
-        <div class="intent-card wide accent-teal" onclick="showScreen('swipe')">
+        <div class="intent-card wide accent-teal" onclick="showScreen('matches')">
           <div class="intent-icon">🔎</div>
-          <h4>Parcourir les profils</h4>
+          <h4>Mes matchs</h4>
           <p>Découvrir les personnes</p>
         </div>
       </div>
@@ -1807,6 +1815,7 @@
       <div class="profile-badge-row">
         <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>
         <span class="mode-badge" id="profile-newcomer-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🆕 Nouveau/nouvelle dans la région</span>
+        <span class="mode-badge" id="profile-single-parent-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">👨‍👩‍👧 Parent solo</span>
       </div>
       <div class="profile-photo-strip" id="profile-photo-strip"></div>
     </div>
@@ -3887,6 +3896,7 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.gender = row.gender || null;
   myProfile.genderPreferences = row.gender_preferences ? row.gender_preferences.split(',').filter(Boolean) : [];
   if(Array.isArray(row.passions)){ myProfile.interests = row.passions; }
+  myProfile.isSingleParent = row.is_single_parent === true; // jamais déduit, uniquement la valeur explicite stockée
   myProfile.minAgeSet = row.min_age != null;
   if(row.min_age != null) myProfile.ageMin = row.min_age;
   if(row.max_age != null) myProfile.ageMax = row.max_age;
@@ -3914,6 +3924,7 @@ async function saveProfileToSupabase(){
       gender: myProfile.gender || null,
       gender_preferences: (myProfile.genderPreferences || []).join(','),
       passions: myProfile.interests || [],
+      is_single_parent: myProfile.isSingleParent || false,
       min_age: myProfile.ageMin,
       max_age: myProfile.ageMax,
       max_distance: myProfile.radiusKm,
@@ -4389,7 +4400,7 @@ function signUpWithEmail(){
 }
 
 let myProfile = {
-  name: '', age: '', bio: '', hasKids: false, isNewcomer: false, photos: [],
+  name: '', age: '', bio: '', hasKids: false, isNewcomer: false, isSingleParent: false, photos: [],
   interests: [], modes: ['friend','love'],
   radiusKm: 20, ageMin: 28, ageMax: 45,
   city: '', latitude: null, longitude: null, intent: '', supabaseId: null
@@ -4418,6 +4429,7 @@ function finishSignup(){
   if(document.getElementById('switch-love').classList.contains('on')) myProfile.modes.push('love');
   if(document.getElementById('switch-couple').classList.contains('on')) myProfile.modes.push('couple');
   myProfile.isNewcomer = document.getElementById('switch-newcomer').classList.contains('on');
+  myProfile.isSingleParent = document.getElementById('switch-single-parent').classList.contains('on');
   myProfile.radiusKm = parseInt(document.getElementById('prefs-distance').value);
   myProfile.ageMin = parseInt(document.getElementById('prefs-age-min').value);
   myProfile.ageMax = parseInt(document.getElementById('prefs-age-max').value);
@@ -4482,6 +4494,8 @@ function renderProfileScreen(){
   if(kidsEl) kidsEl.style.display = myProfile.hasKids ? 'inline-block' : 'none';
   const newcomerEl = document.getElementById('profile-newcomer-badge');
   if(newcomerEl) newcomerEl.style.display = myProfile.isNewcomer ? 'inline-block' : 'none';
+  const singleParentEl = document.getElementById('profile-single-parent-badge');
+  if(singleParentEl) singleParentEl.style.display = myProfile.isSingleParent === true ? 'inline-block' : 'none';
   const avatarEl = document.getElementById('profile-avatar');
   if(avatarEl){
     if(myProfile.photos && myProfile.photos.length){
@@ -5430,7 +5444,8 @@ function mapSupabaseRowToSwipeCard(row, photoUrl){
     isRealProfile: true,
     supabaseId: row.id,
     isPremiumActive: !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date()),
-    gender: row.gender || null
+    gender: row.gender || null,
+    isSingleParent: row.is_single_parent === true // jamais déduit, uniquement la valeur explicite stockée
   };
 }
 
@@ -5457,7 +5472,7 @@ async function loadRealSwipeProfiles(){
     // pour voir absolument toutes les lignes que Supabase accepte de nous renvoyer.
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, is_premium, premium_until, gender')
+      .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, is_premium, premium_until, gender, is_single_parent')
       .neq('firebase_uid', excludeUid);
     if(error) throw error;
 
@@ -7112,7 +7127,7 @@ async function fetchVenuesCatalog(){
   try{
     const [{ data: venues, error: e1 }, { data: acts, error: e2 }] = await Promise.all([
       supabaseClient.from('venues').select('id, name, address, city, latitude, longitude, official_website'),
-      supabaseClient.from('venue_activities').select('id, venue_id, activity_name, category, booking_url, reservation_status'),
+      supabaseClient.from('venue_activities').select('id, venue_id, activity_name, category, booking_url, reservation_status, family_friendly'),
     ]);
     if(e1) throw e1;
     if(e2) throw e2;
