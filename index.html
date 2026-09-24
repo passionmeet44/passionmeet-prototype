@@ -1815,7 +1815,7 @@
       <div class="profile-badge-row">
         <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>
         <span class="mode-badge" id="profile-newcomer-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🆕 Nouveau/nouvelle dans la région</span>
-        <span class="mode-badge" id="profile-single-parent-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">👨‍👩‍👧 Parent solo</span>
+        <span class="mode-badge" id="profile-single-parent-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🧑‍🧒 Parent solo</span>
       </div>
       <div class="profile-photo-strip" id="profile-photo-strip"></div>
     </div>
@@ -2245,6 +2245,29 @@
 
     <div class="section-label">Centres d'intérêt</div>
     <div id="edit-passion-list"></div>
+
+    <div class="section-label">À propos de vous</div>
+    <div class="checkbox-row">
+      <div>
+        <h4>J'ai des enfants</h4>
+        <p>Débloque des activités adaptées aux familles</p>
+      </div>
+      <div class="switch" id="edit-switch-kids" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="checkbox-row">
+      <div>
+        <h4>Je suis nouveau/nouvelle dans la région</h4>
+        <p>Idéal pour se faire des amis après un déménagement</p>
+      </div>
+      <div class="switch" id="edit-switch-newcomer" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="checkbox-row">
+      <div>
+        <h4>Je suis parent solo</h4>
+        <p>Distinct de « j'ai des enfants » — utilisé pour des recommandations adaptées</p>
+      </div>
+      <div class="switch" id="edit-switch-single-parent" onclick="this.classList.toggle('on')"></div>
+    </div>
 
     <div class="form-label" style="margin-top:26px;">Tranche d'âge recherchée</div>
     <div class="age-inputs">
@@ -3638,6 +3661,10 @@ function openEditProfile(){
     document.getElementById('edit-card-'+mode).classList.toggle('on', isOn);
   });
 
+  document.getElementById('edit-switch-kids').classList.toggle('on', myProfile.hasKids === true);
+  document.getElementById('edit-switch-newcomer').classList.toggle('on', myProfile.isNewcomer === true);
+  document.getElementById('edit-switch-single-parent').classList.toggle('on', myProfile.isSingleParent === true);
+
   const list = document.getElementById('edit-passion-list');
   list.innerHTML = categories.map(c => `
     <div class="passion-card ${(myProfile.interests||[]).some(i => i.includes(c.label)) ? 'sel' : ''}" data-label="${c.emoji} ${c.label}" onclick="this.classList.toggle('sel')">
@@ -3669,6 +3696,9 @@ function saveEditedProfile(){
   myProfile.bio = bio;
   myProfile.interests = selected;
   myProfile.modes = modes;
+  myProfile.hasKids = document.getElementById('edit-switch-kids').classList.contains('on');
+  myProfile.isNewcomer = document.getElementById('edit-switch-newcomer').classList.contains('on');
+  myProfile.isSingleParent = document.getElementById('edit-switch-single-parent').classList.contains('on');
   if(!isNaN(ageMin)) myProfile.ageMin = ageMin;
   if(!isNaN(ageMax)) myProfile.ageMax = ageMax;
 
@@ -3897,6 +3927,8 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.genderPreferences = row.gender_preferences ? row.gender_preferences.split(',').filter(Boolean) : [];
   if(Array.isArray(row.passions)){ myProfile.interests = row.passions; }
   myProfile.isSingleParent = row.is_single_parent === true; // jamais déduit, uniquement la valeur explicite stockée
+  myProfile.isNewcomer = row.is_newcomer === true; // idem
+  myProfile.hasKids = row.has_kids === true; // idem — ne sert jamais à déduire isSingleParent
   myProfile.minAgeSet = row.min_age != null;
   if(row.min_age != null) myProfile.ageMin = row.min_age;
   if(row.max_age != null) myProfile.ageMax = row.max_age;
@@ -3925,6 +3957,8 @@ async function saveProfileToSupabase(){
       gender_preferences: (myProfile.genderPreferences || []).join(','),
       passions: myProfile.interests || [],
       is_single_parent: myProfile.isSingleParent || false,
+      is_newcomer: myProfile.isNewcomer || false,
+      has_kids: myProfile.hasKids || false,
       min_age: myProfile.ageMin,
       max_age: myProfile.ageMax,
       max_distance: myProfile.radiusKm,
