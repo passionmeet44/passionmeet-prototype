@@ -1087,6 +1087,23 @@
   .match-card-big-name{ font-family:var(--font-display); font-size:15px; color:var(--plum); font-weight:700; }
   .match-card-big-sub{ font-size:11px; color:#9584A0; margin-top:3px; }
   .match-card-big-passion{ font-size:10.5px; color:var(--orange-deep); margin-top:4px; font-weight:600; }
+  /* Cercles compacts pour "qui vous a liké" — plus légers que les grandes
+     cartes des vrais matchs, pour distinguer visuellement les deux sections. */
+  .liked-you-row{ display:flex; gap:14px; padding:0 20px 16px; overflow-x:auto; }
+  .liked-you-item{ display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; width:76px; cursor:pointer; }
+  .liked-you-circle{
+    width:68px; height:68px; border-radius:50%; overflow:hidden; position:relative;
+    background-color:var(--lavender); box-shadow:0 3px 10px rgba(62,31,68,0.12);
+  }
+  .liked-you-circle-bg{
+    position:absolute; inset:-8px; background-size:cover; background-position:center;
+  }
+  .liked-you-circle-bg.blurred{ filter:blur(7px); }
+  .liked-you-lock{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:16px; background:rgba(62,31,68,0.18); color:#fff;
+  }
+  .liked-you-name{ font-size:10.5px; color:var(--plum-soft); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:76px; }
   .msg-item.new-match{background:rgba(242,146,75,0.08); border-radius:14px;}
 
   /* ---------- Chat screen ---------- */
@@ -8505,47 +8522,43 @@ async function renderMatchesLikedYou(){
 
     if(!myProfile.isPremiumActive){
       // Compte gratuit : who_liked_me ne renvoie aucune identité exploitable pour
-      // ces comptes (même règle qu'avant) — cartes floutées génériques, jamais
+      // ces comptes (même règle qu'avant) — cercles floutés génériques, jamais
       // une vraie photo qu'on ferait semblant de flouter.
-      const cardsHtml = data.slice(0, 4).map(r => `
-        <div class="match-card-big" onclick="showScreen('premium')">
-          <div class="match-card-big-photo blurred" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);">
-            <div class="match-card-big-lock">🔒</div>
-            <div class="match-card-big-mode">${r.mode === 'love' ? 'Rencontre' : 'Amitié'}</div>
+      const circlesHtml = data.slice(0, 8).map(() => `
+        <div class="liked-you-item" onclick="showScreen('premium')">
+          <div class="liked-you-circle">
+            <div class="liked-you-circle-bg blurred" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);"></div>
+            <div class="liked-you-lock">🔒</div>
           </div>
-          <div class="match-card-big-body">
-            <div class="match-card-big-name">Cette personne vous a liké</div>
-          </div>
+          <div class="liked-you-name">???</div>
         </div>
       `).join('');
       section.innerHTML = `
         <div class="match-section-title">👀 Vous avez été liké·e</div>
         <div class="match-section-sub">${data.length} personne${data.length>1?'s':''} — passez Premium pour découvrir qui</div>
-        <div class="match-grid">${cardsHtml}</div>
+        <div class="liked-you-row">${circlesHtml}</div>
       `;
       return;
     }
 
-    const cardsHtml = (await Promise.all(data.slice(0, 6).map(async (r) => {
+    const circlesHtml = (await Promise.all(data.slice(0, 10).map(async (r) => {
       const photoUrl = await getMainPhotoForProfile(r.liker_profile_id);
-      const photoStyle = photoUrl
+      const bgStyle = photoUrl
         ? `background-image:url('${photoUrl}');`
         : `background:linear-gradient(135deg,#8B5A8C,#C98BA8);`;
       return `
-        <div class="match-card-big" onclick="showScreen('swipe')">
-          <div class="match-card-big-photo" style="${photoStyle}">
-            <div class="match-card-big-mode">${r.mode === 'love' ? 'Rencontre' : 'Amitié'}</div>
+        <div class="liked-you-item" onclick="showScreen('swipe')">
+          <div class="liked-you-circle">
+            <div class="liked-you-circle-bg" style="${bgStyle}"></div>
           </div>
-          <div class="match-card-big-body">
-            <div class="match-card-big-name">${escapeHtml(r.first_name || 'Membre')}${r.age ? ', '+r.age : ''}</div>
-          </div>
+          <div class="liked-you-name">${escapeHtml(r.first_name || 'Membre')}</div>
         </div>
       `;
     }))).join('');
     section.innerHTML = `
       <div class="match-section-title">👀 Vous avez été liké·e</div>
       <div class="match-section-sub">Sans match réciproque pour l'instant</div>
-      <div class="match-grid">${cardsHtml}</div>
+      <div class="liked-you-row">${circlesHtml}</div>
     `;
   } catch(e){
     console.warn('[Matchs] "Qui vous a liké" impossible :', e.message);
