@@ -1087,23 +1087,37 @@
   .match-card-big-name{ font-family:var(--font-display); font-size:15px; color:var(--plum); font-weight:700; }
   .match-card-big-sub{ font-size:11px; color:#9584A0; margin-top:3px; }
   .match-card-big-passion{ font-size:10.5px; color:var(--orange-deep); margin-top:4px; font-weight:600; }
-  /* Cercles compacts pour "qui vous a liké" — plus légers que les grandes
-     cartes des vrais matchs, pour distinguer visuellement les deux sections. */
-  .liked-you-row{ display:flex; gap:14px; padding:0 20px 16px; overflow-x:auto; }
-  .liked-you-item{ display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; width:76px; cursor:pointer; }
+  /* Cercles pour "qui vous a liké" — clip-path en plus de overflow:hidden,
+     car sur certains navigateurs mobiles (Safari/iOS), un enfant flouté
+     (filter:blur) peut déborder du border-radius du parent et laisser
+     apparaître un carré derrière le rond. clip-path force un découpage
+     circulaire fiable même avec un contenu flouté. */
+  .liked-you-row{ display:flex; gap:16px; padding:0 20px 18px; overflow-x:auto; }
+  .liked-you-item{ display:flex; flex-direction:column; align-items:center; gap:7px; flex-shrink:0; width:110px; cursor:pointer; }
   .liked-you-circle{
-    width:68px; height:68px; border-radius:50%; overflow:hidden; position:relative;
-    background-color:var(--lavender); box-shadow:0 3px 10px rgba(62,31,68,0.12);
+    width:96px; height:96px; border-radius:50%; position:relative;
+    overflow:hidden; clip-path:circle(50% at 50% 50%); -webkit-clip-path:circle(50% at 50% 50%);
+    background:radial-gradient(circle, rgba(139,90,140,0.22) 0%, rgba(139,90,140,0) 72%);
+    padding:6px; box-sizing:border-box;
+  }
+  .liked-you-circle-inner{
+    width:100%; height:100%; border-radius:50%; overflow:hidden; position:relative;
+    clip-path:circle(50% at 50% 50%); -webkit-clip-path:circle(50% at 50% 50%);
+    border:2px solid rgba(255,255,255,0.75); box-shadow:0 4px 14px rgba(62,31,68,0.16);
   }
   .liked-you-circle-bg{
-    position:absolute; inset:-8px; background-size:cover; background-position:center;
+    position:absolute; inset:-12px; border-radius:50%;
+    background-size:cover; background-position:center;
   }
-  .liked-you-circle-bg.blurred{ filter:blur(7px); }
+  .liked-you-circle-bg.blurred{ filter:blur(10px); -webkit-filter:blur(10px); }
+  .liked-you-veil{
+    position:absolute; inset:0; border-radius:50%; background:rgba(255,255,255,0.10);
+  }
   .liked-you-lock{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-size:16px; background:rgba(62,31,68,0.18); color:#fff;
+    position:absolute; inset:0; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:15px; color:#fff; text-shadow:0 1px 4px rgba(62,31,68,0.5);
   }
-  .liked-you-name{ font-size:10.5px; color:var(--plum-soft); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:76px; }
+  .liked-you-name{ font-size:10.5px; color:var(--plum-soft); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100px; }
   .msg-item.new-match{background:rgba(242,146,75,0.08); border-radius:14px;}
 
   /* ---------- Chat screen ---------- */
@@ -8527,8 +8541,11 @@ async function renderMatchesLikedYou(){
       const circlesHtml = data.slice(0, 8).map(() => `
         <div class="liked-you-item" onclick="showScreen('premium')">
           <div class="liked-you-circle">
-            <div class="liked-you-circle-bg blurred" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);"></div>
-            <div class="liked-you-lock">🔒</div>
+            <div class="liked-you-circle-inner">
+              <div class="liked-you-circle-bg blurred" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);"></div>
+              <div class="liked-you-veil"></div>
+              <div class="liked-you-lock">🔒</div>
+            </div>
           </div>
           <div class="liked-you-name">???</div>
         </div>
@@ -8549,7 +8566,9 @@ async function renderMatchesLikedYou(){
       return `
         <div class="liked-you-item" onclick="showScreen('swipe')">
           <div class="liked-you-circle">
-            <div class="liked-you-circle-bg" style="${bgStyle}"></div>
+            <div class="liked-you-circle-inner">
+              <div class="liked-you-circle-bg" style="${bgStyle}"></div>
+            </div>
           </div>
           <div class="liked-you-name">${escapeHtml(r.first_name || 'Membre')}</div>
         </div>
