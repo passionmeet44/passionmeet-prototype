@@ -1087,6 +1087,10 @@
   .match-card-big-name{ font-family:var(--font-display); font-size:15px; color:var(--plum); font-weight:700; }
   .match-card-big-sub{ font-size:11px; color:#9584A0; margin-top:3px; }
   .match-card-big-passion{ font-size:10.5px; color:var(--orange-deep); margin-top:4px; font-weight:600; }
+  /* Fiche profil détaillée d'un match — réutilise les couleurs/ombres déjà
+     en place ailleurs, aucune nouvelle identité visuelle créée. */
+  .match-profile-photos{ display:flex; overflow-x:auto; gap:2px; }
+  .match-profile-photo{ min-width:100%; height:340px; background-size:cover; background-position:center; flex-shrink:0; }
   /* Cercles pour "qui vous a liké" — clip-path en plus de overflow:hidden,
      car sur certains navigateurs mobiles (Safari/iOS), un enfant flouté
      (filter:blur) peut déborder du border-radius du parent et laisser
@@ -2217,6 +2221,14 @@
     <div id="matches-liked-you-section"></div>
     <div class="match-section-title">💜 Vos matchs</div>
     <div id="matches-list"></div>
+  </div>
+
+  <!-- PROFIL DÉTAILLÉ D'UN MATCH -->
+  <div class="screen" id="screen-match-profile-detail" style="position:relative;">
+    <div style="position:sticky; top:0; z-index:5; padding:14px 16px 0;">
+      <div style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(62,31,68,0.15); cursor:pointer;" onclick="showScreen('matches')">←</div>
+    </div>
+    <div id="match-profile-detail-body"></div>
   </div>
 
   <!-- EDIT PROFILE -->
@@ -6121,13 +6133,19 @@ async function checkAndCreateMatch(otherProfileId, mode){
       return { matched: false, matchId: null };
     }
 
-    // Réciprocité confirmée, et aucune relation existante : on crée le match
+    // Réciprocité confirmée, et aucune relation existante : on crée le match.
+    // La personne qui déclenche la création voit le popup immédiatement, donc
+    // son côté est marqué "vu" dès la création — l'autre personne, elle,
+    // découvrira ce match flouté dans sa liste tant qu'elle ne l'aura pas ouvert.
+    const iAmProfileA = (myProfile.supabaseId === profileAId);
     const { data: matchRow, error: insertError } = await supabaseClient
       .from('matches')
       .upsert({
         profile_a_id: profileAId,
         profile_b_id: profileBId,
-        mode: mode
+        mode: mode,
+        seen_by_a: iAmProfileA,
+        seen_by_b: !iAmProfileA
       }, { onConflict: 'profile_a_id,profile_b_id,mode' })
       .select('id')
       .maybeSingle();
@@ -6172,6 +6190,7 @@ function flyOut(card, type){
           lastSwipedProfile = null;
           lastSwipedWasReal = false;
           updateUndoButtonState();
+          refreshUnreadBadges(); // met à jour immédiatement le badge ❤️ Matchs, sans attendre le prochain sondage
           setTimeout(()=> showMatchOverlay(likedProfile, type, matchId), 250);
         }
       }
@@ -6531,6 +6550,23 @@ function updateMatchesNavBadge(count){
   }
 }
 
+function updateMessagesNavBadge(count){
+  const navItem = document.getElementById('nav-messages');
+  if(!navItem) return;
+  let badge = document.getElementById('nav-messages-badge');
+  if(count > 0){
+    if(!badge){
+      badge = document.createElement('span');
+      badge.id = 'nav-messages-badge';
+      badge.className = 'nav-badge';
+      navItem.appendChild(badge);
+    }
+    badge.textContent = count > 9 ? '9+' : String(count);
+  } else if(badge){
+    badge.remove();
+  }
+}
+
 function applyPerMatchBadges(byMatch){
   currentMatchesData.forEach(m => {
     const el = document.getElementById(`match-badge-${m.matchId}`);
@@ -6545,11 +6581,29 @@ function applyPerMatchBadges(byMatch){
   });
 }
 
+async function fetchUnseenMatchesCount(){
+  if(!supabaseClient || !myProfile.supabaseId) return 0;
+  try{
+    const myId = myProfile.supabaseId;
+    const { data, error } = await supabaseClient
+      .from('matches')
+      .select('id, profile_a_id, seen_by_a, seen_by_b')
+      .or(`profile_a_id.eq.${myId},profile_b_id.eq.${myId}`);
+    if(error) throw error;
+    return (data || []).filter(m => (m.profile_a_id === myId ? !m.seen_by_a : !m.seen_by_b)).length;
+  } catch(e){
+    console.warn('[Notifs] Impossible de récupérer les matchs non vus :', e.message);
+    return 0;
+  }
+}
+
 async function refreshUnreadBadges(){
   if(!currentFirebaseUser || !myProfile.supabaseId) return;
   const { total, byMatch } = await fetchUnreadCounts();
-  updateMatchesNavBadge(total);
+  updateMessagesNavBadge(total);
   applyPerMatchBadges(byMatch);
+  const unseenMatches = await fetchUnseenMatchesCount();
+  updateMatchesNavBadge(unseenMatches);
 }
 
 function startUnreadPolling(){
@@ -6561,6 +6615,7 @@ function startUnreadPolling(){
 function stopUnreadPolling(){
   if(unreadPollInterval){ clearInterval(unreadPollInterval); unreadPollInterval = null; }
   updateMatchesNavBadge(0);
+  updateMessagesNavBadge(0);
 }
 
 async function markConversationMessagesRead(conversationId){
@@ -8588,7 +8643,7 @@ async function renderMatchesList(){
     const myId = myProfile.supabaseId;
     const { data, error } = await supabaseClient
       .from('matches')
-      .select('id, profile_a_id, profile_b_id, mode, created_at')
+      .select('id, profile_a_id, profile_b_id, mode, created_at, seen_by_a, seen_by_b')
       .or(`profile_a_id.eq.${myId},profile_b_id.eq.${myId}`)
       .order('created_at', { ascending: false });
     if(error) throw error;
@@ -8602,6 +8657,7 @@ async function renderMatchesList(){
 
     const matchCards = (await Promise.all(data.map(async (m) => {
       const otherId = m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id;
+      const isSeen = m.profile_a_id === myId ? m.seen_by_a : m.seen_by_b;
       let otherProfile = null;
       try{
         const { data: p } = await supabaseClient
@@ -8620,17 +8676,36 @@ async function renderMatchesList(){
 
       currentMatchesData.push({ matchId: m.id, otherId, name, mode: m.mode, photoUrl });
 
+      const photoStyle = photoUrl
+        ? `background-image:url('${photoUrl}');`
+        : `background:linear-gradient(135deg,#8B5A8C,#C98BA8);`;
+
+      // Match non vu : effet flouté façon "découverte Premium" — clic mène
+      // quand même au profil (qui marque le match comme vu à l'ouverture).
+      if(!isSeen){
+        return `
+          <div class="match-card-big" onclick="openMatchProfileDetail('${m.id}')">
+            <div class="match-card-big-photo blurred" style="${photoStyle}">
+              <div class="match-card-big-lock" style="flex-direction:column; gap:2px; font-size:12px; text-align:center; padding:8px;">
+                <div style="font-size:22px;">💎</div>
+                <div>Nouveau match</div>
+              </div>
+            </div>
+            <div class="match-card-big-body">
+              <div class="match-card-big-name">Découvre qui s'intéresse à toi</div>
+            </div>
+          </div>
+        `;
+      }
+
       // Passion commune réelle uniquement — jamais devinée, seulement si les
       // deux profils partagent effectivement au moins une catégorie déclarée.
       const theirPassions = Array.isArray(otherProfile.passions) ? otherProfile.passions : [];
       const myPassions = myProfile.interests || [];
       const shared = theirPassions.find(p => myPassions.includes(p));
 
-      const photoStyle = photoUrl
-        ? `background-image:url('${photoUrl}');`
-        : `background:linear-gradient(135deg,#8B5A8C,#C98BA8);`;
       return `
-        <div class="match-card-big" onclick="openMatchChat('${m.id}')">
+        <div class="match-card-big" onclick="openMatchProfileDetail('${m.id}')">
           <div class="match-card-big-photo" style="${photoStyle}">
             <div class="match-card-big-mode">${m.mode === 'love' ? '💜 Rencontre' : '🤝 Amitié'}</div>
           </div>
@@ -9003,6 +9078,72 @@ async function loadRealMessages(conversationId){
   } catch(e){
     console.warn('[Messages] Chargement impossible :', e.message);
     return [];
+  }
+}
+
+// Ouvre la fiche détaillée d'un match (photos, bio, passions, badges).
+// Marque le match comme "vu" pour l'utilisateur courant s'il ne l'était pas
+// déjà — c'est ce qui fait disparaître l'effet flouté "Nouveau match".
+async function openMatchProfileDetail(matchId){
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { data: m, error } = await supabaseClient
+      .from('matches').select('id, profile_a_id, profile_b_id, mode, seen_by_a, seen_by_b').eq('id', matchId).maybeSingle();
+    if(error || !m) return;
+    const myId = myProfile.supabaseId;
+    const otherId = m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id;
+    const iAmA = (m.profile_a_id === myId);
+    const alreadySeen = iAmA ? m.seen_by_a : m.seen_by_b;
+
+    const { data: p } = await supabaseClient
+      .from('profiles')
+      .select('first_name, age, bio, passions, gender, is_newcomer, is_single_parent, has_kids')
+      .eq('id', otherId).is('deleted_at', null).maybeSingle();
+    if(!p){ showToast("Ce profil n'est plus disponible.", "⚠️"); return; }
+
+    if(!alreadySeen){
+      const field = iAmA ? 'seen_by_a' : 'seen_by_b';
+      await supabaseClient.from('matches').update({ [field]: true }).eq('id', matchId);
+      refreshUnreadBadges();
+    }
+
+    const { data: photoRows } = await supabaseClient
+      .from('profile_photos').select('storage_path').eq('user_id', otherId).order('position', { ascending: true });
+    const photoUrls = [];
+    for(const row of (photoRows || [])){
+      const url = await getSignedPhotoUrl(row.storage_path);
+      if(url) photoUrls.push(url);
+    }
+
+    const modeLabel = m.mode === 'love' ? '💜 Rencontre' : '🤝 Amitié';
+    const badgesHtml = [
+      p.is_newcomer ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">🆕 Nouveau/nouvelle dans la région</span>` : '',
+      p.is_single_parent ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">🧑‍🧒 Parent solo</span>` : '',
+      p.has_kids ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>` : ''
+    ].filter(Boolean).join('');
+    const passionsHtml = (Array.isArray(p.passions) ? p.passions : [])
+      .map(tag => `<span>${escapeHtml(tag)}</span>`).join('');
+    const photosHtml = photoUrls.length
+      ? photoUrls.map(u => `<div class="match-profile-photo" style="background-image:url('${u}');"></div>`).join('')
+      : `<div class="match-profile-photo" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);"></div>`;
+
+    document.getElementById('match-profile-detail-body').innerHTML = `
+      <div class="match-profile-photos">${photosHtml}</div>
+      <div style="padding:16px 20px 100px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <h2 style="font-family:var(--font-display); color:var(--plum); margin:0;">${escapeHtml(p.first_name || 'Membre')}${p.age ? ', '+p.age : ''}</h2>
+          <span class="msg-mode-tag ${m.mode === 'love' ? 'love' : 'friend'}">${modeLabel}</span>
+        </div>
+        ${badgesHtml ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">${badgesHtml}</div>` : ''}
+        ${p.bio ? `<p style="margin-top:14px; color:var(--plum-soft); line-height:1.5;">${escapeHtml(p.bio)}</p>` : ''}
+        ${passionsHtml ? `<div class="swipe-tags" style="margin-top:14px;">${passionsHtml}</div>` : ''}
+        <button class="btn-primary" style="width:100%; margin-top:26px;" onclick="openMatchChat('${matchId}')">💬 Envoyer un message</button>
+      </div>
+    `;
+    showScreen('match-profile-detail');
+  } catch(e){
+    console.warn('[Matchs] Ouverture du profil impossible :', e.message);
+    showToast("Impossible d'ouvrir ce profil pour le moment.", "⚠️");
   }
 }
 
