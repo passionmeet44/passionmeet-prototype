@@ -1523,9 +1523,27 @@
 
     <div id="email-signup-error" style="color:var(--orange-deep); font-size:12px; margin-top:10px; display:none;"></div>
 
+    <div class="location-skip" id="email-forgot-link" style="color:var(--plum-soft); margin-top:10px; display:none;" onclick="openForgotPasswordScreen()">Mot de passe oublié ?</div>
+
     <button class="btn-primary" id="email-signup-btn" style="width:100%; margin-top:24px;" onclick="submitEmailAuthForm()">Créer mon compte</button>
     <div class="location-skip" id="email-screen-toggle" style="color:var(--plum-soft); margin-top:16px;" onclick="toggleEmailScreenMode()">Déjà un compte ? Se connecter</div>
     <div class="location-skip" style="color:var(--plum-soft); margin-top:8px;" onclick="showScreen('login')">Retour</div>
+  </div>
+
+  <div class="screen" id="screen-forgot-password">
+    <div class="ob-title">Mot de passe oublié</div>
+    <div class="ob-sub">Indiquez votre email, nous vous envoyons un lien pour le réinitialiser.</div>
+
+    <div class="form-label">Adresse email</div>
+    <input class="form-input" id="forgot-password-email" type="email" placeholder="vous@exemple.com">
+
+    <div id="forgot-password-error" style="color:var(--orange-deep); font-size:12px; margin-top:10px; display:none;"></div>
+    <div id="forgot-password-success" style="color:var(--plum); font-size:13px; margin-top:14px; display:none; line-height:1.5;">
+      Si un compte existe avec cette adresse, un email vient de lui être envoyé pour réinitialiser le mot de passe.
+    </div>
+
+    <button class="btn-primary" id="forgot-password-btn" style="width:100%; margin-top:24px;" onclick="submitPasswordReset()">Envoyer le lien</button>
+    <div class="location-skip" style="color:var(--plum-soft); margin-top:16px;" onclick="showScreen('signup-email')">Retour à la connexion</div>
   </div>
 
   <div class="screen" id="screen-signup-account" style="position:relative;">
@@ -1685,7 +1703,6 @@
         <div class="home-location" id="location-label">📍 44 · Loire-Atlantique</div>
         <h1 id="home-greeting">Bonjour Camille</h1>
       </div>
-      <div class="kyc-badge">✓ Vérifié</div>
     </div>
 
     <!-- STEP 1 : QUOI -->
@@ -1800,22 +1817,8 @@
       <div class="detail-why" id="detail-why"></div>
       <div class="avatars" id="detail-avatars"></div>
       <button class="btn-join" id="detail-cta" onclick="joinActivity()">Rejoindre</button>
-      <button class="btn-safety" onclick="openSafetyShare()">📍 Partager ma position avec un proche</button>
+      <button class="btn-safety" onclick="showToast('Partage de position en temps réel bientôt disponible', '🔧')">📍 Partager ma position avec un proche</button>
       <div class="report-link">Signaler cette activité</div>
-    </div>
-  </div>
-
-  <!-- SAFETY SHARE OVERLAY -->
-  <div class="match-overlay" id="safety-overlay">
-    <div class="match-card">
-      <div class="match-title" style="font-size:22px;">📍 Partager ma position</div>
-      <p class="match-sub" style="margin-bottom:20px;">En cas de premier rendez-vous, prévenez un proche. Il recevra votre position en temps réel pendant la durée de l'activité.</p>
-      <div class="safety-contacts" id="safety-contacts">
-        <div class="safety-contact" onclick="confirmSafetyShare(this,'Léa (sœur)')">👩 Léa (sœur)</div>
-        <div class="safety-contact" onclick="confirmSafetyShare(this,'Karim (ami)')">🧑 Karim (ami)</div>
-        <div class="safety-contact" onclick="confirmSafetyShare(this,'Groupe familial')">👨‍👩‍👧 Groupe familial</div>
-      </div>
-      <div class="match-continue" onclick="document.getElementById('safety-overlay').classList.remove('show')">Annuler</div>
     </div>
   </div>
 
@@ -1868,7 +1871,6 @@
       <div class="profile-photo-hint" onclick="premiumReturnScreen='profile'; showScreen('premium')">⭐ PassionMeet Premium</div>
       <div class="profile-photo-hint" onclick="openMyReports()">🚩 Mes signalements</div>
       <div class="profile-photo-hint" id="admin-access-link" style="display:none;" onclick="openAdminReports()">🛠️ Signalements à traiter (admin)</div>
-      <div class="verified">✓ Identité vérifiée (KYC)</div>
       <div class="profile-badge-row">
         <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>
         <span class="mode-badge" id="profile-newcomer-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🆕 Nouveau/nouvelle dans la région</span>
@@ -1951,7 +1953,7 @@
     </div>
 
     <div class="profile-card danger-card">
-      <div class="settings-link danger" onclick="showToast('Profil supprimé (démo)', '🗑️')">Supprimer mon compte</div>
+      <div class="settings-link danger" onclick="deleteMyAccount()">Supprimer mon compte</div>
     </div>
   </div>
 
@@ -2375,10 +2377,6 @@
       <p>Quelques réflexes simples pour un premier rendez-vous serein</p>
     </div>
     <div style="padding:20px 22px 100px;">
-      <div class="safety-item">
-        <div class="safety-check" id="safety-verified">✅</div>
-        <div><h4>Profil vérifié</h4><p>Identité contrôlée à l'inscription — cela reste une aide, pas une garantie absolue.</p></div>
-      </div>
       <div class="safety-item">
         <div class="safety-check">✅</div>
         <div><h4>Choisissez un lieu public</h4><p>Privilégiez un lieu fréquenté pour un premier rendez-vous.</p></div>
@@ -4343,6 +4341,89 @@ function logOut(){
   });
 }
 
+// Suppression réelle du compte (bêta privée) : anonymise le profil Supabase
+// (conserve les lignes nécessaires à l'historique des AUTRES utilisateurs —
+// matchs, messages, activités — sans exposer les anciennes données
+// personnelles), supprime réellement les photos du Storage, efface la
+// localisation, puis supprime le compte Firebase Auth pour empêcher toute
+// reconnexion.
+async function deleteMyAccount(){
+  if(!currentFirebaseUser || !firebaseAuth){
+    showToast("Suppression impossible ici — ouvrez le fichier dans un vrai navigateur", "⚠️");
+    return;
+  }
+  const confirmed = confirm(
+    "Cette action est définitive et irréversible.\n\n" +
+    "Votre profil, vos photos et votre position seront supprimés. " +
+    "Vos conversations et activités passées resteront visibles pour les " +
+    "autres membres, mais votre nom sera remplacé par \"Utilisateur supprimé\".\n\n" +
+    "Voulez-vous vraiment supprimer votre compte ?"
+  );
+  if(!confirmed) return;
+
+  showToast("Suppression en cours…", "⏳");
+
+  try{
+    if(supabaseClient && myProfile.supabaseId){
+      // 1. Supprimer réellement les fichiers du Storage (pas seulement les lignes qui les référencent).
+      try{
+        const { data: files } = await supabaseClient.storage.from('avatars').list(currentFirebaseUser.uid);
+        if(files && files.length){
+          const paths = files.map(f => `${currentFirebaseUser.uid}/${f.name}`);
+          await supabaseClient.storage.from('avatars').remove(paths);
+        }
+      } catch(e){
+        console.warn('[Suppression] Photos Storage :', e.message);
+      }
+
+      // 2. Supprimer les lignes de la table des photos.
+      try{
+        await supabaseClient.from('profile_photos').delete().eq('user_id', myProfile.supabaseId);
+      } catch(e){
+        console.warn('[Suppression] profile_photos :', e.message);
+      }
+
+      // 3. Anonymiser le profil — jamais de suppression brutale de la ligne,
+      // pour ne pas casser les matchs/messages/activités où d'autres
+      // utilisateurs ont une référence à ce profil.
+      try{
+        await supabaseClient.from('profiles').update({
+          first_name: 'Utilisateur supprimé',
+          bio: '',
+          passions: [],
+          gender: null,
+          gender_preferences: null,
+          latitude: null,
+          longitude: null,
+          city: null,
+          deleted_at: new Date().toISOString()
+        }).eq('id', myProfile.supabaseId);
+      } catch(e){
+        console.warn('[Suppression] Anonymisation du profil :', e.message);
+        showToast("La suppression a rencontré un problème, merci de réessayer.", "⚠️");
+        return;
+      }
+    }
+
+    // 4. Supprimer réellement le compte Firebase Auth — empêche toute
+    // reconnexion future avec cet email/compte Google.
+    await currentFirebaseUser.delete();
+
+    currentFirebaseUser = null;
+    stopUnreadPolling();
+    showToast("Votre compte a bien été supprimé.", "✅");
+    showScreen('login');
+  } catch(e){
+    if(e.code === 'auth/requires-recent-login'){
+      showToast("Pour votre sécurité, reconnectez-vous puis réessayez immédiatement.", "🔒");
+      logOut();
+      return;
+    }
+    console.warn('[Suppression] Compte Firebase :', e.message);
+    showToast("La suppression du compte a échoué. Vos données ont déjà été anonymisées ; contactez le support pour finaliser.", "⚠️");
+  }
+}
+
 function signInWithGoogle(){
   if(!firebaseAuth){
     showToast("Connexion impossible ici — ouvrez le fichier dans un vrai navigateur", "⚠️");
@@ -4372,12 +4453,75 @@ function applyEmailScreenMode(){
     document.getElementById('email-screen-sub').textContent = 'Retrouvez votre compte avec votre email et votre mot de passe.';
     document.getElementById('email-signup-btn').textContent = 'Se connecter';
     document.getElementById('email-screen-toggle').textContent = "Pas encore de compte ? S'inscrire";
+    document.getElementById('email-forgot-link').style.display = 'block';
   } else {
     document.getElementById('email-screen-title').textContent = 'Créer un compte par email';
     document.getElementById('email-screen-sub').textContent = 'Vous recevrez un email de confirmation à valider avant de pouvoir vous connecter.';
     document.getElementById('email-signup-btn').textContent = 'Créer mon compte';
     document.getElementById('email-screen-toggle').textContent = 'Déjà un compte ? Se connecter';
+    document.getElementById('email-forgot-link').style.display = 'none';
   }
+}
+
+function openForgotPasswordScreen(){
+  document.getElementById('forgot-password-email').value = document.getElementById('email-signup-email').value.trim();
+  document.getElementById('forgot-password-error').style.display = 'none';
+  document.getElementById('forgot-password-success').style.display = 'none';
+  document.getElementById('forgot-password-btn').disabled = false;
+  document.getElementById('forgot-password-btn').textContent = 'Envoyer le lien';
+  showScreen('forgot-password');
+}
+
+function submitPasswordReset(){
+  const email = document.getElementById('forgot-password-email').value.trim();
+  const errorEl = document.getElementById('forgot-password-error');
+  const successEl = document.getElementById('forgot-password-success');
+  errorEl.style.display = 'none';
+  successEl.style.display = 'none';
+
+  if(!email){
+    errorEl.textContent = "Merci de renseigner votre adresse email.";
+    errorEl.style.display = 'block';
+    return;
+  }
+  if(!firebaseAuth){
+    showToast("Action impossible ici — ouvrez le fichier dans un vrai navigateur", "⚠️");
+    return;
+  }
+
+  const btn = document.getElementById('forgot-password-btn');
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours…';
+
+  firebaseAuth.sendPasswordResetEmail(email).then(() => {
+    showForgotPasswordGenericSuccess();
+  }).catch((error) => {
+    // Message volontairement identique en cas de succès ou d'email inconnu :
+    // ne jamais révéler si une adresse est inscrite ou non (confidentialité).
+    if(error.code === 'auth/invalid-email'){
+      errorEl.textContent = "Adresse email invalide.";
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le lien';
+      return;
+    }
+    if(error.code === 'auth/too-many-requests'){
+      errorEl.textContent = "Trop de tentatives, merci de réessayer dans quelques minutes.";
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le lien';
+      return;
+    }
+    // auth/user-not-found et toute autre erreur : même message générique que le succès.
+    showForgotPasswordGenericSuccess();
+  });
+}
+
+function showForgotPasswordGenericSuccess(){
+  document.getElementById('forgot-password-success').style.display = 'block';
+  const btn = document.getElementById('forgot-password-btn');
+  btn.disabled = true;
+  btn.textContent = 'Lien envoyé';
 }
 
 function openEmailAuthScreen(){
@@ -5226,28 +5370,14 @@ function openDetailFrom(key, returnScreen){
 }
 
 /* ---------- SWIPE SYSTEM ---------- */
-const swipeProfiles = [
-  {name:"Léa", age:31, initial:"L", color:"linear-gradient(135deg,#E5722A,#F6B94D)",
-   bio:"Maman de deux enfants, fan de randonnée et de brunchs improvisés.",
-   tags:["Randonnée","Cuisine","Sorties nature"], modes:["Amitié","Rencontre"], area:"Rezé"},
-  {name:"Karim", age:29, initial:"K", color:"linear-gradient(135deg,#6B4472,#3E1F44)",
-   bio:"Nouveau à Nantes depuis 3 mois, cherche à créer des liens dans le coin.",
-   tags:["Jeux de société","Musées","Concerts"], modes:["Amitié"], area:"Nantes centre"},
-  {name:"Inès", age:35, initial:"I", color:"linear-gradient(135deg,#C98BA8,#8B5A8C)",
-   bio:"Envie de rencontres sincères autour d'activités simples et de bons moments.",
-   tags:["Cuisine","Sport","Cinéma"], modes:["Rencontre"], area:"Saint-Herblain"},
-  {name:"Thomas", age:33, initial:"T", color:"linear-gradient(135deg,#4E9A6E,#8FC9A2)",
-   bio:"Papa solo, toujours partant pour une sortie vélo ou un café en terrasse.",
-   tags:["Vélo","Café","Musique"], modes:["Amitié","Rencontre"], area:"Saint-Sébastien-sur-Loire"},
-  {name:"Sarah", age:28, initial:"S", color:"linear-gradient(135deg,#F6B94D,#E5722A)",
-   bio:"Passionnée d'art et de balades, ouverte à toutes belles rencontres.",
-   tags:["Art","Randonnée","Photographie"], modes:["Amitié","Rencontre"], area:"Vertou"}
-];
+// Le tableau de profils fictifs de démonstration a été retiré (bêta privée) :
+// en production, l'absence de vraie connexion Supabase doit afficher une
+// erreur claire, jamais un faux profil ou un match simulé.
 
 let swipeIndex = 0;
 let swipeInitialized = false;
 let dragState = null;
-let filteredProfiles = swipeProfiles;
+let filteredProfiles = [];
 
 function setRadius(km){
   km = parseInt(km);
@@ -5554,12 +5684,27 @@ async function loadRealSwipeProfiles(){
   try{
     const excludeUid = currentFirebaseUser ? currentFirebaseUser.uid : '';
 
-    // Requête de DIAGNOSTIC (temporaire) : sans le filtre onboarding_completed,
-    // pour voir absolument toutes les lignes que Supabase accepte de nous renvoyer.
-    const { data, error } = await supabaseClient
+    // Filtrage réel appliqué au niveau de la requête (pas seulement après
+    // réception) pour l'âge et le genre : évite de télécharger vers le
+    // navigateur les coordonnées GPS précises et données de profils qui ne
+    // devraient de toute façon jamais s'afficher. Le comportement reste
+    // identique à avant : âge minimum/maximum inclus, et les profils sans
+    // genre renseigné restent visibles même avec une préférence de genre
+    // active (choix produit déjà en place, conservé à l'identique).
+    let query = supabaseClient
       .from('profiles')
       .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, is_premium, premium_until, gender, is_single_parent')
-      .neq('firebase_uid', excludeUid);
+      .neq('firebase_uid', excludeUid)
+      .is('deleted_at', null)
+      .gte('age', myProfile.ageMin)
+      .lte('age', myProfile.ageMax);
+
+    const genderPrefs = myProfile.genderPreferences || [];
+    if(genderPrefs.length > 0){
+      query = query.or(`gender.is.null,gender.in.(${genderPrefs.join(',')})`);
+    }
+
+    const { data, error } = await query;
     if(error) throw error;
 
     swipeDebugLines = [];
@@ -5648,7 +5793,9 @@ async function loadRealSwipeProfiles(){
 }
 
 function applyRadiusFilter(){
-  const source = (supabaseClient && realSwipeProfiles !== null) ? realSwipeProfiles : swipeProfiles;
+  // Plus de repli sur de faux profils : sans Supabase configuré, la source
+  // est vide et l'écran affiche une vraie erreur (voir renderSwipeStack).
+  const source = (supabaseClient && realSwipeProfiles !== null) ? realSwipeProfiles : [];
   const genderPrefs = myProfile.genderPreferences || [];
   filteredProfiles = source.filter(p =>
     getProfileDistance(p) <= currentRadius &&
@@ -5712,7 +5859,14 @@ function renderSwipeStack(){
   const stack = document.getElementById('swipe-stack');
   stack.innerHTML = '';
 
-  if(supabaseClient && realSwipeProfiles !== null){
+  if(!supabaseClient){
+    // Plus de repli de démonstration : sans connexion Supabase réelle, on
+    // affiche une erreur claire plutôt qu'un faux profil ou un faux match.
+    stack.innerHTML = `<div class="swipe-empty"><span>⚠️</span>Connexion au service indisponible.<br>Merci de réessayer dans quelques instants.</div>`;
+    return;
+  }
+
+  if(realSwipeProfiles !== null){
     if(swipeLoadState === 'loading'){
       stack.innerHTML = `<div class="swipe-empty"><span>⏳</span>Chargement des profils…</div>`;
       return;
@@ -5754,7 +5908,7 @@ function renderSwipeStack(){
         <div class="stamp love">💜 RENCONTRE</div>
       </div>
       <div class="swipe-info">
-        <h3>${p.name}${p.age ? ', ' + p.age : ''} <span class="verified-tick" title="Identité vérifiée">✓</span></h3>
+        <h3>${p.name}${p.age ? ', ' + p.age : ''}</h3>
         ${(() => {
           const commons = p.tags.filter(t => myProfile.interests.some(i => i.toLowerCase().includes(t.toLowerCase())));
           return commons.length ? `<div class="passport-commons">❤️ ${commons.length} passion${commons.length>1?'s':''} en commun</div>` : '';
@@ -5987,11 +6141,11 @@ function flyOut(card, type){
           updateUndoButtonState();
           setTimeout(()=> showMatchOverlay(likedProfile, type, matchId), 250);
         }
-      } else if(likedProfile && Math.random() < 0.5){
-        // Comportement de démonstration conservé uniquement pour les profils fictifs
-        // (utilisé quand Supabase n'est pas configuré) — aucune vraie donnée à vérifier ici.
-        setTimeout(()=> showMatchOverlay(likedProfile, type), 250);
       }
+      // Plus de repli de démonstration ici : sans profil réel (isRealSwipe
+      // faux), on ne simule jamais de match — un like sur un profil non réel
+      // ne peut de toute façon plus se produire, la source de profils fictifs
+      // ayant été retirée plus haut.
     }
   }, 300);
 }
