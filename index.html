@@ -6107,6 +6107,8 @@ async function checkAndCreateMatch(otherProfileId, mode){
   if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return { matched: false, matchId: null };
   try{
     const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
+    // TEMPORAIRE — diagnostic visible à l'écran.
+    showToast(`[DEBUG] moi=${myProfile.supabaseId.slice(0,8)} autre=${otherProfileId.slice(0,8)} mode=${mode}`, '🛠️');
 
     // Règle définitive : une seule relation par duo, quel que soit le mode. Si une
     // relation existe déjà entre ces deux personnes, on ne crée jamais de doublon —
@@ -6115,8 +6117,9 @@ async function checkAndCreateMatch(otherProfileId, mode){
       .from('matches').select('id, mode')
       .eq('profile_a_id', profileAId).eq('profile_b_id', profileBId)
       .maybeSingle();
-    if(existingErr) throw existingErr;
+    if(existingErr){ showToast('[DEBUG] erreur lecture matches existant : ' + existingErr.message, '🛠️'); throw existingErr; }
     if(existingMatch){
+      showToast('[DEBUG] match DÉJÀ EXISTANT trouvé (mode=' + existingMatch.mode + '), id=' + existingMatch.id.slice(0,8), '🛠️');
       return { matched: true, matchId: existingMatch.id };
     }
 
@@ -6127,11 +6130,13 @@ async function checkAndCreateMatch(otherProfileId, mode){
       .eq('to_profile_id', myProfile.supabaseId)
       .eq('action', mode)
       .maybeSingle();
-    if(checkError) throw checkError;
+    if(checkError){ showToast('[DEBUG] erreur lecture swipe_actions : ' + checkError.message, '🛠️'); throw checkError; }
     if(!reciprocal){
+      showToast(`[DEBUG] aucune réciprocité trouvée pour mode=${mode} (autre→moi)`, '🛠️');
       console.info('[Match] Pas encore de réciprocité pour', mode);
       return { matched: false, matchId: null };
     }
+    showToast('[DEBUG] réciprocité confirmée, création du match…', '🛠️');
 
     // Réciprocité confirmée, et aucune relation existante : on crée le match.
     // La personne qui déclenche la création voit le popup immédiatement, donc
@@ -6149,10 +6154,12 @@ async function checkAndCreateMatch(otherProfileId, mode){
       }, { onConflict: 'profile_a_id,profile_b_id,mode' })
       .select('id')
       .maybeSingle();
-    if(insertError) throw insertError;
+    if(insertError){ showToast('[DEBUG] erreur création match : ' + insertError.message, '🛠️'); throw insertError; }
+    showToast('[DEBUG] match créé avec succès, id=' + (matchRow ? matchRow.id.slice(0,8) : 'null'), '🛠️');
     console.info('[Match] Match créé :', profileAId, profileBId, mode);
     return { matched: true, matchId: matchRow ? matchRow.id : null };
   } catch(e){
+    showToast('[DEBUG] catch global : ' + e.message, '🛠️');
     console.warn('[Match] Vérification/création impossible :', e.message);
     return { matched: false, matchId: null };
   }
@@ -8801,12 +8808,14 @@ async function renderMatchesLikedYou(){
       .order('created_at', { ascending: false });
     if(error) throw error;
 
-    // La vue who_liked_me ne connaît pas deleted_at : on exclut ici les
-    // comptes supprimés, pour qu'ils ne soient jamais présentés comme un
-    // profil actif ayant liké l'utilisateur.
+    // La vue who_liked_me masque volontairement liker_profile_id (NULL) pour
+    // un compte non-Premium — donc ce filtrage anti-comptes-supprimés ne peut
+    // s'appliquer que lorsque l'identifiant est réellement connu (Premium).
+    // Sans cette condition, "id IN (NULL, NULL...)" ne renvoie jamais rien et
+    // effaçait silencieusement toute la liste pour les comptes gratuits.
     let data = rawData || [];
-    if(data.length){
-      const ids = data.map(r => r.liker_profile_id);
+    if(myProfile.isPremiumActive && data.length){
+      const ids = data.map(r => r.liker_profile_id).filter(Boolean);
       const { data: activeProfiles } = await supabaseClient
         .from('profiles').select('id').in('id', ids).is('deleted_at', null);
       const activeIds = new Set((activeProfiles || []).map(p => p.id));
