@@ -8657,7 +8657,6 @@ async function renderMatchesList(){
 
     const matchCards = (await Promise.all(data.map(async (m) => {
       const otherId = m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id;
-      const isSeen = m.profile_a_id === myId ? m.seen_by_a : m.seen_by_b;
       let otherProfile = null;
       try{
         const { data: p } = await supabaseClient
@@ -8680,23 +8679,11 @@ async function renderMatchesList(){
         ? `background-image:url('${photoUrl}');`
         : `background:linear-gradient(135deg,#8B5A8C,#C98BA8);`;
 
-      // Match non vu : effet flouté façon "découverte Premium" — clic mène
-      // quand même au profil (qui marque le match comme vu à l'ouverture).
-      if(!isSeen){
-        return `
-          <div class="match-card-big" onclick="openMatchProfileDetail('${m.id}')">
-            <div class="match-card-big-photo blurred" style="${photoStyle}">
-              <div class="match-card-big-lock" style="flex-direction:column; gap:2px; font-size:12px; text-align:center; padding:8px;">
-                <div style="font-size:22px;">💎</div>
-                <div>Nouveau match</div>
-              </div>
-            </div>
-            <div class="match-card-big-body">
-              <div class="match-card-big-name">Découvre qui s'intéresse à toi</div>
-            </div>
-          </div>
-        `;
-      }
+      // Un vrai match réciproque n'est JAMAIS flouté, qu'il soit "vu" ou non —
+      // le flou est réservé exclusivement aux likes reçus SANS match réciproque
+      // (voir renderMatchesLikedYou). Le statut vu/non-vu ne sert plus qu'au
+      // compteur du badge ❤️ Matchs (fetchUnseenMatchesCount), jamais à
+      // l'affichage de la carte elle-même.
 
       // Passion commune réelle uniquement — jamais devinée, seulement si les
       // deux profils partagent effectivement au moins une catégorie déclarée.
@@ -9069,8 +9056,7 @@ async function loadRealMessages(conversationId){
       .select('sender_profile_id, content, created_at')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
-    if(error){ showToast('[DEBUG] erreur chargement messages : ' + error.message, '🛠️'); throw error; }
-    showToast(`[DEBUG] ${(data||[]).length} message(s) chargé(s) pour cette conversation`, '🛠️');
+    if(error) throw error;
     return (data || []).map(m => ({
       from: m.sender_profile_id === myProfile.supabaseId ? 'me' : 'them',
       text: m.content
@@ -9420,7 +9406,6 @@ async function sendMessage(){
       conversationId = await waitForConversationReady(conv, 8000);
     }
     if(!conversationId){
-      showToast('[DEBUG] conversation jamais prête (conversationId manquant)', '🛠️');
       console.warn('[Messages] Conversation jamais prête, message non sauvegardé');
       return;
     }
@@ -9431,14 +9416,10 @@ async function sendMessage(){
       content: text
     };
     if(!isGroup) payload.match_id = conv.id;
-    // TEMPORAIRE — diagnostic visible à l'écran, sans navigateur de bureau.
-    showToast('[DEBUG] envoi vers conversation ' + conversationId.slice(0,8), '🛠️');
     supabaseClient.from('messages').insert(payload).then(({error}) => {
       if(error){
-        showToast('[DEBUG] erreur envoi message : ' + error.message, '🛠️');
         console.warn('[Messages] Envoi impossible :', error.message);
       } else {
-        showToast('[DEBUG] message bien enregistré', '🛠️');
         console.info('[Messages] Message enregistré dans Supabase');
       }
     });
