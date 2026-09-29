@@ -6078,11 +6078,13 @@ async function recordSwipeAction(toProfileId, action){
         updated_at: new Date().toISOString()
       }, { onConflict: 'from_profile_id,to_profile_id' })
       .select();
-    if(error) throw error;
+    if(error){ showToast('[DEBUG swipe] erreur : ' + error.message, '🛠️'); throw error; }
     if(!data || data.length === 0){
+      showToast('[DEBUG swipe] upsert sans ligne retournée — bloqué par RLS probablement', '🛠️');
       console.warn('[Swipe] Aucune ligne renvoyée après upsert — probablement bloqué par une règle RLS.');
       return;
     }
+    showToast(`[DEBUG swipe] enregistré : ${action} vers ${toProfileId.slice(0,8)}`, '🛠️');
     console.info('[Swipe] Action enregistrée dans Supabase :', action, '→', toProfileId, data);
   } catch(e){
     console.warn('[Swipe] Enregistrement de l\'action impossible :', e.message);
@@ -6095,6 +6097,8 @@ async function checkAndCreateMatch(otherProfileId, mode){
   if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return { matched: false, matchId: null };
   try{
     const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
+    // TEMPORAIRE — diagnostic visible à l'écran, sans navigateur de bureau.
+    showToast(`[DEBUG] moi=${myProfile.supabaseId.slice(0,8)} autre=${otherProfileId.slice(0,8)} mode=${mode}`, '🛠️');
 
     // Règle définitive : une seule relation par duo, quel que soit le mode. Si une
     // relation existe déjà entre ces deux personnes, on ne crée jamais de doublon —
@@ -6103,8 +6107,9 @@ async function checkAndCreateMatch(otherProfileId, mode){
       .from('matches').select('id, mode')
       .eq('profile_a_id', profileAId).eq('profile_b_id', profileBId)
       .maybeSingle();
-    if(existingErr) throw existingErr;
+    if(existingErr){ showToast('[DEBUG] erreur lecture matches existant : ' + existingErr.message, '🛠️'); throw existingErr; }
     if(existingMatch){
+      showToast('[DEBUG] match déjà existant trouvé, id=' + existingMatch.id.slice(0,8), '🛠️');
       return { matched: true, matchId: existingMatch.id };
     }
 
@@ -6115,11 +6120,13 @@ async function checkAndCreateMatch(otherProfileId, mode){
       .eq('to_profile_id', myProfile.supabaseId)
       .eq('action', mode)
       .maybeSingle();
-    if(checkError) throw checkError;
+    if(checkError){ showToast('[DEBUG] erreur lecture swipe_actions : ' + checkError.message, '🛠️'); throw checkError; }
     if(!reciprocal){
+      showToast(`[DEBUG] aucune réciprocité trouvée pour mode=${mode} (autre→moi)`, '🛠️');
       console.info('[Match] Pas encore de réciprocité pour', mode);
       return { matched: false, matchId: null };
     }
+    showToast('[DEBUG] réciprocité confirmée, tentative de création du match…', '🛠️');
 
     // Réciprocité confirmée, et aucune relation existante : on crée le match
     const { data: matchRow, error: insertError } = await supabaseClient
@@ -6131,10 +6138,12 @@ async function checkAndCreateMatch(otherProfileId, mode){
       }, { onConflict: 'profile_a_id,profile_b_id,mode' })
       .select('id')
       .maybeSingle();
-    if(insertError) throw insertError;
+    if(insertError){ showToast('[DEBUG] erreur création match : ' + insertError.message, '🛠️'); throw insertError; }
+    if(!matchRow){ showToast('[DEBUG] insertion sans erreur mais sans ligne retournée (probablement RLS select)', '🛠️'); }
     console.info('[Match] Match créé :', profileAId, profileBId, mode);
     return { matched: true, matchId: matchRow ? matchRow.id : null };
   } catch(e){
+    showToast('[DEBUG] catch global : ' + e.message, '🛠️');
     console.warn('[Match] Vérification/création impossible :', e.message);
     return { matched: false, matchId: null };
   }
