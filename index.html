@@ -4347,6 +4347,27 @@ function logOut(){
 // personnelles), supprime réellement les photos du Storage, efface la
 // localisation, puis supprime le compte Firebase Auth pour empêcher toute
 // reconnexion.
+// Ré-authentifie l'utilisateur juste avant une action sensible (suppression
+// de compte), pour garantir que Firebase acceptera la suppression sans
+// jamais laisser un état intermédiaire (données anonymisées mais compte
+// Firebase toujours actif). Gère les deux méthodes de connexion existantes.
+async function reauthenticateCurrentUser(){
+  const providerId = currentFirebaseUser.providerData[0] && currentFirebaseUser.providerData[0].providerId;
+  if(providerId === 'google.com'){
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await currentFirebaseUser.reauthenticateWithPopup(provider);
+    return;
+  }
+  // Compte email/mot de passe : redemande le mot de passe via une invite
+  // simple, sans construire un nouvel écran dédié pour ce cas ponctuel.
+  const password = prompt("Pour confirmer la suppression, merci de ressaisir votre mot de passe :");
+  if(!password){
+    throw { code: 'auth/user-cancelled-reauth' };
+  }
+  const credential = firebase.auth.EmailAuthProvider.credential(currentFirebaseUser.email, password);
+  await currentFirebaseUser.reauthenticateWithCredential(credential);
+}
+
 async function deleteMyAccount(){
   if(!currentFirebaseUser || !firebaseAuth){
     showToast("Suppression impossible ici — ouvrez le fichier dans un vrai navigateur", "⚠️");
@@ -4357,15 +4378,31 @@ async function deleteMyAccount(){
     "Votre profil, vos photos et votre position seront supprimés. " +
     "Vos conversations et activités passées resteront visibles pour les " +
     "autres membres, mais votre nom sera remplacé par \"Utilisateur supprimé\".\n\n" +
+    "Il vous sera demandé de confirmer votre identité avant la suppression définitive.\n\n" +
     "Voulez-vous vraiment supprimer votre compte ?"
   );
   if(!confirmed) return;
+
+  // Étape 1 — garantir une session assez récente AVANT de toucher à la
+  // moindre donnée. Si cette étape échoue ou est annulée, rien n'a encore
+  // été modifié : aucun état intermédiaire possible.
+  try{
+    await reauthenticateCurrentUser();
+  } catch(e){
+    if(e.code === 'auth/user-cancelled-reauth'){
+      showToast("Suppression annulée.", "ℹ️");
+    } else {
+      console.warn('[Suppression] Ré-authentification impossible :', e.message || e.code);
+      showToast("Impossible de confirmer votre identité — suppression annulée, rien n'a été modifié.", "⚠️");
+    }
+    return;
+  }
 
   showToast("Suppression en cours…", "⏳");
 
   try{
     if(supabaseClient && myProfile.supabaseId){
-      // 1. Supprimer réellement les fichiers du Storage (pas seulement les lignes qui les référencent).
+      // 2. Supprimer réellement les fichiers du Storage (pas seulement les lignes qui les référencent).
       try{
         const { data: files } = await supabaseClient.storage.from('avatars').list(currentFirebaseUser.uid);
         if(files && files.length){
@@ -4376,14 +4413,14 @@ async function deleteMyAccount(){
         console.warn('[Suppression] Photos Storage :', e.message);
       }
 
-      // 2. Supprimer les lignes de la table des photos.
+      // 3. Supprimer les lignes de la table des photos.
       try{
         await supabaseClient.from('profile_photos').delete().eq('user_id', myProfile.supabaseId);
       } catch(e){
         console.warn('[Suppression] profile_photos :', e.message);
       }
 
-      // 3. Anonymiser le profil — jamais de suppression brutale de la ligne,
+      // 4. Anonymiser le profil — jamais de suppression brutale de la ligne,
       // pour ne pas casser les matchs/messages/activités où d'autres
       // utilisateurs ont une référence à ce profil.
       try{
@@ -4405,8 +4442,9 @@ async function deleteMyAccount(){
       }
     }
 
-    // 4. Supprimer réellement le compte Firebase Auth — empêche toute
-    // reconnexion future avec cet email/compte Google.
+    // 5. Supprimer réellement le compte Firebase Auth — la ré-authentification
+    // de l'étape 1 garantit que cet appel ne peut plus échouer pour cause de
+    // session trop ancienne.
     await currentFirebaseUser.delete();
 
     currentFirebaseUser = null;
@@ -4414,11 +4452,6 @@ async function deleteMyAccount(){
     showToast("Votre compte a bien été supprimé.", "✅");
     showScreen('login');
   } catch(e){
-    if(e.code === 'auth/requires-recent-login'){
-      showToast("Pour votre sécurité, reconnectez-vous puis réessayez immédiatement.", "🔒");
-      logOut();
-      return;
-    }
     console.warn('[Suppression] Compte Firebase :', e.message);
     showToast("La suppression du compte a échoué. Vos données ont déjà été anonymisées ; contactez le support pour finaliser.", "⚠️");
   }
