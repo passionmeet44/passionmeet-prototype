@@ -8994,7 +8994,8 @@ async function loadRealMessages(conversationId){
       .select('sender_profile_id, content, created_at')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
-    if(error) throw error;
+    if(error){ showToast('[DEBUG] erreur chargement messages : ' + error.message, '🛠️'); throw error; }
+    showToast(`[DEBUG] ${(data||[]).length} message(s) chargé(s) pour cette conversation`, '🛠️');
     return (data || []).map(m => ({
       from: m.sender_profile_id === myProfile.supabaseId ? 'me' : 'them',
       text: m.content
@@ -9278,6 +9279,7 @@ async function sendMessage(){
       conversationId = await waitForConversationReady(conv, 8000);
     }
     if(!conversationId){
+      showToast('[DEBUG] conversation jamais prête (conversationId manquant)', '🛠️');
       console.warn('[Messages] Conversation jamais prête, message non sauvegardé');
       return;
     }
@@ -9288,9 +9290,16 @@ async function sendMessage(){
       content: text
     };
     if(!isGroup) payload.match_id = conv.id;
+    // TEMPORAIRE — diagnostic visible à l'écran, sans navigateur de bureau.
+    showToast('[DEBUG] envoi vers conversation ' + conversationId.slice(0,8), '🛠️');
     supabaseClient.from('messages').insert(payload).then(({error}) => {
-      if(error) console.warn('[Messages] Envoi impossible :', error.message);
-      else console.info('[Messages] Message enregistré dans Supabase');
+      if(error){
+        showToast('[DEBUG] erreur envoi message : ' + error.message, '🛠️');
+        console.warn('[Messages] Envoi impossible :', error.message);
+      } else {
+        showToast('[DEBUG] message bien enregistré', '🛠️');
+        console.info('[Messages] Message enregistré dans Supabase');
+      }
     });
   }
 }
