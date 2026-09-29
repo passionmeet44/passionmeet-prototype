@@ -6078,13 +6078,11 @@ async function recordSwipeAction(toProfileId, action){
         updated_at: new Date().toISOString()
       }, { onConflict: 'from_profile_id,to_profile_id' })
       .select();
-    if(error){ showToast('[DEBUG swipe] erreur : ' + error.message, '🛠️'); throw error; }
+    if(error) throw error;
     if(!data || data.length === 0){
-      showToast('[DEBUG swipe] upsert sans ligne retournée — bloqué par RLS probablement', '🛠️');
       console.warn('[Swipe] Aucune ligne renvoyée après upsert — probablement bloqué par une règle RLS.');
       return;
     }
-    showToast(`[DEBUG swipe] enregistré : ${action} vers ${toProfileId.slice(0,8)}`, '🛠️');
     console.info('[Swipe] Action enregistrée dans Supabase :', action, '→', toProfileId, data);
   } catch(e){
     console.warn('[Swipe] Enregistrement de l\'action impossible :', e.message);
@@ -6097,8 +6095,6 @@ async function checkAndCreateMatch(otherProfileId, mode){
   if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return { matched: false, matchId: null };
   try{
     const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
-    // TEMPORAIRE — diagnostic visible à l'écran, sans navigateur de bureau.
-    showToast(`[DEBUG] moi=${myProfile.supabaseId.slice(0,8)} autre=${otherProfileId.slice(0,8)} mode=${mode}`, '🛠️');
 
     // Règle définitive : une seule relation par duo, quel que soit le mode. Si une
     // relation existe déjà entre ces deux personnes, on ne crée jamais de doublon —
@@ -6107,9 +6103,8 @@ async function checkAndCreateMatch(otherProfileId, mode){
       .from('matches').select('id, mode')
       .eq('profile_a_id', profileAId).eq('profile_b_id', profileBId)
       .maybeSingle();
-    if(existingErr){ showToast('[DEBUG] erreur lecture matches existant : ' + existingErr.message, '🛠️'); throw existingErr; }
+    if(existingErr) throw existingErr;
     if(existingMatch){
-      showToast('[DEBUG] match déjà existant trouvé, id=' + existingMatch.id.slice(0,8), '🛠️');
       return { matched: true, matchId: existingMatch.id };
     }
 
@@ -6120,13 +6115,11 @@ async function checkAndCreateMatch(otherProfileId, mode){
       .eq('to_profile_id', myProfile.supabaseId)
       .eq('action', mode)
       .maybeSingle();
-    if(checkError){ showToast('[DEBUG] erreur lecture swipe_actions : ' + checkError.message, '🛠️'); throw checkError; }
+    if(checkError) throw checkError;
     if(!reciprocal){
-      showToast(`[DEBUG] aucune réciprocité trouvée pour mode=${mode} (autre→moi)`, '🛠️');
       console.info('[Match] Pas encore de réciprocité pour', mode);
       return { matched: false, matchId: null };
     }
-    showToast('[DEBUG] réciprocité confirmée, tentative de création du match…', '🛠️');
 
     // Réciprocité confirmée, et aucune relation existante : on crée le match
     const { data: matchRow, error: insertError } = await supabaseClient
@@ -6138,12 +6131,10 @@ async function checkAndCreateMatch(otherProfileId, mode){
       }, { onConflict: 'profile_a_id,profile_b_id,mode' })
       .select('id')
       .maybeSingle();
-    if(insertError){ showToast('[DEBUG] erreur création match : ' + insertError.message, '🛠️'); throw insertError; }
-    if(!matchRow){ showToast('[DEBUG] insertion sans erreur mais sans ligne retournée (probablement RLS select)', '🛠️'); }
+    if(insertError) throw insertError;
     console.info('[Match] Match créé :', profileAId, profileBId, mode);
     return { matched: true, matchId: matchRow ? matchRow.id : null };
   } catch(e){
-    showToast('[DEBUG] catch global : ' + e.message, '🛠️');
     console.warn('[Match] Vérification/création impossible :', e.message);
     return { matched: false, matchId: null };
   }
@@ -6613,11 +6604,17 @@ async function getOrCreatePrivateConversation(matchId){
     if(insErr) throw insErr;
     if(!created) return null;
 
-    const { error: memErr } = await supabaseClient.from('conversation_members').insert([
-      { conversation_id: created.id, profile_id: pairA },
-      { conversation_id: created.id, profile_id: pairB }
-    ]);
-    if(memErr) console.warn('[Messages] Ajout des membres impossible :', memErr.message);
+    // Ajout des deux membres un par un, jamais en un seul lot : un doublon
+    // ou un refus sur l'un ne doit jamais empêcher l'ajout réel de l'autre
+    // (même correctif déjà appliqué et validé pour les groupes d'activités).
+    for(const pid of [pairA, pairB]){
+      const { error: memErr } = await supabaseClient.from('conversation_members').insert(
+        { conversation_id: created.id, profile_id: pid }
+      );
+      if(memErr && memErr.code !== '23505' && !(memErr.message || '').toLowerCase().includes('duplicate')){
+        console.warn('[Messages] Ajout d\'un membre impossible :', memErr.message);
+      }
+    }
     return created.id;
   } catch(e){
     console.warn('[Messages] Récupération/création de la conversation impossible :', e.message);
@@ -8603,23 +8600,29 @@ async function renderMatchesList(){
       return;
     }
 
-    const matchCards = await Promise.all(data.map(async (m) => {
+    const matchCards = (await Promise.all(data.map(async (m) => {
       const otherId = m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id;
       let otherProfile = null;
       try{
         const { data: p } = await supabaseClient
-          .from('profiles').select('first_name, age, passions').eq('id', otherId).maybeSingle();
+          .from('profiles').select('first_name, age, passions').eq('id', otherId).is('deleted_at', null).maybeSingle();
         otherProfile = p;
       } catch(e){}
+
+      // Compte supprimé (ou profil introuvable) : ce match ne doit plus
+      // apparaître comme actif — exclu entièrement de la liste, pas affiché
+      // avec un nom générique.
+      if(!otherProfile) return null;
+
       const photoUrl = await getMainPhotoForProfile(otherId);
-      const name = otherProfile && otherProfile.first_name ? otherProfile.first_name : 'Membre';
-      const age = otherProfile && otherProfile.age ? `, ${otherProfile.age} ans` : '';
+      const name = otherProfile.first_name || 'Membre';
+      const age = otherProfile.age ? `, ${otherProfile.age} ans` : '';
 
       currentMatchesData.push({ matchId: m.id, otherId, name, mode: m.mode, photoUrl });
 
       // Passion commune réelle uniquement — jamais devinée, seulement si les
       // deux profils partagent effectivement au moins une catégorie déclarée.
-      const theirPassions = Array.isArray(otherProfile && otherProfile.passions) ? otherProfile.passions : [];
+      const theirPassions = Array.isArray(otherProfile.passions) ? otherProfile.passions : [];
       const myPassions = myProfile.interests || [];
       const shared = theirPassions.find(p => myPassions.includes(p));
 
@@ -8637,7 +8640,14 @@ async function renderMatchesList(){
           </div>
         </div>
       `;
-    }));
+    }))).filter(Boolean);
+
+    if(matchCards.length === 0){
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match.<br>Continuez à swiper, ça ne saurait tarder !
+        <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
+      </div>`;
+      return;
+    }
 
     list.innerHTML = `<div class="match-grid">${matchCards.join('')}</div>`;
     refreshUnreadBadges();
@@ -8724,10 +8734,23 @@ async function renderMatchesLikedYou(){
   const section = document.getElementById('matches-liked-you-section');
   if(!section || !supabaseClient || !myProfile.supabaseId){ if(section) section.innerHTML = ''; return; }
   try{
-    const { data, error } = await supabaseClient
+    const { data: rawData, error } = await supabaseClient
       .from('who_liked_me').select('liker_profile_id, mode, created_at, first_name, age')
       .order('created_at', { ascending: false });
     if(error) throw error;
+
+    // La vue who_liked_me ne connaît pas deleted_at : on exclut ici les
+    // comptes supprimés, pour qu'ils ne soient jamais présentés comme un
+    // profil actif ayant liké l'utilisateur.
+    let data = rawData || [];
+    if(data.length){
+      const ids = data.map(r => r.liker_profile_id);
+      const { data: activeProfiles } = await supabaseClient
+        .from('profiles').select('id').in('id', ids).is('deleted_at', null);
+      const activeIds = new Set((activeProfiles || []).map(p => p.id));
+      data = data.filter(r => activeIds.has(r.liker_profile_id));
+    }
+
     if(!data || data.length === 0){ section.innerHTML = ''; return; }
 
     if(!myProfile.isPremiumActive){
@@ -8993,8 +9016,11 @@ async function openMatchChat(matchId, returnTo){
         .from('matches').select('profile_a_id, profile_b_id, mode').eq('id', matchId).maybeSingle();
       if(matchRow){
         const otherId = matchRow.profile_a_id === myProfile.supabaseId ? matchRow.profile_b_id : matchRow.profile_a_id;
-        const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', otherId).maybeSingle();
-        m = { matchId, name: p && p.first_name ? p.first_name : 'Membre', mode: matchRow.mode, otherId };
+        // Compte supprimé : ne jamais rouvrir ce profil comme s'il était actif.
+        const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', otherId).is('deleted_at', null).maybeSingle();
+        if(p){
+          m = { matchId, name: p.first_name || 'Membre', mode: matchRow.mode, otherId };
+        }
       }
     } catch(e){ console.warn('[Messages] Récupération du match impossible :', e.message); }
   }
