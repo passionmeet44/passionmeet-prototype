@@ -6107,8 +6107,6 @@ async function checkAndCreateMatch(otherProfileId, mode){
   if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return { matched: false, matchId: null };
   try{
     const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
-    // TEMPORAIRE — diagnostic visible à l'écran.
-    showToast(`[DEBUG] moi=${myProfile.supabaseId.slice(0,8)} autre=${otherProfileId.slice(0,8)} mode=${mode}`, '🛠️');
 
     // Règle définitive : une seule relation par duo, quel que soit le mode. Si une
     // relation existe déjà entre ces deux personnes, on ne crée jamais de doublon —
@@ -6117,9 +6115,8 @@ async function checkAndCreateMatch(otherProfileId, mode){
       .from('matches').select('id, mode')
       .eq('profile_a_id', profileAId).eq('profile_b_id', profileBId)
       .maybeSingle();
-    if(existingErr){ showToast('[DEBUG] erreur lecture matches existant : ' + existingErr.message, '🛠️'); throw existingErr; }
+    if(existingErr) throw existingErr;
     if(existingMatch){
-      showToast('[DEBUG] match DÉJÀ EXISTANT trouvé (mode=' + existingMatch.mode + '), id=' + existingMatch.id.slice(0,8), '🛠️');
       return { matched: true, matchId: existingMatch.id };
     }
 
@@ -6130,13 +6127,11 @@ async function checkAndCreateMatch(otherProfileId, mode){
       .eq('to_profile_id', myProfile.supabaseId)
       .eq('action', mode)
       .maybeSingle();
-    if(checkError){ showToast('[DEBUG] erreur lecture swipe_actions : ' + checkError.message, '🛠️'); throw checkError; }
+    if(checkError) throw checkError;
     if(!reciprocal){
-      showToast(`[DEBUG] aucune réciprocité trouvée pour mode=${mode} (autre→moi)`, '🛠️');
       console.info('[Match] Pas encore de réciprocité pour', mode);
       return { matched: false, matchId: null };
     }
-    showToast('[DEBUG] réciprocité confirmée, création du match…', '🛠️');
 
     // Réciprocité confirmée, et aucune relation existante : on crée le match.
     // La personne qui déclenche la création voit le popup immédiatement, donc
@@ -6154,12 +6149,10 @@ async function checkAndCreateMatch(otherProfileId, mode){
       }, { onConflict: 'profile_a_id,profile_b_id,mode' })
       .select('id')
       .maybeSingle();
-    if(insertError){ showToast('[DEBUG] erreur création match : ' + insertError.message, '🛠️'); throw insertError; }
-    showToast('[DEBUG] match créé avec succès, id=' + (matchRow ? matchRow.id.slice(0,8) : 'null'), '🛠️');
+    if(insertError) throw insertError;
     console.info('[Match] Match créé :', profileAId, profileBId, mode);
     return { matched: true, matchId: matchRow ? matchRow.id : null };
   } catch(e){
-    showToast('[DEBUG] catch global : ' + e.message, '🛠️');
     console.warn('[Match] Vérification/création impossible :', e.message);
     return { matched: false, matchId: null };
   }
