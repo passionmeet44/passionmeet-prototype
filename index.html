@@ -1426,7 +1426,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  #swipe-radius-map{ height:130px; border-radius:14px; margin-top:8px; overflow:hidden; position:relative; z-index:0; }
+  #swipe-radius-map, #df-radius-map{ height:150px; width:100%; border-radius:14px; margin-top:10px; overflow:hidden; position:relative; z-index:0; background:var(--lavender); }
+  .radius-map-fallback{ height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px; font-size:12px; color:var(--plum-soft); }
 </style>
 </head>
 <body>
@@ -2247,6 +2248,7 @@
     <div style="padding:0 22px 100px;">
       <div class="form-label">Rayon de recherche <span id="df-radius-value"></span></div>
       <input type="range" min="1" max="100" id="df-radius-input" oninput="onDiscoverRadiusChange(this.value)">
+      <div id="df-radius-map"></div>
 
       <div class="form-label" style="margin-top:22px;">Tranche d'âge recherchée</div>
       <div class="age-inputs">
@@ -3443,7 +3445,7 @@ function showScreen(name){
     document.getElementById('nav-messages').classList.toggle('active', name==='messages');
     document.getElementById('nav-profile').classList.toggle('active', name==='profile');
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
-    if(name==='swipe'){ updateDiscoverFiltersBadge(); setTimeout(()=> updateRadiusMap(currentRadius), 150); }
+    if(name==='swipe'){ updateDiscoverFiltersBadge(); setTimeout(()=> updateRadiusMap(currentRadius), 300); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
     if(name==='activities-list'){ renderVenueRecommendations(); }
     if(name==='matches'){ renderMatchesList(); }
@@ -5434,25 +5436,47 @@ let filteredProfiles = [];
 // Carte du rayon : cercle autour de la position utilisée pour les distances,
 // qui s'agrandit avec le curseur. Aucune donnée envoyée à un tiers en dehors
 // du chargement des tuiles OpenStreetMap.
-let radiusMap = null, radiusCircle = null;
-function updateRadiusMap(km){
-  const el = document.getElementById('swipe-radius-map');
-  if(!el || typeof L === 'undefined' || !userCoords) return;
-  if(el.offsetParent === null) return; // écran masqué : on dessinera à l'affichage
+const radiusMaps = {}; // une carte par conteneur (Découvrir + panneau Filtres)
+
+function drawRadiusMap(containerId, km){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  if(typeof L === 'undefined'){
+    el.innerHTML = '<div class="radius-map-fallback">Carte indisponible : la bibliothèque de carte n\'a pas pu se charger.</div>';
+    return;
+  }
+  if(!userCoords){
+    el.innerHTML = '<div class="radius-map-fallback">Position inconnue : active la localisation pour voir ta zone.</div>';
+    return;
+  }
+  const box = el.getBoundingClientRect();
+  if(box.width === 0 || box.height === 0) return; // écran masqué : on dessinera à l'affichage
   const radiusM = (parseInt(km) || currentRadius || 20) * 1000;
   try{
-    if(!radiusMap){
-      radiusMap = L.map(el, { zoomControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18, attribution:'© OpenStreetMap' }).addTo(radiusMap);
-      radiusCircle = L.circle(userCoords, { radius: radiusM, color:'#6B4472', weight:2, fillColor:'#E5722A', fillOpacity:0.15 }).addTo(radiusMap);
+    let entry = radiusMaps[containerId];
+    if(!entry){
+      el.innerHTML = '';
+      const map = L.map(el, { zoomControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap © CARTO'
+      }).addTo(map);
+      const circle = L.circle(userCoords, { radius: radiusM, color:'#6B4472', weight:2, fillColor:'#E5722A', fillOpacity:0.15 }).addTo(map);
+      entry = radiusMaps[containerId] = { map, circle };
     }
-    radiusCircle.setLatLng(userCoords);
-    radiusCircle.setRadius(radiusM);
-    radiusMap.invalidateSize();
-    radiusMap.fitBounds(radiusCircle.getBounds(), { padding:[8,8] });
+    entry.circle.setLatLng(userCoords);
+    entry.circle.setRadius(radiusM);
+    entry.map.invalidateSize();
+    entry.map.fitBounds(entry.circle.getBounds(), { padding:[8,8] });
   } catch(e){
     console.warn('[Carte rayon] Affichage impossible :', e.message);
+    el.innerHTML = '<div class="radius-map-fallback">Carte indisponible pour le moment.</div>';
+    delete radiusMaps[containerId];
   }
+}
+
+function updateRadiusMap(km){
+  drawRadiusMap('swipe-radius-map', km);
+  drawRadiusMap('df-radius-map', km);
 }
 
 function setRadius(km){
@@ -5551,6 +5575,7 @@ function updateDiscoverFiltersBadge(){
 }
 
 function openDiscoverFilters(){
+  setTimeout(()=> updateRadiusMap(currentRadius), 350);
   document.getElementById('df-radius-input').value = currentRadius;
   document.getElementById('df-radius-value').textContent = currentRadius + ' km';
   document.getElementById('df-age-min').value = myProfile.ageMin || 18;
