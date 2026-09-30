@@ -7142,7 +7142,8 @@ function openCreateActivityReal(){
   errBox.textContent = '';
 
   const select = document.getElementById('ract-form-category');
-  select.innerHTML = categories.map(c => `<option value="${c.key}">${c.emoji} ${c.label}</option>`).join('');
+  // Mêmes 9 catégories officielles que les filtres « Quoi ? » : une seule taxonomie.
+  select.innerHTML = CATALOG_CATEGORIES.map(c => `<option value="${c.label}">${c.label}</option>`).join('');
 
   showScreen('create-activity-real');
 }
@@ -7528,7 +7529,7 @@ async function toggleActivityFavorite(activityId, el){
 }
 
 async function buildActivityCardHtml(a){
-  const cat = categories.find(c => c.key === a.category);
+  const cat = findActivityCategoryVisual(a.category);
   const emoji = cat ? cat.emoji : '🎉';
 
   // Vrais participants (identifiants), pour le compteur et les avatars.
@@ -7875,6 +7876,16 @@ async function fetchVenuesCatalog(){
     console.warn('[Catalogue] Chargement impossible :', e.message);
     return { venues: [], activities: [] };
   }
+}
+
+// Emoji / couleur / libellé d'une sortie, que sa catégorie soit une ancienne
+// clé (sorties créées avant l'unification) ou l'une des 9 catégories officielles.
+function findActivityCategoryVisual(value){
+  const old = categories.find(c => c.key === value);
+  if(old) return old;
+  const official = CATALOG_CATEGORIES.find(c => c.label === value);
+  if(official) return { key: value, emoji: official.emoji, bg: official.bg, label: official.label.replace(/^\S+\s/, '') };
+  return null;
 }
 
 function catalogPriceInfo(status){
@@ -8657,7 +8668,7 @@ async function renderActivitiesList(){
       if(dist != null && dist > activityRadius) return false; // filtre uniquement si la distance est connue
       if(activityCityFilter && !normalizeText(a.location || '').includes(activityCityFilter)) return false;
       if(activitySearchQuery){
-        const catLabel = (categories.find(c => c.key === a.category) || {}).label || '';
+        const catLabel = (findActivityCategoryVisual(a.category) || {}).label || '';
         const haystack = normalizeText(`${a.title || ''} ${a.description || ''} ${catLabel}`);
         if(!haystack.includes(activitySearchQuery)) return false;
       }
@@ -8861,7 +8872,7 @@ async function fetchSingleActivityForDetail(activityId){
       .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point')
       .eq('id', activityId).maybeSingle();
     if(error || !a) throw (error || new Error('introuvable'));
-    const cat = categories.find(c => c.key === a.category);
+    const cat = findActivityCategoryVisual(a.category);
     const emoji = cat ? cat.emoji : '🎉';
     const bg = cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
     let organizerName = 'Membre';
