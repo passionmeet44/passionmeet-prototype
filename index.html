@@ -5710,6 +5710,48 @@ function mapSupabaseRowToSwipeCard(row, photoUrl){
   };
 }
 
+// Renvoie la liste des profils bloqués, dans les deux sens (que ce soit moi
+// qui aie bloqué, ou l'inverse) — utilisée pour exclure ces comptes de la
+// découverte et des matchs, de façon symétrique et cohérente partout.
+async function getBlockedProfileIds(){
+  if(!supabaseClient || !myProfile.supabaseId) return [];
+  try{
+    const myId = myProfile.supabaseId;
+    const { data, error } = await supabaseClient
+      .from('blocked_users').select('blocker_profile_id, blocked_profile_id')
+      .or(`blocker_profile_id.eq.${myId},blocked_profile_id.eq.${myId}`);
+    if(error) throw error;
+    return (data || []).map(r => r.blocker_profile_id === myId ? r.blocked_profile_id : r.blocker_profile_id);
+  } catch(e){
+    console.warn('[Blocage] Impossible de récupérer les comptes bloqués :', e.message);
+    return [];
+  }
+}
+
+// Bloque définitivement un profil : n'apparaîtra plus jamais dans la
+// découverte, ni dans les matchs/messages de l'utilisateur qui bloque.
+async function blockUser(otherProfileId, otherName){
+  if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return;
+  const confirmed = confirm(
+    `Bloquer ${otherName || 'cette personne'} ?\n\n` +
+    "Vous ne verrez plus son profil, et vos matchs/conversations avec elle disparaîtront de votre liste."
+  );
+  if(!confirmed) return;
+  try{
+    const { error } = await supabaseClient.from('blocked_users').insert({
+      blocker_profile_id: myProfile.supabaseId,
+      blocked_profile_id: otherProfileId
+    });
+    if(error && error.code !== '23505') throw error; // 23505 = déjà bloqué, sans conséquence
+    showToast('Ce profil a été bloqué.', '🚫');
+    showScreen('matches');
+    renderMatchesList();
+  } catch(e){
+    console.warn('[Blocage] Échec :', e.message);
+    showToast("Le blocage n'a pas pu être effectué, réessayez.", '⚠️');
+  }
+}
+
 async function getMainPhotoForProfile(profileId){
   try{
     const { data, error } = await supabaseClient
@@ -5729,6 +5771,11 @@ async function loadRealSwipeProfiles(){
   try{
     const excludeUid = currentFirebaseUser ? currentFirebaseUser.uid : '';
 
+    // Exclusion des comptes bloqués, dans les deux sens (que ce soit moi qui
+    // aie bloqué, ou l'inverse) — avant même de construire la requête
+    // principale, pour ne jamais faire transiter leurs données.
+    const blockedIds = await getBlockedProfileIds();
+
     // Filtrage réel appliqué au niveau de la requête (pas seulement après
     // réception) pour l'âge et le genre : évite de télécharger vers le
     // navigateur les coordonnées GPS précises et données de profils qui ne
@@ -5743,6 +5790,10 @@ async function loadRealSwipeProfiles(){
       .is('deleted_at', null)
       .gte('age', myProfile.ageMin)
       .lte('age', myProfile.ageMax);
+
+    if(blockedIds.length > 0){
+      query = query.not('id', 'in', `(${blockedIds.join(',')})`);
+    }
 
     const genderPrefs = myProfile.genderPreferences || [];
     if(genderPrefs.length > 0){
@@ -8641,6 +8692,7 @@ async function renderMatchesList(){
   list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>⏳</span>Chargement de vos matchs…</div>`;
   try{
     const myId = myProfile.supabaseId;
+    const blockedIds = await getBlockedProfileIds();
     const { data, error } = await supabaseClient
       .from('matches')
       .select('id, profile_a_id, profile_b_id, mode, created_at, seen_by_a, seen_by_b')
@@ -8648,14 +8700,21 @@ async function renderMatchesList(){
       .order('created_at', { ascending: false });
     if(error) throw error;
 
-    if(!data || data.length === 0){
+    // Un match avec un compte bloqué (dans un sens ou l'autre) disparaît de
+    // ma propre liste — même logique symétrique que pour la découverte.
+    const visibleMatches = (data || []).filter(m => {
+      const otherId = m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id;
+      return !blockedIds.includes(otherId);
+    });
+
+    if(visibleMatches.length === 0){
       list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match.<br>Continuez à swiper, ça ne saurait tarder !
         <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
       </div>`;
       return;
     }
 
-    const matchCards = (await Promise.all(data.map(async (m) => {
+    const matchCards = (await Promise.all(visibleMatches.map(async (m) => {
       const otherId = m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id;
       let otherProfile = null;
       try{
@@ -9126,6 +9185,7 @@ async function openMatchProfileDetail(matchId){
         ${p.bio ? `<p style="margin-top:14px; color:var(--plum-soft); line-height:1.5;">${escapeHtml(p.bio)}</p>` : ''}
         ${passionsHtml ? `<div class="swipe-tags" style="margin-top:14px;">${passionsHtml}</div>` : ''}
         <button class="btn-primary" style="width:100%; margin-top:26px;" onclick="openMatchChat('${matchId}')">💬 Envoyer un message</button>
+        <div class="report-link" style="margin-top:16px;" onclick="blockUser('${otherId}', '${escapeHtml(p.first_name || 'cette personne').replace(/'/g, "\\'")}')">🚫 Bloquer ce profil</div>
       </div>
     `;
     showScreen('match-profile-detail');
