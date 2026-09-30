@@ -2132,6 +2132,13 @@
         <option value="paid">Payant</option>
       </select>
       <input class="form-input" id="ract-form-price" type="number" min="0" step="0.5" placeholder="Prix par personne (€)" style="display:none;">
+      <div class="form-label" style="margin-top:10px;">Répétition</div>
+      <select class="form-input" id="ract-form-recurrence">
+        <option value="">Une seule fois</option>
+        <option value="weekly">🔁 Chaque semaine</option>
+        <option value="monthly">🔁 Chaque mois</option>
+      </select>
+      <div class="form-hint">Pour un rendez-vous régulier : la date passe automatiquement à la suivante, avec le même groupe.</div>
 
       <div class="form-label">Mode</div>
       <div class="mode-badge-row">
@@ -2197,6 +2204,10 @@
         <div id="ract-participants-list"></div>
       </div>
       <button class="btn-join" id="ract-cta" onclick="toggleActivityParticipation()">Je participe</button>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn-primary" id="ract-group-btn" style="flex:1; margin:0; display:none;" onclick="openActivityGroupChat(currentActivityDetail.id)">💬 Écrire au groupe</button>
+        <button class="btn-primary" style="flex:1; margin:0; background:#fff; color:var(--plum); border:1px solid var(--lavender);" onclick="shareCurrentActivity()">📤 Partager</button>
+      </div>
       <div class="report-link" id="ract-report-link" onclick="openActivityReportModal()">🚩 Signaler cette activité</div>
     </div>
   </div>
@@ -4598,6 +4609,7 @@ try{
         window.__PM_AUTH_STEP = 'renderCategoryGrid';
         try{ renderCategoryGrid(); } catch(e){ console.warn('[Auth] renderCategoryGrid a échoué :', e.message); }
         try{ initGeolocationPriority(); } catch(e){ console.warn('[Auth] initGeolocationPriority a échoué :', e.message); }
+        try{ openSharedActivityFromUrl(); } catch(e){ console.warn('[Auth] Lien de sortie partagée :', e.message); }
         window.__PM_AUTH_STEP = 'showScreen(home)';
         console.info('[Auth] 4. Navigation vers l\'accueil');
         showScreen('home');
@@ -5068,6 +5080,24 @@ function computeProfileCompletion(){
 function renderProfileScreen(){
   const cityLine = document.getElementById('profile-city-line');
   if(cityLine) cityLine.textContent = myProfile.city ? `📍 ${myProfile.city}` : '';
+  const orgBadgeRow = document.querySelector('#screen-profile .profile-badge-row');
+  if(orgBadgeRow && myProfile.supabaseId){
+    getOrganizerCount(myProfile.supabaseId).then(n => {
+      let el = document.getElementById('profile-organizer-badge');
+      if(n >= ORGANIZER_BADGE_MIN){
+        if(!el){
+          el = document.createElement('span');
+          el.id = 'profile-organizer-badge';
+          el.className = 'mode-badge';
+          el.textContent = '⭐ Organisateur';
+          orgBadgeRow.appendChild(el);
+        }
+        el.style.display = 'inline-block';
+      } else if(el){
+        el.style.display = 'none';
+      }
+    });
+  }
   migrateOldInterestsIfNeeded(); // convertit silencieusement les anciennes catégories vers les 9 officielles
   const nameEl = document.getElementById('profile-name');
   if(nameEl) nameEl.textContent = myProfile.name + (myProfile.age ? ', ' + myProfile.age + ' ans' : '');
@@ -7450,6 +7480,8 @@ function openCreateActivityReal(){
   if(priceTypeReset) priceTypeReset.value = '';
   const priceReset = document.getElementById('ract-form-price');
   if(priceReset){ priceReset.value = ''; priceReset.style.display = 'none'; }
+  const recurrenceReset = document.getElementById('ract-form-recurrence');
+  if(recurrenceReset) recurrenceReset.value = '';
   selectedLocationCoords = null;
   document.getElementById('ract-location-suggestions').style.display = 'none';
   document.getElementById('ract-form-meeting-point').value = '';
@@ -7646,6 +7678,8 @@ async function submitRealActivity(){
   const priceType = priceTypeEl ? priceTypeEl.value : '';
   const priceRaw = document.getElementById('ract-form-price') ? document.getElementById('ract-form-price').value : '';
   const priceEur = priceType === 'paid' && priceRaw !== '' ? parseFloat(priceRaw) : null;
+  const recurrenceEl = document.getElementById('ract-form-recurrence');
+  const recurrence = recurrenceEl ? recurrenceEl.value : '';
 
   // Validation des champs obligatoires
   if(!title || !category || !date || !location){
@@ -7712,12 +7746,14 @@ async function submitRealActivity(){
       moderation_reason: moderation.reason,
       ...(transitAccessible ? { transit_accessible: true } : {}),
       ...(priceType === 'free' ? { is_free: true } : {}),
-      ...(priceType === 'paid' ? { is_free: false, price_eur: priceEur } : {})
+      ...(priceType === 'paid' ? { is_free: false, price_eur: priceEur } : {}),
+      ...(recurrence ? { recurrence } : {})
     }).select('id').maybeSingle();
     if(error) throw error;
 
     // L'organisateur participe à sa propre sortie : il occupe une place et
     // fait partie du groupe de discussion dès sa création.
+    delete organizerCountCache[myProfile.supabaseId]; // le badge ⭐ se recalcule
     if(createdActivity && createdActivity.id){
       try{
         await supabaseClient.from('activity_participants')
@@ -7897,7 +7933,8 @@ async function buildActivityCardHtml(a){
     activity_date: a.activity_date, activity_time: a.activity_time, location: a.location,
     organizerName, organizerId: a.organizer_profile_id, emoji,
     bg: cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)',
-    maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode, meetingPoint: a.meeting_point
+    maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode, meetingPoint: a.meeting_point,
+    recurrence: a.recurrence || null
   });
 
   const dateLabel = a.activity_date
@@ -7941,6 +7978,7 @@ async function buildActivityCardHtml(a){
   if(a.is_free === true) badges.push(`<span class="ac-badge free">Gratuit</span>`);
   else if(a.is_free === false) badges.push(`<span class="ac-badge paid">${a.price_eur != null ? String(a.price_eur).replace('.', ',') + ' €' : '€'}</span>`);
   if(a.transit_accessible) badges.push(`<span class="ac-badge">🚋 Tram/bus</span>`);
+  if(a.recurrence) badges.push(`<span class="ac-badge">${recurrenceLabel(a.recurrence)}</span>`);
   if(a.matchesPassion) badges.push(`<span class="ac-badge">❤️ Passion</span>`);
   if(isFull) badges.push(`<span class="ac-badge full">Complet</span>`);
 
@@ -7967,16 +8005,21 @@ async function fetchActiveUpcomingActivities(){
   const baseCols = 'id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point';
   // Colonnes ajoutées (transports, prix) : lues si elles existent, sinon on
   // retombe sur la requête d'origine — jamais de page cassée pour autant.
-  let { data: rawData, error } = await supabaseClient
-    .from('activities').select(baseCols + ', transit_accessible, is_free, price_eur')
-    .order('created_at', { ascending: false });
-  if(error){
+  let rawData = null, error = null;
+  for(const extra of [', transit_accessible, is_free, price_eur, recurrence', ', transit_accessible, is_free, price_eur', '']){
     ({ data: rawData, error } = await supabaseClient
-      .from('activities').select(baseCols)
+      .from('activities').select(baseCols + extra)
       .order('created_at', { ascending: false }));
+    if(!error) break;
   }
   if(error) throw error;
   const todayStr = new Date().toISOString().slice(0,10);
+  // Sortie récurrente passée : elle avance automatiquement à sa prochaine date.
+  (rawData || []).forEach(a => {
+    if(a.recurrence && a.activity_date && a.activity_date < todayStr){
+      a.activity_date = nextRecurringDate(a.activity_date, a.recurrence, todayStr);
+    }
+  });
   const active = (rawData || []).filter(a =>
     (a.moderation_status || 'active') === 'active' &&
     (!a.activity_date || a.activity_date >= todayStr)
@@ -9315,6 +9358,81 @@ async function submitActivityReport(){
   }
 }
 
+// ---------- Espace organisateurs ----------
+const ORGANIZER_BADGE_MIN = 3;       // nombre de sorties organisées pour le badge ⭐
+const organizerCountCache = {};
+
+// Sorties réellement organisées (hors lignes techniques du catalogue).
+async function getOrganizerCount(profileId){
+  if(!supabaseClient || !profileId) return 0;
+  if(organizerCountCache[profileId] != null) return organizerCountCache[profileId];
+  try{
+    const { count, error } = await supabaseClient
+      .from('activities').select('id', { count:'exact', head:true })
+      .eq('organizer_profile_id', profileId)
+      .eq('moderation_status', 'active')
+      .is('venue_activity_id', null);
+    if(error) throw error;
+    organizerCountCache[profileId] = count || 0;
+  } catch(e){
+    console.warn('[Organisateur] Comptage impossible :', e.message);
+    organizerCountCache[profileId] = 0;
+  }
+  return organizerCountCache[profileId];
+}
+
+// Prochaine date d'une sortie récurrente, à partir de sa date d'origine.
+function nextRecurringDate(dateStr, recurrence, todayStr){
+  const d = new Date(dateStr + 'T12:00:00');
+  const iso = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  let guard = 0;
+  while(iso(d) < todayStr && guard < 600){
+    if(recurrence === 'weekly') d.setDate(d.getDate() + 7);
+    else if(recurrence === 'monthly') d.setMonth(d.getMonth() + 1);
+    else break;
+    guard++;
+  }
+  return iso(d);
+}
+
+function recurrenceLabel(recurrence){
+  if(recurrence === 'weekly') return '🔁 Chaque semaine';
+  if(recurrence === 'monthly') return '🔁 Chaque mois';
+  return '';
+}
+
+async function shareCurrentActivity(){
+  const a = currentActivityDetail;
+  if(!a) return;
+  const url = `${location.origin}${location.pathname}?sortie=${a.id}`;
+  const dateLabel = a.activity_date
+    ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' })
+    : '';
+  const text = `🍊 ${a.title}${dateLabel ? ' — ' + dateLabel : ''}${a.activity_time ? ' à ' + String(a.activity_time).slice(0,5) : ''}${a.location ? ' · 📍 ' + a.location : ''}\nRejoins-nous sur PassionMeet !`;
+  try{
+    if(navigator.share){ await navigator.share({ title: a.title, text, url }); return; }
+  } catch(e){
+    if(e && e.name === 'AbortError') return; // partage annulé par l'utilisateur
+  }
+  try{
+    await navigator.clipboard.writeText(text + '\n' + url);
+    showToast('Lien copié — colle-le sur Facebook, WhatsApp ou Instagram 🍊', '📋');
+  } catch(e){
+    prompt('Copie ce lien pour le partager :', url);
+  }
+}
+
+// Lien partagé (…?sortie=ID) : ouvre directement la sortie une fois connecté.
+let sharedActivityHandled = false;
+function openSharedActivityFromUrl(){
+  if(sharedActivityHandled) return;
+  const id = new URLSearchParams(location.search).get('sortie');
+  if(!id) return;
+  sharedActivityHandled = true;
+  try{ history.replaceState(null, '', location.pathname); } catch(e){}
+  setTimeout(() => openActivityDetail(id), 600);
+}
+
 async function openActivityDetail(activityId){
   let a = currentActivitiesData.find(x => x.id === activityId);
   if(!a){
@@ -9348,7 +9466,7 @@ async function openActivityDetail(activityId){
   const dateLabel = a.activity_date
     ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'})
     : 'Date à définir';
-  document.getElementById('ract-when').textContent = `📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}`;
+  document.getElementById('ract-when').textContent = `📅 ${dateLabel}${a.activity_time ? ' · '+a.activity_time : ''}${a.recurrence ? ' · ' + recurrenceLabel(a.recurrence) : ''}`;
   document.getElementById('ract-where').textContent = `📍 ${a.location || 'Lieu à définir'}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm)+' km' : ' · distance non disponible'}`;
   const meetingEl = document.getElementById('ract-meeting-point');
   if(a.meetingPoint){
@@ -9358,6 +9476,13 @@ async function openActivityDetail(activityId){
     meetingEl.style.display = 'none';
   }
   document.getElementById('ract-organizer').textContent = `🙋 Organisée par ${a.organizerName}`;
+  if(a.organizerId){
+    getOrganizerCount(a.organizerId).then(n => {
+      if(n >= ORGANIZER_BADGE_MIN && currentActivityDetail === a){
+        document.getElementById('ract-organizer').textContent = `🙋 Organisée par ${a.organizerName} · ⭐ Organisateur`;
+      }
+    });
+  }
   document.getElementById('ract-mode').textContent = a.mode === 'love' ? '💜 Mode : Rencontre' : '🤝 Mode : Amitié';
   document.getElementById('ract-desc').textContent = a.description || '';
 
@@ -9378,6 +9503,8 @@ async function refreshActivityParticipants(activityId){
     if(error) throw error;
 
     const participantIds = (data || []).map(p => p.profile_id);
+    const groupBtn = document.getElementById('ract-group-btn');
+    if(groupBtn) groupBtn.style.display = participantIds.includes(myProfile.supabaseId) ? '' : 'none';
     const maxLabel = currentActivityDetail && currentActivityDetail.maxParticipants ? `/${currentActivityDetail.maxParticipants}` : '';
     titleEl.textContent = `👥 ${participantIds.length}${maxLabel} participant${participantIds.length>1?'s':''}`;
 
@@ -10080,7 +10207,9 @@ async function openMatchProfileDetail(matchId){
     }
 
     const modeLabel = m.mode === 'love' ? '💜 Rencontre' : '🤝 Amitié';
+    const organizerCountForBadge = await getOrganizerCount(otherId);
     const badgesHtml = [
+      organizerCountForBadge >= ORGANIZER_BADGE_MIN ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">⭐ Organisateur</span>` : '',
       p.is_newcomer ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">🆕 Nouveau/nouvelle dans la région</span>` : '',
       p.is_single_parent ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">🧑‍🧒 Parent solo</span>` : '',
       p.has_kids ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>` : ''
