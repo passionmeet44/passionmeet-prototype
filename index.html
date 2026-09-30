@@ -1485,6 +1485,26 @@
   body.dark-mode .pm-list > * + *{ border-top-color:#3B3042; }
   body.dark-mode .pm-icon{ background:#3B3042; }
   .cp-section{ margin-top:18px; }
+  /* Fiche d'une sortie : blocs clairs, boutons alignés */
+  #screen-activity-detail-real .detail-body{ padding:18px 20px 110px; }
+  .rd-card{ background:#fff; border-radius:16px; padding:14px 16px; margin-top:12px; box-shadow:0 2px 10px rgba(62,31,68,0.06); }
+  .rd-card-title{ font-family:var(--font-display); font-size:14px; font-weight:800; color:var(--plum); margin-bottom:8px; }
+  .rd-infos{ padding:4px 16px; }
+  .rd-infos .detail-row{ margin-bottom:0; padding:10px 0; font-size:13.5px; color:var(--plum); line-height:1.4; }
+  .rd-infos .detail-row + .detail-row{ border-top:1px solid #F1ECF3; }
+  .rd-card .detail-desc{ margin:0; font-size:13.5px; line-height:1.55; color:#6B5872; }
+  .rd-about:has(#ract-desc:empty){ display:none; }
+  #screen-activity-detail-real #ract-cta{ width:100%; margin-top:16px; }
+  #screen-activity-detail-real .btn-join.cancel{ background:#FDECEA !important; color:#C0392B !important; border:1.5px solid #F2B8B0 !important; box-shadow:none !important; }
+  .rd-actions{ display:flex; gap:10px; margin-top:10px; }
+  .rd-action{ flex:1; background:#fff; color:var(--plum); border:1px solid var(--lavender); border-radius:14px;
+    padding:12px 8px; font-size:13.5px; font-weight:700; cursor:pointer; transition:transform .12s ease; }
+  .rd-action:active{ transform:scale(0.97); }
+  #screen-activity-detail-real .cp-section.rd-card{ margin-top:14px; }
+  #screen-activity-detail-real .report-link{ text-align:center; margin-top:20px; }
+  body.dark-mode .rd-card, body.dark-mode .rd-action{ background:#2B2231; border-color:#3B3042; }
+  body.dark-mode .rd-card-title, body.dark-mode .rd-infos .detail-row, body.dark-mode .rd-action{ color:#F1E9F5; }
+  body.dark-mode .rd-infos .detail-row + .detail-row{ border-top-color:#3B3042; }
   .cp-title{ font-family:var(--font-display); font-size:15px; font-weight:800; color:var(--plum); margin-bottom:8px; }
   .cp-card{ background:#fff; border:1px solid var(--lavender); border-radius:14px; padding:12px 14px; margin-bottom:8px; }
   .cp-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13px; color:var(--plum); }
@@ -2212,22 +2232,27 @@
     </div>
     <div class="detail-body">
       <h2 id="ract-title"></h2>
-      <div class="detail-row" id="ract-when"></div>
-      <div class="detail-row" id="ract-where"></div>
-      <div class="detail-row" id="ract-meeting-point" style="display:none;"></div>
-      <div class="detail-row" id="ract-organizer"></div>
-      <div class="detail-row" id="ract-mode"></div>
-      <div class="detail-desc" id="ract-desc"></div>
-      <div class="detail-why" id="ract-participants-wrap">
-        <div class="detail-why-title" id="ract-participants-title">👥 Participants</div>
+      <div class="rd-card rd-infos">
+        <div class="detail-row" id="ract-when"></div>
+        <div class="detail-row" id="ract-where"></div>
+        <div class="detail-row" id="ract-meeting-point" style="display:none;"></div>
+        <div class="detail-row" id="ract-organizer"></div>
+        <div class="detail-row" id="ract-mode"></div>
+      </div>
+      <div class="rd-card rd-about">
+        <div class="rd-card-title">À propos</div>
+        <div class="detail-desc" id="ract-desc"></div>
+      </div>
+      <div class="rd-card" id="ract-participants-wrap">
+        <div class="rd-card-title" id="ract-participants-title">👥 Participants</div>
         <div id="ract-participants-list"></div>
       </div>
       <button class="btn-join" id="ract-cta" onclick="toggleActivityParticipation()">Je participe</button>
-      <div style="display:flex; gap:8px; margin-top:10px;">
-        <button class="btn-primary" id="ract-group-btn" style="flex:1; margin:0; display:none;" onclick="openActivityGroupChat(currentActivityDetail.id)">💬 Écrire au groupe</button>
-        <button class="btn-primary" style="flex:1; margin:0; background:#fff; color:var(--plum); border:1px solid var(--lavender);" onclick="shareCurrentActivity()">📤 Partager</button>
+      <div class="rd-actions">
+        <button class="rd-action" id="ract-group-btn" style="display:none;" onclick="openActivityGroupChat(currentActivityDetail.id)">💬 Écrire au groupe</button>
+        <button class="rd-action" onclick="shareCurrentActivity()">📤 Partager</button>
       </div>
-      <div id="ract-carpool-section" class="cp-section"></div>
+      <div id="ract-carpool-section" class="cp-section rd-card"></div>
       <div class="report-link" id="ract-report-link" onclick="openActivityReportModal()">🚩 Signaler cette activité</div>
     </div>
   </div>
