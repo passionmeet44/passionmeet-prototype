@@ -1485,6 +1485,13 @@
   body.dark-mode .pm-list > * + *{ border-top-color:#3B3042; }
   body.dark-mode .pm-icon{ background:#3B3042; }
   .cp-section{ margin-top:18px; }
+  .att-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; font-size:13.5px; color:var(--plum); }
+  .att-row + .att-row{ border-top:1px solid #F1ECF3; }
+  .att-choices{ display:flex; gap:6px; flex-shrink:0; }
+  .att-chip{ font-size:12px; font-weight:700; padding:6px 10px; border-radius:10px; border:1px solid var(--lavender); color:#9584A0; cursor:pointer; background:#fff; }
+  .att-chip.on.present{ background:#E4F3E9; color:#2E7D4F; border-color:#BFE3CB; }
+  .att-chip.on.absent{ background:#FDECEA; color:#C0392B; border-color:#F2B8B0; }
+  .reliable-tag{ font-size:11px; font-weight:800; color:#2E7D4F; background:rgba(228,243,233,0.95); padding:2px 7px; border-radius:8px; margin-left:6px; vertical-align:middle; }
   /* Fiche d'une sortie : blocs clairs, boutons alignés */
   #screen-activity-detail-real .detail-body{ padding:18px 20px 110px; }
   .rd-card{ background:#fff; border-radius:16px; padding:14px 16px; margin-top:12px; box-shadow:0 2px 10px rgba(62,31,68,0.06); }
@@ -2076,7 +2083,7 @@
       <div class="pm-row" onclick="openProfileList('organized')"><div class="pm-icon orange">⭐</div><div class="pm-label">Mes sorties organisées</div><div class="pm-chevron">›</div></div>
       <div class="pm-row" onclick="openProfileList('favorites')"><div class="pm-icon">🤍</div><div class="pm-label">Mes favoris</div><div class="pm-chevron">›</div></div>
       <div class="pm-row" onclick="openProfileList('carpools')"><div class="pm-icon orange">🚗</div><div class="pm-label">Mes covoiturages</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row soon"><div class="pm-icon">📊</div><div class="pm-label">Mes statistiques de fiabilité</div><span class="pm-soon">Bientôt</span></div>
+      <div class="pm-row" onclick="openReliabilityStats()"><div class="pm-icon">📊</div><div class="pm-label">Mes statistiques de fiabilité</div><div class="pm-chevron">›</div></div>
     </div>
 
     <div class="pm-section-title">Sécurité</div>
@@ -2247,6 +2254,7 @@
         <div class="rd-card-title" id="ract-participants-title">👥 Participants</div>
         <div id="ract-participants-list"></div>
       </div>
+      <div class="rd-card" id="ract-attendance" style="display:none;"></div>
       <button class="btn-join" id="ract-cta" onclick="toggleActivityParticipation()">Je participe</button>
       <div class="rd-actions">
         <button class="rd-action" id="ract-group-btn" style="display:none;" onclick="openActivityGroupChat(currentActivityDetail.id)">💬 Écrire au groupe</button>
@@ -5144,6 +5152,24 @@ function computeProfileCompletion(){
 function renderProfileScreen(){
   const cityLine = document.getElementById('profile-city-line');
   if(cityLine) cityLine.textContent = myProfile.city ? `📍 ${myProfile.city}` : '';
+  const relBadgeRow = document.querySelector('#screen-profile .profile-badge-row');
+  if(relBadgeRow && myProfile.supabaseId){
+    fetchReliabilityMap([myProfile.supabaseId]).then(m => {
+      let el = document.getElementById('profile-reliable-badge');
+      if(isReliable(m[myProfile.supabaseId])){
+        if(!el){
+          el = document.createElement('span');
+          el.id = 'profile-reliable-badge';
+          el.className = 'mode-badge';
+          el.textContent = '✓ Fiable';
+          relBadgeRow.appendChild(el);
+        }
+        el.style.display = 'inline-block';
+      } else if(el){
+        el.style.display = 'none';
+      }
+    });
+  }
   const orgBadgeRow = document.querySelector('#screen-profile .profile-badge-row');
   if(orgBadgeRow && myProfile.supabaseId){
     getOrganizerCount(myProfile.supabaseId).then(n => {
@@ -6171,6 +6197,7 @@ function mapSupabaseRowToSwipeCard(row, photoUrl){
     bio: row.bio,
     tags: row.passions,
     subPassions: Array.isArray(row.sub_passions) ? row.sub_passions : [],
+    isReliable: row._reliable === true,
     modes: modes.length ? modes : ['Amitié'],
     area: row.city || 'Zone non précisée',
     latitude: row.latitude,
@@ -6282,6 +6309,8 @@ async function loadRealSwipeProfiles(){
       ({ data, error } = await buildSwipeQuery(swipeCols));
     }
     if(error) throw error;
+    const swipeRelMap = await fetchReliabilityMap((data || []).map(r => r.id));
+    (data || []).forEach(r => { r._reliable = isReliable(swipeRelMap[r.id]); });
 
     swipeDebugLines = [];
     swipeDebugLines.push(`${(data || []).length} ligne(s) reçue(s) de Supabase (hors votre propre profil)`);
@@ -6484,7 +6513,7 @@ function renderSwipeStack(){
         <div class="stamp love">💜 RENCONTRE</div>
       </div>
       <div class="swipe-info">
-        <h3>${p.name}${p.age ? ', ' + p.age : ''}</h3>
+        <h3>${p.name}${p.age ? ', ' + p.age : ''}${p.isReliable ? '<span class="reliable-tag">Fiable ✓</span>' : ''}</h3>
         ${(() => {
           const commons = p.tags.filter(t => myProfile.interests.some(i => i.toLowerCase().includes(t.toLowerCase())));
           return commons.length ? `<div class="passport-commons">❤️ ${commons.length} passion${commons.length>1?'s':''} en commun</div>` : '';
@@ -9691,6 +9720,98 @@ async function fetchActivitiesWithCarpool(){
   }
 }
 
+// ---------- Fiabilité : uniquement de vrais pointages faits par l'organisateur ----------
+const RELIABLE_MIN_OUTINGS = 3;    // sorties pointées minimum pour le badge
+const RELIABLE_MIN_RATE = 0.8;     // 80 % de présence minimum
+
+async function fetchReliabilityMap(ids){
+  const clean = [...new Set((ids || []).filter(Boolean))];
+  if(!supabaseClient || !clean.length) return {};
+  try{
+    const { data, error } = await supabaseClient.rpc('reliability_badges', { p_ids: clean });
+    if(error) throw error;
+    const m = {};
+    (data || []).forEach(r => { m[r.profile_id] = { total: r.total, present: r.present }; });
+    return m;
+  } catch(e){
+    return {};
+  }
+}
+
+function isReliable(stat){
+  return !!stat && stat.total >= RELIABLE_MIN_OUTINGS && (stat.present / stat.total) >= RELIABLE_MIN_RATE;
+}
+
+function localIsoDate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// « Qui était là ? » : visible par l'organisateur, jusqu'à 7 jours après une
+// sortie ponctuelle (les sorties récurrentes ne sont pas pointées).
+async function renderAttendanceSection(activityId, participantIds, names){
+  const box = document.getElementById('ract-attendance');
+  if(!box) return;
+  const a = currentActivityDetail;
+  const me = myProfile.supabaseId;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const minDay = new Date(today); minDay.setDate(minDay.getDate() - 7);
+  const eligible = a && a.id === activityId && a.organizerId === me && !a.recurrence && a.activity_date
+    && a.activity_date < localIsoDate(today) && a.activity_date >= localIsoDate(minDay);
+  const others = participantIds.map((id, i) => ({ id, name: names[i] })).filter(p => p.id !== me);
+  if(!eligible || !others.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  let marks = {};
+  try{
+    const { data } = await supabaseClient.from('attendance_records').select('profile_id, status').eq('activity_id', activityId);
+    (data || []).forEach(r => { marks[r.profile_id] = r.status; });
+  } catch(e){}
+  box.style.display = '';
+  box.innerHTML = `<div class="rd-card-title">✅ Qui était là ?</div>
+    <div class="cp-meta" style="margin-bottom:6px;">Pointe tes participants (jusqu'à 7 jours après la sortie) : ça construit leur badge Fiable ✓.</div>`
+    + others.map(p => `<div class="att-row"><span>${escapeHtml(p.name)}</span><span class="att-choices">
+        <span class="att-chip ${marks[p.id] === 'present' ? 'on present' : ''}" onclick="markAttendance('${activityId}','${p.id}','present')">Présent</span>
+        <span class="att-chip ${marks[p.id] === 'absent' ? 'on absent' : ''}" onclick="markAttendance('${activityId}','${p.id}','absent')">Absent</span>
+      </span></div>`).join('');
+}
+
+async function markAttendance(activityId, profileId, status){
+  try{
+    const { error } = await supabaseClient.from('attendance_records').upsert({
+      activity_id: activityId, profile_id: profileId, status,
+      marked_by: myProfile.supabaseId, marked_at: new Date().toISOString()
+    }, { onConflict: 'activity_id,profile_id' });
+    if(error) throw error;
+  } catch(e){
+    console.warn('[Fiabilité] Pointage impossible :', e.message);
+    showToast("Pointage impossible pour le moment, réessaie.", '⚠️');
+  }
+  refreshActivityParticipants(activityId);
+}
+
+async function openReliabilityStats(){
+  document.getElementById('profile-list-title').textContent = '📊 Ma fiabilité';
+  const body = document.getElementById('profile-list-body');
+  body.innerHTML = emptyMsgState('⏳', 'Chargement…', false);
+  showScreen('profile-list');
+  const me = myProfile.supabaseId;
+  const m = await fetchReliabilityMap([me]);
+  const st = m[me] || { total: 0, present: 0 };
+  if(!st.total){
+    body.innerHTML = emptyMsgState('📊', "Pas encore de sortie pointée… participe à des sorties : ton taux de présence apparaîtra ici 🍊", false);
+    return;
+  }
+  const rate = Math.round(st.present / st.total * 100);
+  const reliable = isReliable(st);
+  const missing = Math.max(RELIABLE_MIN_OUTINGS - st.total, 0);
+  body.innerHTML = `<div class="rd-card" style="text-align:center; padding:22px 16px;">
+      <div style="font-family:var(--font-display); font-size:44px; font-weight:800; color:${reliable ? '#2E7D4F' : 'var(--plum)'};">${rate} %</div>
+      <div class="cp-meta" style="font-size:13px;">Présent à ${st.present} sortie${st.present > 1 ? 's' : ''} sur ${st.total} pointée${st.total > 1 ? 's' : ''}</div>
+      <div style="margin-top:12px;">${reliable
+        ? '<span class="reliable-tag" style="font-size:13px; padding:5px 12px;">Fiable ✓</span>'
+        : `<span class="cp-meta">${missing ? `Encore ${missing} sortie${missing > 1 ? 's' : ''} pointée${missing > 1 ? 's' : ''} pour le badge Fiable ✓` : 'Vise 80 % de présence pour obtenir le badge Fiable ✓'}</span>`}</div>
+    </div>
+    <div class="cp-meta" style="margin-top:12px; line-height:1.5;">Après chaque sortie, l'organisateur indique qui était présent. Le badge Fiable ✓ s'obtient à partir de ${RELIABLE_MIN_OUTINGS} sorties pointées et 80 % de présence. Se désinscrire avant la sortie ne compte jamais comme une absence.</div>`;
+}
+
 async function openActivityDetail(activityId){
   let a = currentActivitiesData.find(x => x.id === activityId);
   if(!a){
@@ -9773,6 +9894,7 @@ async function refreshActivityParticipants(activityId){
         return p && p.first_name ? p.first_name : 'Membre';
       } catch(e){ return 'Membre'; }
     }));
+    const relMap = await fetchReliabilityMap(participantIds);
     // Lu à part : si la colonne n'existe pas encore, la liste s'affiche quand même.
     let carpoolers = new Set();
     if(participantIds.length){
@@ -9782,10 +9904,12 @@ async function refreshActivityParticipants(activityId){
       } catch(e){}
     }
     listEl.innerHTML = names.length
-      ? names.map((n, i) => `<span class="msg-mode-tag friend" style="margin-right:6px; margin-bottom:6px; display:inline-block;">${n}${carpoolers.has(participantIds[i]) ? ' 🚗' : ''}</span>`).join('')
+      ? names.map((n, i) => `<span class="msg-mode-tag friend" style="margin-right:6px; margin-bottom:6px; display:inline-block;">${n}${isReliable(relMap[participantIds[i]]) ? ' <b style="color:#2E7D4F;">✓</b>' : ''}${carpoolers.has(participantIds[i]) ? ' 🚗' : ''}</span>`).join('')
         + (carpoolers.size ? `<div class="cp-meta" style="margin-top:2px;">🚗 = peut covoiturer</div>` : '')
+        + (participantIds.some(id => isReliable(relMap[id])) ? `<div class="cp-meta" style="margin-top:2px;">✓ = fiable (présent à au moins 80 % de ses sorties)</div>` : '')
       : `<p style="font-size:12.5px; color:#9584A0;">Personne pour l'instant — soyez le premier !</p>`;
 
+    renderAttendanceSection(activityId, participantIds, names);
     const alreadyJoined = participantIds.includes(myProfile.supabaseId);
     const maxReached = currentActivityDetail && currentActivityDetail.maxParticipants
       && participantIds.length >= currentActivityDetail.maxParticipants;
@@ -10339,12 +10463,23 @@ async function openProfileList(kind){
     if(kind === 'blocked'){ await renderBlockedProfilesList(body); return; }
     const all = await fetchActiveUpcomingActivities();
     let items = [];
+    let toMarkItems = [];
     if(kind === 'favorites'){
       favoriteActivityIdsPromise = null;
       const favs = await ensureFavoriteActivityIds();
       items = all.filter(a => favs.has(a.id));
     } else if(kind === 'organized'){
       items = all.filter(a => a.organizer_profile_id === myProfile.supabaseId);
+      try{
+        const today = new Date(); today.setHours(0,0,0,0);
+        const since = new Date(today); since.setDate(since.getDate() - 7);
+        const { data: past, error: pastErr } = await supabaseClient.from('activities')
+          .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point')
+          .eq('organizer_profile_id', myProfile.supabaseId)
+          .lt('activity_date', localIsoDate(today)).gte('activity_date', localIsoDate(since))
+          .is('venue_activity_id', null).is('recurrence', null);
+        if(!pastErr) toMarkItems = past || [];
+      } catch(e){}
     } else if(kind === 'carpools'){
       const me = myProfile.supabaseId;
       const { data: myOffers } = await supabaseClient.from('carpool_offers').select('activity_id').eq('driver_profile_id', me);
@@ -10361,7 +10496,7 @@ async function openProfileList(kind){
       body.innerHTML = emptyMsgState('🚗', "Aucun covoiturage pour l'instant… propose ou réserve un trajet depuis la fiche d'une sortie 🍊", false);
       return;
     }
-    if(!items.length){
+    if(!items.length && !toMarkItems.length){
       body.innerHTML = kind === 'favorites'
         ? emptyMsgState('🤍', "Aucun favori pour l'instant… touche le cœur d'une sortie pour la garder ici 🍊", false)
         : emptyMsgState('⭐', "Tu n'as pas encore de sortie organisée à venir… lance-toi, les autres n'attendent que ça 🍊", false);
@@ -10369,7 +10504,13 @@ async function openProfileList(kind){
     }
     items = items.map(a => ({ ...a, distanceKm: getActivityDistanceKm(a) }));
     const cards = await Promise.all(items.map(a => buildActivityCardHtml(a)));
-    body.innerHTML = cards.join('');
+    let headHtml = '';
+    if(toMarkItems.length){
+      const markCards = await Promise.all(toMarkItems.map(a => buildActivityCardHtml({ ...a, distanceKm: getActivityDistanceKm(a) })));
+      headHtml = `<div class="pm-section-title" style="padding-left:6px;">✅ À pointer — qui était là ?</div>` + markCards.join('')
+        + (items.length ? `<div class="pm-section-title" style="padding-left:6px;">📅 À venir</div>` : '');
+    }
+    body.innerHTML = headHtml + cards.join('');
   } catch(e){
     console.warn('[Profil] Liste indisponible :', e.message);
     body.innerHTML = emptyMsgState('⚠️', 'Impossible de charger cette liste pour le moment.', false);
@@ -10492,7 +10633,9 @@ async function openMatchProfileDetail(matchId){
 
     const modeLabel = m.mode === 'love' ? '💜 Rencontre' : '🤝 Amitié';
     const organizerCountForBadge = await getOrganizerCount(otherId);
+    const relMapForBadge = await fetchReliabilityMap([otherId]);
     const badgesHtml = [
+      isReliable(relMapForBadge[otherId]) ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:#E4F3E9; color:#2E7D4F;">✓ Fiable</span>` : '',
       organizerCountForBadge >= ORGANIZER_BADGE_MIN ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">⭐ Organisateur</span>` : '',
       p.is_newcomer ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">🆕 Nouveau/nouvelle dans la région</span>` : '',
       p.is_single_parent ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">🧑‍🧒 Parent solo</span>` : '',
