@@ -9017,12 +9017,19 @@ async function renderPrivateConversationsList(){
     // Déduplication défensive : jamais deux fois la même personne dans la liste,
     // même si plusieurs lignes existaient pour une raison quelconque.
     const seenOtherIds = new Set();
+    const blockedIds = await getBlockedProfileIds();
     const dedupedCards = cards.filter(c => {
+      if(c.otherId && blockedIds.includes(c.otherId)) return false; // compte bloqué : masqué de mes conversations
       const key = c.otherId || Math.random(); // pas d'otherId connu : on ne filtre pas ce cas rare
       if(seenOtherIds.has(key)) return false;
       seenOtherIds.add(key);
       return true;
     });
+
+    if(dedupedCards.length === 0){
+      list.innerHTML = emptyMsgState('💬', "Pas encore de conversation.<br>Un match, et vous pourrez discuter ici !", true);
+      return;
+    }
 
     list.innerHTML = dedupedCards.map(c => c.html).join('');
   } catch(e){
