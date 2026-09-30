@@ -1423,6 +1423,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  #swipe-radius-map{ height:130px; border-radius:14px; margin-top:8px; overflow:hidden; position:relative; z-index:0; }
+</style>
 </head>
 <body>
 
@@ -1706,6 +1711,7 @@
       <div>
         <div class="home-location" id="location-label">📍 44 · Loire-Atlantique</div>
         <h1 id="home-greeting">Bonjour Camille</h1>
+        <div style="font-size:12px; font-weight:700; color:var(--orange-deep); margin-top:2px;">Gratuit pour de vrai 🍊</div>
       </div>
     </div>
 
@@ -1848,6 +1854,7 @@
     <div class="radius-slider-row">
       <div class="range-label">Rayon de recherche <span id="swipe-radius-value">20 km</span></div>
       <input type="range" min="1" max="100" value="20" id="swipe-radius-input" oninput="setRadius(this.value)">
+      <div id="swipe-radius-map"></div>
     </div>
     <div class="time-filter-row" id="swipe-mode-filter-row">
       <div class="time-chip active" data-t="tous" onclick="setSwipeModeFilter('tous')">Tous</div>
@@ -1872,7 +1879,7 @@
       </div>
       <h2 id="profile-name">Camille, 34 ans</h2>
       <div class="profile-photo-hint" style="margin-top:2px;" onclick="openEditProfile()">✏️ Modifier mon profil</div>
-      <div class="profile-photo-hint" onclick="premiumReturnScreen='profile'; showScreen('premium')">⭐ PassionMeet Premium</div>
+      <div class="profile-photo-hint" onclick="premiumReturnScreen='profile'; showScreen('premium')" style="line-height:1.4;">🍊 PassionMeet+ <span style="font-weight:400; opacity:0.8;">— bonus facultatifs : voir qui t'a liké, likes illimités</span></div>
       <div class="profile-photo-hint" onclick="openMyReports()">🚩 Mes signalements</div>
       <div class="profile-photo-hint" id="admin-access-link" style="display:none;" onclick="openAdminReports()">🛠️ Signalements à traiter (admin)</div>
       <div class="profile-badge-row">
@@ -3436,7 +3443,7 @@ function showScreen(name){
     document.getElementById('nav-messages').classList.toggle('active', name==='messages');
     document.getElementById('nav-profile').classList.toggle('active', name==='profile');
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
-    if(name==='swipe'){ updateDiscoverFiltersBadge(); }
+    if(name==='swipe'){ updateDiscoverFiltersBadge(); setTimeout(()=> updateRadiusMap(currentRadius), 150); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
     if(name==='activities-list'){ renderVenueRecommendations(); }
     if(name==='matches'){ renderMatchesList(); }
@@ -4836,7 +4843,7 @@ async function renderUpcomingActivities(){
 
     const rows = (data || []).filter(r => r.activities);
     if(rows.length === 0){
-      el.innerHTML = '<p style="font-size:12px; color:#B7ACBA;">Aucune sortie prévue pour le moment.</p>';
+      el.innerHTML = '<p style="font-size:12px; color:#B7ACBA;">Aucune sortie prévue… tu ne vas quand même pas rester à presser des oranges tout seul ? 🍊 Propose une activité !</p>';
       return;
     }
 
@@ -5424,9 +5431,34 @@ let swipeInitialized = false;
 let dragState = null;
 let filteredProfiles = [];
 
+// Carte du rayon : cercle autour de la position utilisée pour les distances,
+// qui s'agrandit avec le curseur. Aucune donnée envoyée à un tiers en dehors
+// du chargement des tuiles OpenStreetMap.
+let radiusMap = null, radiusCircle = null;
+function updateRadiusMap(km){
+  const el = document.getElementById('swipe-radius-map');
+  if(!el || typeof L === 'undefined' || !userCoords) return;
+  if(el.offsetParent === null) return; // écran masqué : on dessinera à l'affichage
+  const radiusM = (parseInt(km) || currentRadius || 20) * 1000;
+  try{
+    if(!radiusMap){
+      radiusMap = L.map(el, { zoomControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:18, attribution:'© OpenStreetMap' }).addTo(radiusMap);
+      radiusCircle = L.circle(userCoords, { radius: radiusM, color:'#6B4472', weight:2, fillColor:'#E5722A', fillOpacity:0.15 }).addTo(radiusMap);
+    }
+    radiusCircle.setLatLng(userCoords);
+    radiusCircle.setRadius(radiusM);
+    radiusMap.invalidateSize();
+    radiusMap.fitBounds(radiusCircle.getBounds(), { padding:[8,8] });
+  } catch(e){
+    console.warn('[Carte rayon] Affichage impossible :', e.message);
+  }
+}
+
 function setRadius(km){
   km = parseInt(km);
   syncRadiusUI(km);
+  updateRadiusMap(km);
   try{ localStorage.setItem(RADIUS_STORAGE_KEY, km); } catch(e){}
   swipeIndex = 0;
   applyRadiusFilter();
@@ -5979,7 +6011,7 @@ function renderSwipeStack(){
 
   if(swipeIndex >= filteredProfiles.length){
     const debugForCriteria = (supabaseClient && realSwipeProfiles !== null) ? buildSwipeDebugHtml() : '';
-    stack.innerHTML = `<div class="swipe-empty"><span>✨</span>Plus de profils correspondant à vos critères<br>Essayez d'élargir la distance ou la tranche d'âge !${debugForCriteria}</div>`;
+    stack.innerHTML = `<div class="swipe-empty"><span>✨</span>Tu as fait le tour du verger 🍊<br>Plus de profils correspondant à vos critères<br>Essayez d'élargir la distance ou la tranche d'âge !${debugForCriteria}</div>`;
     return;
   }
 
@@ -6118,9 +6150,38 @@ async function undoLastSwipe(){
   }
 }
 
-function swipeAction(type){
+// Limite quotidienne de likes pour les comptes gratuits (type Tinder).
+// Illimité en Premium. Modifiable ici, en un seul endroit — la même valeur
+// est appliquée côté base par le trigger enforce_daily_like_limit().
+const FREE_DAILY_LIKE_LIMIT = 25;
+
+async function countMyLikesToday(){
+  if(!supabaseClient || !myProfile.supabaseId) return 0;
+  try{
+    const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+    const { count, error } = await supabaseClient
+      .from('swipe_actions').select('id', { count:'exact', head:true })
+      .eq('from_profile_id', myProfile.supabaseId)
+      .in('action', ['friend','love'])
+      .gte('updated_at', startOfDay.toISOString());
+    if(error) throw error;
+    return count || 0;
+  } catch(e){
+    console.warn('[Likes] Comptage du jour impossible :', e.message);
+    return 0;
+  }
+}
+
+async function swipeAction(type){
   const card = document.querySelector('.swipe-card.top');
   if(!card) return;
+  if((type === 'friend' || type === 'love') && !myProfile.isPremiumActive){
+    const used = await countMyLikesToday();
+    if(used >= FREE_DAILY_LIKE_LIMIT){
+      showToast(`Tu as utilisé tes ${FREE_DAILY_LIKE_LIMIT} likes du jour 🍊 Reviens demain, ou passe à PassionMeet+ pour liker sans limite.`, '⏳');
+      return;
+    }
+  }
   flyOut(card, type);
 }
 
@@ -7074,7 +7135,9 @@ async function submitRealActivity(){
 
   // Vérification rapide côté client, pour un retour immédiat — la vraie
   // protection est de toute façon appliquée par Supabase juste après.
-  if(!myProfile.isPremiumActive){
+  // Décision produit : création d'activités illimitée pour tous. Le bloc est
+  // conservé mais neutralisé (false) pour pouvoir le réactiver facilement.
+  if(false && !myProfile.isPremiumActive){
     const activeCount = await getActiveOwnActivitiesCount();
     if(activeCount >= 1){
       showPremiumLimitMessage(errBox);
@@ -7878,8 +7941,8 @@ function closeVenueDetail(){
 // déjà existants — aucun deuxième système créé.
 // ============================================================
 
-const FREE_MAX_SIMULTANEOUS_ACTIVITIES = 3;      // configurable ici, en un seul endroit
-const PREMIUM_MAX_SIMULTANEOUS_ACTIVITIES = 10;  // configurable ici, en un seul endroit
+const FREE_MAX_SIMULTANEOUS_ACTIVITIES = 9999;   // décision produit : activités illimitées pour tous (gratuit pour de vrai)
+const PREMIUM_MAX_SIMULTANEOUS_ACTIVITIES = 9999; // idem, plus aucune limite de participation
 
 function mapCatalogCategoryToAppKey(catalogLabel){
   const map = {
@@ -8708,7 +8771,7 @@ async function renderMatchesList(){
     });
 
     if(visibleMatches.length === 0){
-      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match.<br>Continuez à swiper, ça ne saurait tarder !
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match… les fruits de la passion mûrissent à leur rythme 🍊<br>Continue à swiper, ça ne saurait tarder !
         <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
       </div>`;
       return;
@@ -8764,7 +8827,7 @@ async function renderMatchesList(){
     }))).filter(Boolean);
 
     if(matchCards.length === 0){
-      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match.<br>Continuez à swiper, ça ne saurait tarder !
+      list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match… les fruits de la passion mûrissent à leur rythme 🍊<br>Continue à swiper, ça ne saurait tarder !
         <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
       </div>`;
       return;
@@ -8955,7 +9018,7 @@ async function renderPrivateConversationsList(){
 
     const myConvIds = (memberRows || []).map(r => r.conversation_id);
     if(myConvIds.length === 0){
-      list.innerHTML = emptyMsgState('💬', "Pas encore de conversation.<br>Un match, et vous pourrez discuter ici !", true);
+      list.innerHTML = emptyMsgState('💬', "Pas encore de conversation… c'est aussi calme qu'un verger en hiver 🍊<br>Un match, et vous pourrez discuter ici !", true);
       return;
     }
 
@@ -9027,7 +9090,7 @@ async function renderPrivateConversationsList(){
     });
 
     if(dedupedCards.length === 0){
-      list.innerHTML = emptyMsgState('💬', "Pas encore de conversation.<br>Un match, et vous pourrez discuter ici !", true);
+      list.innerHTML = emptyMsgState('💬', "Pas encore de conversation… c'est aussi calme qu'un verger en hiver 🍊<br>Un match, et vous pourrez discuter ici !", true);
       return;
     }
 
