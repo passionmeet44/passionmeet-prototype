@@ -1427,6 +1427,12 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   #prefs-radius-map{ height:150px; width:100%; border-radius:14px; margin-top:10px; overflow:hidden; position:relative; z-index:0; background:var(--lavender); }
+  .act-filter-pills{ display:flex; gap:8px; padding:0 20px; margin-bottom:10px; }
+  .act-pill{ flex:1; min-width:0; background:#fff; border:1px solid var(--lavender); border-radius:20px; padding:9px 8px;
+    text-align:center; font-size:12.5px; font-weight:700; color:var(--plum); cursor:pointer;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 2px 8px rgba(62,31,68,0.05); }
+  .act-pill.active{ background:var(--plum); color:#fff; border-color:var(--plum); }
+  .act-pill-search{ flex:0 0 42px; }
   .radius-map-fallback{ height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px; font-size:12px; color:var(--plum-soft); }
 </style>
 </head>
@@ -2004,6 +2010,13 @@
 
       <div class="form-label">Nombre maximum de participants (facultatif)</div>
       <input class="form-input" id="ract-form-max" type="number" min="1" placeholder="Ex : 8">
+      <div class="checkbox-row" style="margin-top:10px;">
+        <div>
+          <h4>🚋 Accessible en tram/bus</h4>
+          <p>Le lieu est desservi par les transports en commun</p>
+        </div>
+        <div class="switch" id="ract-form-transit" onclick="this.classList.toggle('on')"></div>
+      </div>
 
       <div class="form-label">Mode</div>
       <div class="mode-badge-row">
@@ -2143,8 +2156,11 @@
       <p>Découvrez votre prochaine sortie</p>
     </div>
 
-    <div class="act-search-bar" onclick="toggleActivitySearchPanel(true)">
-      <span class="icon">🔎</span><span>Rechercher une activité</span>
+    <div class="act-filter-pills">
+      <div class="act-pill" id="act-pill-quoi" onclick="openActivitySearchSection('quoi')">Quoi ?</div>
+      <div class="act-pill" id="act-pill-ou" onclick="openActivitySearchSection('ou')">Où ?</div>
+      <div class="act-pill" id="act-pill-quand" onclick="openActivitySearchSection('quand')">Quand ?</div>
+      <div class="act-pill act-pill-search" onclick="openActivitySearchSection('texte')">🔎</div>
     </div>
     <div class="act-explore-link" onclick="openCategoryExplorer()">Explorer les catégories →</div>
 
@@ -2158,6 +2174,8 @@
     <!-- Résultats de recherche / liste complète : vivent sur la page, jamais
          dans le modal, pour rester visibles une fois celui-ci refermé. -->
     <div id="activity-full-list-section" class="hidden">
+      <div id="member-outings-list" style="padding:0 20px;"></div>
+      <div class="match-section-title" style="padding:14px 20px 4px;">🏛️ Lieux à découvrir <span style="font-weight:500; font-size:11px; color:#9584A0;">— lieux permanents, à réserver</span></div>
       <div id="activity-results-summary" style="padding:0 20px; font-size:12.5px; color:var(--plum-soft); font-weight:600;"></div>
       <div id="activity-suggestions-section" style="padding:0 20px;"></div>
       <div id="activities-real-list" style="padding:0 20px;"></div>
@@ -2207,9 +2225,11 @@
         <input class="form-input" id="activity-search-input" type="text" placeholder="Rechercher une activité…" style="flex:1; margin-bottom:0;" onkeydown="if(event.key==='Enter'){event.preventDefault(); applyActivitySearchAndClose();}">
         <button class="btn-primary" style="width:auto; margin-top:0; padding:0 16px;" onclick="applyActivitySearchAndClose()">OK</button>
       </div>
+      <div class="form-label" id="act-sec-quoi">Quoi ?</div>
       <select class="form-input" id="activity-category-filter" style="margin-bottom:10px;" onchange="onActivityFiltersChanged()">
         <option value="tous">Toutes catégories</option>
       </select>
+      <div class="form-label" id="act-sec-ou" style="margin-top:6px;">Où ?</div>
       <input class="form-input" id="activity-city-filter" type="text" placeholder="📍 Ville ou lieu…" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter'){event.preventDefault(); applyActivitySearchAndClose();}">
       <div class="time-filter-row" id="activity-passion-chip-row" style="margin-top:2px;">
         <div class="time-chip" id="activity-passion-chip" onclick="toggleActivityPassionOnly()">❤️ Mes passions</div>
@@ -2217,6 +2237,23 @@
       <div class="form-label">Rayon des activités <span id="activity-radius-value"></span></div>
       <input type="range" min="1" max="100" id="activity-radius-input" oninput="setActivityRadius(this.value)">
       <div class="form-hint" style="margin-top:2px;">Distance indépendante de celle utilisée dans Découvrir</div>
+      <div class="time-filter-row" style="margin-top:8px;">
+        <div class="time-chip" id="activity-transit-chip" onclick="toggleActivityTransitOnly()">🚋 Accessible en tram/bus</div>
+      </div>
+      <div class="form-label" id="act-sec-quand" style="margin-top:12px;">Quand ?</div>
+      <div class="time-filter-row" id="activity-date-chip-row">
+        <div class="time-chip active" onclick="setActivityDateFilterChip(this,'toutes')">Toutes dates</div>
+        <div class="time-chip" onclick="setActivityDateFilterChip(this,'today')">Aujourd'hui</div>
+        <div class="time-chip" onclick="setActivityDateFilterChip(this,'weekend')">Ce week-end</div>
+        <div class="time-chip" onclick="setActivityDateFilterChip(this,'week')">Cette semaine</div>
+      </div>
+      <input class="form-input" id="activity-precise-date" type="date" style="margin-top:8px; margin-bottom:8px;" onchange="onActivityPreciseDateChange(this.value)">
+      <div class="time-filter-row" id="activity-moment-chip-row">
+        <div class="time-chip active" onclick="setActivityMomentChip(this,'tous')">Tous moments</div>
+        <div class="time-chip" onclick="setActivityMomentChip(this,'jour')">☀️ En journée</div>
+        <div class="time-chip" onclick="setActivityMomentChip(this,'soir')">🌙 En soirée</div>
+      </div>
+      <div class="form-hint">« Quand ? » et 🚋 s'appliquent aux sorties des membres — les lieux du catalogue restent accessibles à tout moment.</div>
       <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
         <button class="btn-primary" style="width:auto; margin-top:0; padding:10px 20px; font-size:13.5px;" onclick="applyActivitySearchAndClose()">Appliquer</button>
         <div id="activity-filters-active" class="report-link" style="display:none; cursor:pointer;" onclick="resetActivityFilters()">✕ Réinitialiser</div>
@@ -6827,14 +6864,19 @@ let activityCategoryFilter = 'tous';
 let activityDateFilter = 'toutes';
 let activityCityFilter = '';
 let activityPassionOnly = false;
+let activityPreciseDate = '';      // date précise choisie (prioritaire sur les pilules de période)
+let activityMomentFilter = 'tous'; // 'tous' | 'jour' | 'soir'
+let activityTransitOnly = false;   // uniquement les sorties déclarées accessibles en tram/bus
 
 function onActivityFiltersChanged(){
   catalogFilterQuery = normalizeText(document.getElementById('activity-search-input').value);
   catalogFilterCategory = document.getElementById('activity-category-filter').value;
   activityCityFilter = normalizeText(document.getElementById('activity-city-filter').value);
   activityPassionOnly = document.getElementById('activity-passion-chip').classList.contains('active');
-  const active = catalogFilterQuery || catalogFilterCategory !== 'tous' || activityCityFilter || activityPassionOnly;
+  const active = catalogFilterQuery || catalogFilterCategory !== 'tous' || activityCityFilter || activityPassionOnly
+    || activityDateFilter !== 'toutes' || activityPreciseDate || activityMomentFilter !== 'tous' || activityTransitOnly;
   document.getElementById('activity-filters-active').style.display = active ? 'block' : 'none';
+  updateActivityFilterPills();
   renderCatalogFullList();
   const screenEl = document.getElementById('screen-activities-list');
   if(screenEl) screenEl.scrollTop = 0;
@@ -6850,7 +6892,80 @@ function setActivityDateFilterChip(el, value){
   document.querySelectorAll('#activity-date-chip-row .time-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   activityDateFilter = value;
+  activityPreciseDate = '';
+  const dateInput = document.getElementById('activity-precise-date');
+  if(dateInput) dateInput.value = '';
   onActivityFiltersChanged();
+}
+
+function onActivityPreciseDateChange(value){
+  activityPreciseDate = value || '';
+  if(activityPreciseDate){
+    document.querySelectorAll('#activity-date-chip-row .time-chip').forEach(c => c.classList.remove('active'));
+    activityDateFilter = 'toutes';
+  }
+  onActivityFiltersChanged();
+}
+
+function setActivityMomentChip(el, value){
+  document.querySelectorAll('#activity-moment-chip-row .time-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activityMomentFilter = value;
+  onActivityFiltersChanged();
+}
+
+function toggleActivityTransitOnly(){
+  activityTransitOnly = !activityTransitOnly;
+  document.getElementById('activity-transit-chip').classList.toggle('active', activityTransitOnly);
+  onActivityFiltersChanged();
+}
+
+// ☀️ journée = 6h–18h, 🌙 soirée = 18h–6h. Sans heure renseignée : inconnu,
+// donc exclu d'un filtre journée/soirée (jamais classé au hasard).
+function getActivityMoment(timeStr){
+  if(!timeStr) return null;
+  const h = parseInt(String(timeStr).slice(0,2), 10);
+  if(isNaN(h)) return null;
+  return (h >= 6 && h < 18) ? 'jour' : 'soir';
+}
+
+// Ouvre le panneau de recherche existant directement sur la bonne section.
+function openActivitySearchSection(section){
+  toggleActivitySearchPanel(true);
+  setTimeout(() => {
+    if(section === 'texte'){
+      const input = document.getElementById('activity-search-input');
+      if(input) input.focus();
+      return;
+    }
+    const target = document.getElementById('act-sec-' + section);
+    if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 120);
+}
+
+// Les pilules affichent le filtre actif (ex. « Jeux & Social »), sinon leur question.
+function updateActivityFilterPills(){
+  const setPill = (id, label, active) => {
+    const el = document.getElementById(id);
+    if(el){ el.textContent = label; el.classList.toggle('active', !!active); }
+  };
+  const quoi = catalogFilterCategory !== 'tous'
+    ? catalogFilterCategory.replace(/^\S+\s/, '')
+    : (activityPassionOnly ? 'Mes passions' : null);
+  setPill('act-pill-quoi', quoi || 'Quoi ?', quoi);
+
+  const cityInput = document.getElementById('activity-city-filter');
+  let ou = activityCityFilter && cityInput ? cityInput.value.trim() : (activityRadius !== 20 ? activityRadius + ' km' : null);
+  if(activityTransitOnly) ou = (ou ? ou + ' ' : '') + '🚋';
+  setPill('act-pill-ou', ou || 'Où ?', ou);
+
+  const periodLabels = { today:"Aujourd'hui", weekend:'Ce week-end', week:'Cette semaine' };
+  let quand = activityPreciseDate
+    ? new Date(activityPreciseDate + 'T00:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'short' })
+    : (periodLabels[activityDateFilter] || null);
+  if(activityMomentFilter === 'jour') quand = (quand ? quand + ' ' : '') + '☀️';
+  if(activityMomentFilter === 'soir') quand = (quand ? quand + ' ' : '') + '🌙';
+  setPill('act-pill-quand', quand || 'Quand ?', quand);
 }
 
 function resetActivityFilters(){
@@ -6863,7 +6978,17 @@ function resetActivityFilters(){
   catalogFilterCategory = 'tous';
   activityCityFilter = '';
   activityPassionOnly = false;
+  activityDateFilter = 'toutes';
+  activityPreciseDate = '';
+  activityMomentFilter = 'tous';
+  activityTransitOnly = false;
+  const dateInput = document.getElementById('activity-precise-date');
+  if(dateInput) dateInput.value = '';
+  document.getElementById('activity-transit-chip').classList.remove('active');
+  document.querySelectorAll('#activity-date-chip-row .time-chip').forEach((c,i) => c.classList.toggle('active', i === 0));
+  document.querySelectorAll('#activity-moment-chip-row .time-chip').forEach((c,i) => c.classList.toggle('active', i === 0));
   document.getElementById('activity-filters-active').style.display = 'none';
+  updateActivityFilterPills();
   renderCatalogFullList();
 }
 
@@ -6951,6 +7076,8 @@ async function geocodeLocation(query){
 }
 
 function openCreateActivityReal(){
+  const transitSwitch = document.getElementById('ract-form-transit');
+  if(transitSwitch) transitSwitch.classList.remove('on');
   selectedLocationCoords = null;
   document.getElementById('ract-location-suggestions').style.display = 'none';
   document.getElementById('ract-form-meeting-point').value = '';
@@ -7140,6 +7267,8 @@ async function submitRealActivity(){
   const maxParticipants = maxRaw ? parseInt(maxRaw, 10) : null;
   const photoFile = document.getElementById('ract-form-photo').files[0] || null;
   const mode = document.getElementById('ract-form-mode-love').classList.contains('love-on') ? 'love' : 'friend';
+  const transitEl = document.getElementById('ract-form-transit');
+  const transitAccessible = !!(transitEl && transitEl.classList.contains('on'));
 
   // Validation des champs obligatoires
   if(!title || !category || !date || !location){
@@ -7203,7 +7332,8 @@ async function submitRealActivity(){
       max_participants: maxParticipants,
       mode: mode,
       moderation_status: moderation.status,
-      moderation_reason: moderation.reason
+      moderation_reason: moderation.reason,
+      ...(transitAccessible ? { transit_accessible: true } : {})
     });
     if(error) throw error;
 
@@ -8106,7 +8236,67 @@ async function showCatalogFullList(presetCategory){
   await renderCatalogFullList();
   section.scrollIntoView({behavior:'smooth', block:'start'});
 }
+// Catégories officielles correspondant à une sortie de membre (stockée avec
+// l'ancienne clé de catégorie, ou directement avec un libellé officiel).
+function memberActivityCatalogCategories(a){
+  if(INTEREST_KEY_TO_CATALOG_CATEGORIES[a.category]) return INTEREST_KEY_TO_CATALOG_CATEGORIES[a.category];
+  return CATALOG_CATEGORIES.some(c => c.label === a.category) ? [a.category] : [];
+}
+
+async function renderMemberOutingsList(){
+  const box = document.getElementById('member-outings-list');
+  if(!box || !supabaseClient) return;
+  const title = `<div class="match-section-title" style="padding:10px 0 8px;">📅 Sorties des membres</div>`;
+  try{
+    const all = await fetchActiveUpcomingActivities();
+
+    // 🚋 : lu à part, pour que le reste fonctionne même si la colonne n'existe pas encore.
+    let transitIds = null;
+    if(activityTransitOnly){
+      try{
+        const { data, error } = await supabaseClient.from('activities').select('id').eq('transit_accessible', true);
+        if(error) throw error;
+        transitIds = new Set((data || []).map(r => r.id));
+      } catch(e){
+        console.warn('[Activités] Filtre transports indisponible :', e.message);
+        transitIds = new Set();
+      }
+    }
+
+    const q = normalizeText(catalogFilterQuery);
+    const myCats = getMyCatalogCategoriesFromPassions();
+    const filtered = all.filter(a => {
+      const cats = memberActivityCatalogCategories(a);
+      if(catalogFilterCategory !== 'tous' && !cats.includes(catalogFilterCategory)) return false;
+      if(activityPassionOnly && !cats.some(c => myCats.has(c))) return false;
+      if(activityCityFilter && !normalizeText(a.location || '').includes(activityCityFilter)) return false;
+      if(q && !normalizeText(`${a.title} ${a.description || ''} ${a.location || ''}`).includes(q)) return false;
+      if(activityPreciseDate){ if(a.activity_date !== activityPreciseDate) return false; }
+      else if(!matchesActivityDatePeriod(a.activity_date, activityDateFilter)) return false;
+      if(activityMomentFilter !== 'tous' && getActivityMoment(a.activity_time) !== activityMomentFilter) return false;
+      if(transitIds && !transitIds.has(a.id)) return false;
+      return true;
+    }).map(a => ({ ...a, distanceKm: getActivityDistanceKm(a) }))
+      .filter(a => a.distanceKm == null || a.distanceKm <= activityRadius)
+      .sort((x,y) => (x.activity_date || '9999').localeCompare(y.activity_date || '9999') || (x.activity_time || '').localeCompare(y.activity_time || ''));
+
+    if(!filtered.length){
+      box.innerHTML = title + `<div class="swipe-empty" style="height:auto; padding:22px 10px; flex-direction:column; font-size:13px;">
+        <span>📅</span>Aucune sortie de membre pour ces critères… et si c'était toi qui lançais la prochaine ? 🍊
+        <button class="btn-primary" style="margin-top:12px; padding:10px 18px; width:auto;" onclick="openCreateActivityReal()">Proposer une sortie</button>
+      </div>`;
+      return;
+    }
+    const cards = await Promise.all(filtered.slice(0, 20).map(a => buildActivityCardHtml(a)));
+    box.innerHTML = title + cards.join('');
+  } catch(e){
+    console.warn('[Activités] Sorties des membres indisponibles :', e.message);
+    box.innerHTML = '';
+  }
+}
+
 async function renderCatalogFullList(){
+  renderMemberOutingsList();
   const list = document.getElementById('activities-real-list');
   const summary = document.getElementById('activity-results-summary');
   const { venues, activities } = await fetchVenuesCatalog();
