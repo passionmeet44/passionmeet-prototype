@@ -1442,8 +1442,10 @@
   .profile-hero .mode-badge-row .mode-badge.couple-on{ background:#fff !important; color:var(--plum) !important; box-shadow:0 2px 6px rgba(62,31,68,0.10); }
   /* Badges (Parent, Nouveau…) : étiquettes fines et discrètes */
   .profile-hero .profile-badge-row{ justify-content:center; gap:6px; margin-top:10px; }
-  .profile-hero .profile-badge-row .mode-badge{ background:transparent !important; border:1px solid #E6DDEA; color:var(--plum-soft) !important;
-    font-size:11px !important; font-weight:600; padding:4px 10px !important; border-radius:999px; }
+  .profile-hero .profile-badge-row{ display:flex; flex-wrap:wrap; }
+  .profile-hero .profile-badge-row .mode-badge{ flex:0 0 auto !important; width:auto !important; min-width:0 !important;
+    background:transparent !important; border:1px solid #E6DDEA; color:var(--plum-soft) !important;
+    font-size:10.5px !important; font-weight:600; line-height:1.3; padding:3px 9px !important; border-radius:999px; }
   body.dark-mode .profile-hero .mode-badge-row{ background:#3B3042; }
   body.dark-mode .profile-hero .mode-badge-row .mode-badge.friend-on,
   body.dark-mode .profile-hero .mode-badge-row .mode-badge.love-on,
@@ -1482,6 +1484,15 @@
   body.dark-mode .profile-hero h2, body.dark-mode .pm-label, body.dark-mode .pm-block-title{ color:#F1E9F5 !important; }
   body.dark-mode .pm-list > * + *{ border-top-color:#3B3042; }
   body.dark-mode .pm-icon{ background:#3B3042; }
+  .cp-section{ margin-top:18px; }
+  .cp-title{ font-family:var(--font-display); font-size:15px; font-weight:800; color:var(--plum); margin-bottom:8px; }
+  .cp-card{ background:#fff; border:1px solid var(--lavender); border-radius:14px; padding:12px 14px; margin-bottom:8px; }
+  .cp-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13px; color:var(--plum); }
+  .cp-meta{ font-size:12px; color:#9584A0; margin-top:3px; line-height:1.4; }
+  .cp-btn{ border:none; border-radius:12px; padding:8px 12px; font-size:12.5px; font-weight:700; cursor:pointer; background:var(--plum); color:#fff; flex-shrink:0; }
+  .cp-btn.light{ background:#fff; color:var(--plum); border:1px solid var(--lavender); }
+  .cp-full{ font-size:11px; font-weight:800; color:#B0451F; background:#FCE4DC; padding:3px 8px; border-radius:8px; flex-shrink:0; }
+  body.dark-mode .cp-card{ background:#2B2231; border-color:#3B3042; }
   .subp-header{ display:flex; justify-content:space-between; align-items:center; margin-top:20px; margin-bottom:8px; }
   .subp-title{ font-size:14px; font-weight:800; color:var(--plum); }
   .subp-counter{ font-size:12px; font-weight:800; color:var(--orange-deep); }
@@ -1689,6 +1700,13 @@
         <p>Distinct de « j'ai des enfants » — utilisé pour des recommandations adaptées</p>
       </div>
       <div class="switch" id="switch-single-parent" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="checkbox-row">
+      <div>
+        <h4>🚗 Je peux covoiturer</h4>
+        <p>J'ai une voiture et je peux emmener d'autres membres aux sorties</p>
+      </div>
+      <div class="switch" id="switch-can-carpool" onclick="this.classList.toggle('on')"></div>
     </div>
 
     <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="showScreen('signup-photos')">Continuer</button>
@@ -1985,6 +2003,7 @@
         <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>
         <span class="mode-badge" id="profile-newcomer-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🆕 Nouveau/nouvelle dans la région</span>
         <span class="mode-badge" id="profile-single-parent-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🧑‍🧒 Parent solo</span>
+        <span class="mode-badge" id="profile-carpool-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🚗 Peut covoiturer</span>
       </div>
       <div class="profile-photo-strip" id="profile-photo-strip"></div>
     </div>
@@ -2036,7 +2055,7 @@
       <div class="pm-block"><div class="pm-block-title">📅 Mes sorties à venir</div><div id="profile-upcoming"></div></div>
       <div class="pm-row" onclick="openProfileList('organized')"><div class="pm-icon orange">⭐</div><div class="pm-label">Mes sorties organisées</div><div class="pm-chevron">›</div></div>
       <div class="pm-row" onclick="openProfileList('favorites')"><div class="pm-icon">🤍</div><div class="pm-label">Mes favoris</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row soon"><div class="pm-icon orange">🚗</div><div class="pm-label">Mes covoiturages</div><span class="pm-soon">Bientôt</span></div>
+      <div class="pm-row" onclick="openProfileList('carpools')"><div class="pm-icon orange">🚗</div><div class="pm-label">Mes covoiturages</div><div class="pm-chevron">›</div></div>
       <div class="pm-row soon"><div class="pm-icon">📊</div><div class="pm-label">Mes statistiques de fiabilité</div><span class="pm-soon">Bientôt</span></div>
     </div>
 
@@ -2208,6 +2227,7 @@
         <button class="btn-primary" id="ract-group-btn" style="flex:1; margin:0; display:none;" onclick="openActivityGroupChat(currentActivityDetail.id)">💬 Écrire au groupe</button>
         <button class="btn-primary" style="flex:1; margin:0; background:#fff; color:var(--plum); border:1px solid var(--lavender);" onclick="shareCurrentActivity()">📤 Partager</button>
       </div>
+      <div id="ract-carpool-section" class="cp-section"></div>
       <div class="report-link" id="ract-report-link" onclick="openActivityReportModal()">🚩 Signaler cette activité</div>
     </div>
   </div>
@@ -2518,6 +2538,13 @@
         <p>Distinct de « j'ai des enfants » — utilisé pour des recommandations adaptées</p>
       </div>
       <div class="switch" id="edit-switch-single-parent" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="checkbox-row">
+      <div>
+        <h4>🚗 Je peux covoiturer</h4>
+        <p>J'ai une voiture et je peux emmener d'autres membres aux sorties</p>
+      </div>
+      <div class="switch" id="edit-switch-can-carpool" onclick="this.classList.toggle('on')"></div>
     </div>
 
     <div class="form-label" style="margin-top:26px;">Tranche d'âge recherchée</div>
@@ -3907,6 +3934,7 @@ function openEditProfile(){
   document.getElementById('edit-switch-kids').classList.toggle('on', myProfile.hasKids === true);
   document.getElementById('edit-switch-newcomer').classList.toggle('on', myProfile.isNewcomer === true);
   document.getElementById('edit-switch-single-parent').classList.toggle('on', myProfile.isSingleParent === true);
+  document.getElementById('edit-switch-can-carpool').classList.toggle('on', myProfile.canCarpool === true);
 
   const list = document.getElementById('edit-passion-list');
   list.innerHTML = buildOfficialCategoryCardsHtml(getMyCatalogCategoriesFromPassions());
@@ -3940,6 +3968,7 @@ function saveEditedProfile(){
   myProfile.hasKids = document.getElementById('edit-switch-kids').classList.contains('on');
   myProfile.isNewcomer = document.getElementById('edit-switch-newcomer').classList.contains('on');
   myProfile.isSingleParent = document.getElementById('edit-switch-single-parent').classList.contains('on');
+  myProfile.canCarpool = document.getElementById('edit-switch-can-carpool').classList.contains('on');
   if(!isNaN(ageMin)) myProfile.ageMin = ageMin;
   if(!isNaN(ageMax)) myProfile.ageMax = ageMax;
 
@@ -4268,6 +4297,7 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.genderPreferences = row.gender_preferences ? row.gender_preferences.split(',').filter(Boolean) : [];
   if(Array.isArray(row.passions)){ myProfile.interests = row.passions; }
   if(Array.isArray(row.sub_passions)){ myProfile.subPassions = row.sub_passions; }
+  myProfile.canCarpool = row.can_carpool === true;
   myProfile.isSingleParent = row.is_single_parent === true; // jamais déduit, uniquement la valeur explicite stockée
   myProfile.isNewcomer = row.is_newcomer === true; // idem
   myProfile.hasKids = row.has_kids === true; // idem — ne sert jamais à déduire isSingleParent
@@ -4337,12 +4367,20 @@ async function saveProfileToSupabase(){
       updated_at: new Date().toISOString()
     };
     if(Array.isArray(myProfile.subPassions)) payload.sub_passions = myProfile.subPassions;
+    payload.can_carpool = myProfile.canCarpool === true;
     let { data, error } = await supabaseClient
       .from('profiles').upsert(payload, { onConflict: 'firebase_uid' }).select().maybeSingle();
     // Colonne sub_passions pas encore créée : on enregistre tout le reste
     // normalement, sans jamais bloquer la sauvegarde du profil pour autant.
-    if(error && (error.message || '').includes('sub_passions')){
-      delete payload.sub_passions;
+    // Colonne récente pas encore créée (sub_passions, can_carpool) : on la
+    // retire et on réessaie — la sauvegarde du profil n'est jamais bloquée.
+    for(let attempt = 0; attempt < 2 && error; attempt++){
+      const msg = error.message || '';
+      let removed = false;
+      ['sub_passions', 'can_carpool'].forEach(col => {
+        if(msg.includes(col) && col in payload){ delete payload[col]; removed = true; }
+      });
+      if(!removed) break;
       ({ data, error } = await supabaseClient
         .from('profiles').upsert(payload, { onConflict: 'firebase_uid' }).select().maybeSingle());
     }
@@ -4994,7 +5032,7 @@ function signUpWithEmail(){
 }
 
 let myProfile = {
-  name: '', age: '', bio: '', hasKids: false, isNewcomer: false, isSingleParent: false, subPassions: [], photos: [],
+  name: '', age: '', bio: '', hasKids: false, isNewcomer: false, isSingleParent: false, canCarpool: false, subPassions: [], photos: [],
   interests: [], modes: ['friend','love'],
   radiusKm: 20, ageMin: 28, ageMax: 45,
   city: '', latitude: null, longitude: null, intent: '', supabaseId: null
@@ -5025,6 +5063,7 @@ function finishSignup(){
   if(document.getElementById('switch-couple').classList.contains('on')) myProfile.modes.push('couple');
   myProfile.isNewcomer = document.getElementById('switch-newcomer').classList.contains('on');
   myProfile.isSingleParent = document.getElementById('switch-single-parent').classList.contains('on');
+  myProfile.canCarpool = document.getElementById('switch-can-carpool').classList.contains('on');
   myProfile.radiusKm = parseInt(document.getElementById('prefs-distance').value);
   myProfile.ageMin = parseInt(document.getElementById('prefs-age-min').value);
   myProfile.ageMax = parseInt(document.getElementById('prefs-age-max').value);
@@ -5111,6 +5150,8 @@ function renderProfileScreen(){
   if(newcomerEl) newcomerEl.style.display = myProfile.isNewcomer ? 'inline-block' : 'none';
   const singleParentEl = document.getElementById('profile-single-parent-badge');
   if(singleParentEl) singleParentEl.style.display = myProfile.isSingleParent === true ? 'inline-block' : 'none';
+  const carpoolBadgeEl = document.getElementById('profile-carpool-badge');
+  if(carpoolBadgeEl) carpoolBadgeEl.style.display = myProfile.canCarpool === true ? 'inline-block' : 'none';
   const avatarEl = document.getElementById('profile-avatar');
   if(avatarEl){
     if(myProfile.photos && myProfile.photos.length){
@@ -7979,6 +8020,7 @@ async function buildActivityCardHtml(a){
   else if(a.is_free === false) badges.push(`<span class="ac-badge paid">${a.price_eur != null ? String(a.price_eur).replace('.', ',') + ' €' : '€'}</span>`);
   if(a.transit_accessible) badges.push(`<span class="ac-badge">🚋 Tram/bus</span>`);
   if(a.recurrence) badges.push(`<span class="ac-badge">${recurrenceLabel(a.recurrence)}</span>`);
+  if(a.hasCarpool) badges.push(`<span class="ac-badge">🚗 Covoiturage</span>`);
   if(a.matchesPassion) badges.push(`<span class="ac-badge">❤️ Passion</span>`);
   if(isFull) badges.push(`<span class="ac-badge full">Complet</span>`);
 
@@ -8821,6 +8863,8 @@ async function renderMemberOutingsList(){
       </div>`;
       return;
     }
+    const carpoolIds = await fetchActivitiesWithCarpool();
+    filtered.forEach(a => { a.hasCarpool = carpoolIds.has(a.id); });
     const cards = await Promise.all(filtered.slice(0, 20).map(a => buildActivityCardHtml(a)));
     box.innerHTML = title + cards.join('');
   } catch(e){
@@ -9433,6 +9477,195 @@ function openSharedActivityFromUrl(){
   setTimeout(() => openActivityDetail(id), 600);
 }
 
+// ---------- Covoiturage (visible uniquement par les inscrits de la sortie) ----------
+async function renderCarpoolSection(activityId, iAmParticipant){
+  const box = document.getElementById('ract-carpool-section');
+  if(!box) return;
+  if(!supabaseClient || !myProfile.supabaseId){ box.innerHTML = ''; return; }
+  const title = `<div class="cp-title">🚗 Se déplacer ensemble</div>`;
+  if(!iAmParticipant){
+    box.innerHTML = title + `<div class="cp-meta">Inscris-toi à la sortie pour voir les trajets, en proposer un ou réserver une place.</div>`;
+    return;
+  }
+  try{
+    const me = myProfile.supabaseId;
+    const [{ data: offers, error: e1 }, { data: seekers, error: e2 }] = await Promise.all([
+      supabaseClient.from('carpool_offers').select('id, driver_profile_id, seats_total, departure_point, departure_time')
+        .eq('activity_id', activityId).order('created_at', { ascending: true }),
+      supabaseClient.from('carpool_seekers').select('profile_id').eq('activity_id', activityId)
+    ]);
+    if(e1) throw e1;
+    if(e2) throw e2;
+    const offerIds = (offers || []).map(o => o.id);
+    let bookings = [];
+    if(offerIds.length){
+      const { data: b, error: e3 } = await supabaseClient.from('carpool_bookings').select('offer_id, passenger_profile_id').in('offer_id', offerIds);
+      if(e3) throw e3;
+      bookings = b || [];
+    }
+    const ids = [...new Set([
+      ...(offers || []).map(o => o.driver_profile_id),
+      ...(seekers || []).map(s => s.profile_id),
+      ...bookings.map(b => b.passenger_profile_id)
+    ])];
+    const names = {};
+    if(ids.length){
+      const { data: ps } = await supabaseClient.from('profiles').select('id, first_name').in('id', ids);
+      (ps || []).forEach(p => { names[p.id] = p.first_name || 'Membre'; });
+    }
+    const myOffer = (offers || []).find(o => o.driver_profile_id === me);
+    const myBooking = bookings.find(b => b.passenger_profile_id === me);
+    const iSeek = (seekers || []).some(s => s.profile_id === me);
+
+    const offersHtml = (offers || []).map(o => {
+      const booked = bookings.filter(b => b.offer_id === o.id);
+      const left = Math.max(o.seats_total - booked.length, 0);
+      const isMine = o.driver_profile_id === me;
+      const iBooked = booked.some(b => b.passenger_profile_id === me);
+      const passengers = booked.map(b => escapeHtml(names[b.passenger_profile_id] || 'Membre')).join(', ');
+      let action = '';
+      if(isMine) action = `<button class="cp-btn light" onclick="deleteCarpoolOffer('${o.id}')">Retirer</button>`;
+      else if(iBooked) action = `<button class="cp-btn light" onclick="cancelCarpoolBooking('${o.id}')">Annuler ma place</button>`;
+      else if(left > 0 && !myBooking && !myOffer) action = `<button class="cp-btn" onclick="bookCarpoolSeat('${o.id}')">Réserver</button>`;
+      else if(left === 0) action = `<span class="cp-full">Complet</span>`;
+      return `<div class="cp-card"><div class="cp-row"><div style="min-width:0;">
+          <b>${isMine ? 'Ton trajet' : escapeHtml(names[o.driver_profile_id] || 'Membre')}</b> · ${left}/${o.seats_total} place${o.seats_total > 1 ? 's' : ''} libre${left > 1 ? 's' : ''}
+          <div class="cp-meta">📍 ${escapeHtml(o.departure_point)}${o.departure_time ? ' · 🕐 ' + escapeHtml(String(o.departure_time).slice(0,5)) : ''}</div>
+          ${passengers ? `<div class="cp-meta">👥 ${passengers}</div>` : ''}
+        </div>${action}</div></div>`;
+    }).join('');
+
+    const otherSeekers = (seekers || []).filter(s => s.profile_id !== me).map(s => escapeHtml(names[s.profile_id] || 'Membre'));
+    const seekHtml = otherSeekers.length
+      ? `<div class="cp-meta" style="margin-bottom:8px;">🙋 Cherche${otherSeekers.length > 1 ? 'nt' : ''} un trajet : ${otherSeekers.join(', ')}</div>` : '';
+
+    const actions = `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+        ${!myOffer ? `<button class="cp-btn" onclick="toggleCarpoolOfferForm()">🚗 Je propose un trajet</button>` : ''}
+        ${!myOffer && !myBooking ? `<button class="cp-btn light" onclick="toggleCarpoolSeeking(${iSeek})">${iSeek ? '✓ Je cherche un trajet' : '🙋 Je cherche un trajet'}</button>` : ''}
+      </div>
+      <div class="cp-meta" style="margin-top:8px;">Pour t'organiser avec le conducteur, écris dans le groupe de la sortie.</div>
+      <div id="cp-offer-form" class="cp-card" style="display:none; margin-top:10px;">
+        <div class="form-label">Nombre de places</div>
+        <input class="form-input" id="cp-seats" type="number" min="1" max="8" value="3">
+        <div class="form-label">Point de départ</div>
+        <input class="form-input" id="cp-point" type="text" placeholder="Ex : parking de la gare de Rezé">
+        <div class="form-hint" style="margin-top:-6px; margin-bottom:8px;">Un lieu public suffit : évite ton adresse exacte.</div>
+        <div class="form-label">Heure de départ</div>
+        <input class="form-input" id="cp-time" type="time">
+        <button class="cp-btn" style="width:100%; margin-top:6px; padding:11px;" onclick="submitCarpoolOffer('${activityId}')">Publier mon trajet</button>
+      </div>`;
+
+    box.innerHTML = title
+      + (offersHtml || `<div class="cp-meta" style="margin-bottom:8px;">Aucun trajet proposé pour l'instant… et si tu lançais le premier ? 🍊</div>`)
+      + seekHtml + actions;
+  } catch(e){
+    console.warn('[Covoiturage] Chargement impossible :', e.message);
+    box.innerHTML = title + `<div class="cp-meta">Covoiturage indisponible pour le moment.</div>`;
+  }
+}
+
+function refreshCarpoolForCurrentActivity(){
+  if(currentActivityDetail) renderCarpoolSection(currentActivityDetail.id, true);
+}
+
+function toggleCarpoolOfferForm(){
+  const f = document.getElementById('cp-offer-form');
+  if(f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+async function submitCarpoolOffer(activityId){
+  const seats = parseInt(document.getElementById('cp-seats').value, 10);
+  const point = document.getElementById('cp-point').value.trim();
+  const time = document.getElementById('cp-time').value;
+  if(!seats || seats < 1 || seats > 8){ showToast('Indique entre 1 et 8 places', '⚠️'); return; }
+  if(!point){ showToast('Indique un point de départ', '⚠️'); return; }
+  try{
+    const { error } = await supabaseClient.from('carpool_offers').insert({
+      activity_id: activityId, driver_profile_id: myProfile.supabaseId,
+      seats_total: seats, departure_point: point, departure_time: time || null
+    });
+    if(error) throw error;
+    await supabaseClient.from('carpool_seekers').delete().eq('activity_id', activityId).eq('profile_id', myProfile.supabaseId);
+    showToast('Trajet publié 🚗', '✅');
+    refreshCarpoolForCurrentActivity();
+  } catch(e){
+    console.warn('[Covoiturage] Publication impossible :', e.message);
+    showToast(e.code === '23505' ? 'Tu proposes déjà un trajet pour cette sortie' : 'Publication impossible, réessaie', '⚠️');
+  }
+}
+
+async function deleteCarpoolOffer(offerId){
+  if(!confirm('Retirer ton trajet ? Les places réservées seront libérées.')) return;
+  try{
+    const { error } = await supabaseClient.from('carpool_offers').delete().eq('id', offerId).eq('driver_profile_id', myProfile.supabaseId);
+    if(error) throw error;
+    showToast('Trajet retiré', '🚗');
+    refreshCarpoolForCurrentActivity();
+  } catch(e){
+    console.warn('[Covoiturage] Retrait impossible :', e.message);
+    showToast('Retrait impossible, réessaie', '⚠️');
+  }
+}
+
+async function bookCarpoolSeat(offerId){
+  try{
+    const { error } = await supabaseClient.from('carpool_bookings').insert({ offer_id: offerId, passenger_profile_id: myProfile.supabaseId });
+    if(error) throw error;
+    if(currentActivityDetail){
+      await supabaseClient.from('carpool_seekers').delete().eq('activity_id', currentActivityDetail.id).eq('profile_id', myProfile.supabaseId);
+    }
+    showToast('Place réservée 🚗', '✅');
+  } catch(e){
+    console.warn('[Covoiturage] Réservation impossible :', e.message);
+    showToast((e.message || '').includes('CARPOOL_FULL') ? 'Ce trajet vient de se remplir' : 'Réservation impossible, réessaie', '⚠️');
+  }
+  refreshCarpoolForCurrentActivity();
+}
+
+async function cancelCarpoolBooking(offerId){
+  try{
+    const { error } = await supabaseClient.from('carpool_bookings').delete().eq('offer_id', offerId).eq('passenger_profile_id', myProfile.supabaseId);
+    if(error) throw error;
+    showToast('Place annulée', '🚗');
+  } catch(e){
+    console.warn('[Covoiturage] Annulation impossible :', e.message);
+    showToast('Annulation impossible, réessaie', '⚠️');
+  }
+  refreshCarpoolForCurrentActivity();
+}
+
+async function toggleCarpoolSeeking(isSeeking){
+  if(!currentActivityDetail) return;
+  try{
+    if(isSeeking){
+      const { error } = await supabaseClient.from('carpool_seekers').delete()
+        .eq('activity_id', currentActivityDetail.id).eq('profile_id', myProfile.supabaseId);
+      if(error) throw error;
+    } else {
+      const { error } = await supabaseClient.from('carpool_seekers')
+        .insert({ activity_id: currentActivityDetail.id, profile_id: myProfile.supabaseId });
+      if(error && error.code !== '23505') throw error;
+      showToast('Les conducteurs verront que tu cherches un trajet', '🙋');
+    }
+  } catch(e){
+    console.warn('[Covoiturage] Action impossible :', e.message);
+    showToast('Action impossible, réessaie', '⚠️');
+  }
+  refreshCarpoolForCurrentActivity();
+}
+
+// Sorties avec au moins un trajet (sans révéler aucun détail) : badge 🚗 des cartes.
+async function fetchActivitiesWithCarpool(){
+  if(!supabaseClient) return new Set();
+  try{
+    const { data, error } = await supabaseClient.rpc('activities_with_carpool');
+    if(error) throw error;
+    return new Set((data || []).map(r => (typeof r === 'string' ? r : (r.activities_with_carpool || r.activity_id))));
+  } catch(e){
+    return new Set();
+  }
+}
+
 async function openActivityDetail(activityId){
   let a = currentActivitiesData.find(x => x.id === activityId);
   if(!a){
@@ -9505,6 +9738,7 @@ async function refreshActivityParticipants(activityId){
     const participantIds = (data || []).map(p => p.profile_id);
     const groupBtn = document.getElementById('ract-group-btn');
     if(groupBtn) groupBtn.style.display = participantIds.includes(myProfile.supabaseId) ? '' : 'none';
+    renderCarpoolSection(activityId, participantIds.includes(myProfile.supabaseId));
     const maxLabel = currentActivityDetail && currentActivityDetail.maxParticipants ? `/${currentActivityDetail.maxParticipants}` : '';
     titleEl.textContent = `👥 ${participantIds.length}${maxLabel} participant${participantIds.length>1?'s':''}`;
 
@@ -9514,8 +9748,17 @@ async function refreshActivityParticipants(activityId){
         return p && p.first_name ? p.first_name : 'Membre';
       } catch(e){ return 'Membre'; }
     }));
+    // Lu à part : si la colonne n'existe pas encore, la liste s'affiche quand même.
+    let carpoolers = new Set();
+    if(participantIds.length){
+      try{
+        const { data: cp, error: cpErr } = await supabaseClient.from('profiles').select('id, can_carpool').in('id', participantIds);
+        if(!cpErr) carpoolers = new Set((cp || []).filter(p => p.can_carpool === true).map(p => p.id));
+      } catch(e){}
+    }
     listEl.innerHTML = names.length
-      ? names.map(n => `<span class="msg-mode-tag friend" style="margin-right:6px; margin-bottom:6px; display:inline-block;">${n}</span>`).join('')
+      ? names.map((n, i) => `<span class="msg-mode-tag friend" style="margin-right:6px; margin-bottom:6px; display:inline-block;">${n}${carpoolers.has(participantIds[i]) ? ' 🚗' : ''}</span>`).join('')
+        + (carpoolers.size ? `<div class="cp-meta" style="margin-top:2px;">🚗 = peut covoiturer</div>` : '')
       : `<p style="font-size:12.5px; color:#9584A0;">Personne pour l'instant — soyez le premier !</p>`;
 
     const alreadyJoined = participantIds.includes(myProfile.supabaseId);
@@ -10061,7 +10304,7 @@ async function loadRealMessages(conversationId){
 let matchProfileDetailReturn = 'matches';
 
 async function openProfileList(kind){
-  const titles = { favorites:'🤍 Mes favoris', organized:'⭐ Mes sorties organisées', blocked:'🚫 Profils bloqués' };
+  const titles = { favorites:'🤍 Mes favoris', organized:'⭐ Mes sorties organisées', blocked:'🚫 Profils bloqués', carpools:'🚗 Mes covoiturages' };
   document.getElementById('profile-list-title').textContent = titles[kind] || '';
   const body = document.getElementById('profile-list-body');
   body.innerHTML = emptyMsgState('⏳', 'Chargement…', false);
@@ -10077,6 +10320,21 @@ async function openProfileList(kind){
       items = all.filter(a => favs.has(a.id));
     } else if(kind === 'organized'){
       items = all.filter(a => a.organizer_profile_id === myProfile.supabaseId);
+    } else if(kind === 'carpools'){
+      const me = myProfile.supabaseId;
+      const { data: myOffers } = await supabaseClient.from('carpool_offers').select('activity_id').eq('driver_profile_id', me);
+      const { data: myBookings } = await supabaseClient.from('carpool_bookings').select('offer_id').eq('passenger_profile_id', me);
+      const ids = new Set((myOffers || []).map(o => o.activity_id));
+      const bookedOfferIds = (myBookings || []).map(b => b.offer_id);
+      if(bookedOfferIds.length){
+        const { data: bookedOffers } = await supabaseClient.from('carpool_offers').select('activity_id').in('id', bookedOfferIds);
+        (bookedOffers || []).forEach(o => ids.add(o.activity_id));
+      }
+      items = all.filter(a => ids.has(a.id)).map(a => ({ ...a, hasCarpool: true }));
+    }
+    if(!items.length && kind === 'carpools'){
+      body.innerHTML = emptyMsgState('🚗', "Aucun covoiturage pour l'instant… propose ou réserve un trajet depuis la fiche d'une sortie 🍊", false);
+      return;
     }
     if(!items.length){
       body.innerHTML = kind === 'favorites'
@@ -10153,7 +10411,8 @@ async function openMyProfilePreview(){
   const badgesHtml = [
     myProfile.isNewcomer ? `<span class="mode-badge" style="${badgeStyle}">🆕 Nouveau/nouvelle dans la région</span>` : '',
     myProfile.isSingleParent ? `<span class="mode-badge" style="${badgeStyle}">🧑‍🧒 Parent solo</span>` : '',
-    myProfile.hasKids ? `<span class="mode-badge" style="${badgeStyle}">👨‍👩‍👧 Parent</span>` : ''
+    myProfile.hasKids ? `<span class="mode-badge" style="${badgeStyle}">👨‍👩‍👧 Parent</span>` : '',
+    myProfile.canCarpool ? `<span class="mode-badge" style="${badgeStyle}">🚗 Peut covoiturer</span>` : ''
   ].filter(Boolean).join('');
   const passionsHtml = (myProfile.interests || []).map(t => `<span>${escapeHtml(t)}</span>`).join('');
   const subsHtml = (myProfile.subPassions || []).map(t => `<span class="subp-tag static">${escapeHtml(t)}</span>`).join('');
