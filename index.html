@@ -1430,6 +1430,9 @@
   .venue-tile-price{ position:absolute; top:4px; left:4px; font-size:8.5px; font-weight:800; padding:2px 6px; border-radius:6px; line-height:1.4; }
   .venue-tile-price.free{ background:#E4F3E9; color:#2E7D4F; }
   .venue-tile-price.paid{ background:#FCE9DC; color:var(--orange-deep); }
+  .tab-count{ display:inline-block; min-width:16px; padding:0 5px; margin-left:6px; border-radius:8px; background:var(--orange);
+    color:#fff; font-size:10px; font-weight:800; line-height:16px; text-align:center; vertical-align:middle; }
+  .tab-count.hidden{ display:none; }
   .ac-moment{ position:absolute; top:8px; left:8px; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:10px; background:rgba(255,255,255,0.92); color:var(--plum); }
   .ac-heart{ position:absolute; top:6px; right:6px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.92);
     display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; box-shadow:0 2px 6px rgba(62,31,68,0.15); }
@@ -2434,8 +2437,8 @@
   <div class="screen" id="screen-messages">
     <div class="msg-header"><h1>Messages</h1></div>
     <div class="tier-tabs">
-      <div class="tier-tab active" id="msg-tab-private" onclick="switchMessagesTab('private')">Conversations privées</div>
-      <div class="tier-tab gold" id="msg-tab-groups" onclick="switchMessagesTab('groups')">Groupes d'activités</div>
+      <div class="tier-tab active" id="msg-tab-private" onclick="switchMessagesTab('private')">Conversations privées<span class="tab-count hidden" id="msg-tab-private-badge"></span></div>
+      <div class="tier-tab gold" id="msg-tab-groups" onclick="switchMessagesTab('groups')">Groupes d'activités<span class="tab-count hidden" id="msg-tab-groups-badge"></span></div>
     </div>
     <div id="msg-list-private" style="padding:0 20px;"></div>
     <div id="msg-list-groups" class="hidden" style="padding:0 20px;"></div>
@@ -6751,28 +6754,47 @@ let currentMatchesData = []; // cache des matchs affichés, pour retrouver les i
 let unreadPollInterval = null;
 
 async function fetchUnreadCounts(){
-  if(!supabaseClient || !myProfile.supabaseId) return { total: 0, byMatch: {} };
+  const empty = { total: 0, byMatch: {}, privateCount: 0, groupCount: 0 };
+  if(!supabaseClient || !myProfile.supabaseId) return empty;
   try{
+    const myId = myProfile.supabaseId;
     const { data, error } = await supabaseClient
       .from('messages')
-      .select('conversation_id, conversations(match_id)')
+      .select('conversation_id, conversations(match_id, type, profile_a_id, profile_b_id)')
       .is('read_at', null)
-      .neq('sender_profile_id', myProfile.supabaseId);
+      .neq('sender_profile_id', myId);
     if(error) throw error;
+    const rows = data || [];
+
+    // Mêmes exclusions que les listes affichées : jamais de badge pour une
+    // conversation invisible (personne bloquée ou compte supprimé).
+    const blocked = new Set(await getBlockedProfileIds());
+    const counterpartOf = c => (c && c.type === 'private') ? (c.profile_a_id === myId ? c.profile_b_id : c.profile_a_id) : null;
+    const counterpartIds = [...new Set(rows.map(m => counterpartOf(m.conversations)).filter(Boolean))];
+    let deleted = new Set();
+    if(counterpartIds.length){
+      const { data: del } = await supabaseClient.from('profiles').select('id').in('id', counterpartIds).not('deleted_at', 'is', null);
+      deleted = new Set((del || []).map(p => p.id));
+    }
+
     const byMatch = {};
-    let total = 0;
-    (data || []).forEach(m => {
-      // Compte TOUS les messages non lus (privés et groupes) pour le total global.
-      total++;
-      // Le détail par match, lui, ne concerne que les conversations privées —
-      // utilisé uniquement pour les badges sur les cartes de l'onglet Matchs.
-      const matchId = m.conversations ? m.conversations.match_id : null;
-      if(matchId) byMatch[matchId] = (byMatch[matchId] || 0) + 1;
+    let privateCount = 0, groupCount = 0;
+    rows.forEach(m => {
+      const c = m.conversations;
+      if(!c) return;
+      if(c.type === 'private'){
+        const other = counterpartOf(c);
+        if(other && (blocked.has(other) || deleted.has(other))) return;
+        privateCount++;
+        if(c.match_id) byMatch[c.match_id] = (byMatch[c.match_id] || 0) + 1;
+      } else if(c.type === 'activity_group'){
+        groupCount++;
+      }
     });
-    return { total, byMatch };
+    return { total: privateCount + groupCount, byMatch, privateCount, groupCount };
   } catch(e){
     console.warn('[Notifs] Impossible de récupérer les messages non lus :', e.message);
-    return { total: 0, byMatch: {} };
+    return empty;
   }
 }
 
@@ -6792,6 +6814,34 @@ function updateMatchesNavBadge(count){
     badge.remove();
   }
 }
+
+function updateMessagesTabBadges(privateCount, groupCount){
+  const setBadge = (id, n) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = n > 9 ? '9+' : String(n || 0);
+    el.classList.toggle('hidden', !n);
+  };
+  setBadge('msg-tab-private-badge', privateCount);
+  setBadge('msg-tab-groups-badge', groupCount);
+}
+
+// Un match est « vu » dès qu'on ouvre sa conversation (pas seulement sa fiche).
+async function markMatchSeen(matchId){
+  if(!supabaseClient || !myProfile.supabaseId || !matchId) return;
+  try{
+    const { data: m } = await supabaseClient.from('matches').select('profile_a_id, seen_by_a, seen_by_b').eq('id', matchId).maybeSingle();
+    if(!m) return;
+    const iAmA = m.profile_a_id === myProfile.supabaseId;
+    if(iAmA ? m.seen_by_a : m.seen_by_b) return;
+    await supabaseClient.from('matches').update({ [iAmA ? 'seen_by_a' : 'seen_by_b']: true }).eq('id', matchId);
+    refreshUnreadBadges();
+  } catch(e){
+    console.warn('[Matchs] Marquage vu impossible :', e.message);
+  }
+}
+
+let lastUnreadTotalForList = null;
 
 function updateMessagesNavBadge(count){
   const navItem = document.getElementById('nav-messages');
@@ -6830,10 +6880,17 @@ async function fetchUnseenMatchesCount(){
     const myId = myProfile.supabaseId;
     const { data, error } = await supabaseClient
       .from('matches')
-      .select('id, profile_a_id, seen_by_a, seen_by_b')
+      .select('id, profile_a_id, profile_b_id, seen_by_a, seen_by_b')
       .or(`profile_a_id.eq.${myId},profile_b_id.eq.${myId}`);
     if(error) throw error;
-    return (data || []).filter(m => (m.profile_a_id === myId ? !m.seen_by_a : !m.seen_by_b)).length;
+    const unseen = (data || []).filter(m => (m.profile_a_id === myId ? !m.seen_by_a : !m.seen_by_b));
+    if(!unseen.length) return 0;
+    // Jamais de badge pour un match invisible (personne bloquée ou compte supprimé).
+    const blocked = new Set(await getBlockedProfileIds());
+    const others = unseen.map(m => m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id);
+    const { data: active } = await supabaseClient.from('profiles').select('id').in('id', others).is('deleted_at', null);
+    const activeIds = new Set((active || []).map(p => p.id));
+    return others.filter(id => !blocked.has(id) && activeIds.has(id)).length;
   } catch(e){
     console.warn('[Notifs] Impossible de récupérer les matchs non vus :', e.message);
     return 0;
@@ -6842,8 +6899,17 @@ async function fetchUnseenMatchesCount(){
 
 async function refreshUnreadBadges(){
   if(!currentFirebaseUser || !myProfile.supabaseId) return;
-  const { total, byMatch } = await fetchUnreadCounts();
+  const { total, byMatch, privateCount, groupCount } = await fetchUnreadCounts();
   updateMessagesNavBadge(total);
+  updateMessagesTabBadges(privateCount, groupCount);
+  // Nouveau message pendant qu'on est sur Messages : la liste se réordonne
+  // toute seule, la conversation concernée remonte en haut.
+  if(total !== lastUnreadTotalForList){
+    const wasKnown = lastUnreadTotalForList !== null;
+    lastUnreadTotalForList = total;
+    const msgScreen = document.getElementById('screen-messages');
+    if(wasKnown && msgScreen && msgScreen.classList.contains('active')) switchMessagesTab(messagesActiveTab);
+  }
   applyPerMatchBadges(byMatch);
   const unseenMatches = await fetchUnseenMatchesCount();
   updateMatchesNavBadge(unseenMatches);
@@ -6859,6 +6925,7 @@ function stopUnreadPolling(){
   if(unreadPollInterval){ clearInterval(unreadPollInterval); unreadPollInterval = null; }
   updateMatchesNavBadge(0);
   updateMessagesNavBadge(0);
+  updateMessagesTabBadges(0, 0);
 }
 
 async function markConversationMessagesRead(conversationId){
@@ -9448,6 +9515,7 @@ async function renderPrivateConversationsList(){
       let photoUrl = match ? match.photoUrl : null;
       let mode = match ? match.mode : 'friend';
       let otherId = match ? match.otherId : null;
+      let deletedProfile = false;
 
       if(!match){
         // Le cache des matchs n'est pas forcément rempli (ex: ouverture directe de Messages) :
@@ -9457,8 +9525,9 @@ async function renderPrivateConversationsList(){
           if(matchRow){
             mode = matchRow.mode;
             otherId = matchRow.profile_a_id === myProfile.supabaseId ? matchRow.profile_b_id : matchRow.profile_a_id;
-            const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', otherId).maybeSingle();
-            if(p && p.first_name) name = p.first_name;
+            const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', otherId).is('deleted_at', null).maybeSingle();
+            if(!p) deletedProfile = true;
+            else if(p.first_name) name = p.first_name;
             photoUrl = await getMainPhotoForProfile(otherId);
           }
         } catch(e){}
@@ -9483,6 +9552,8 @@ async function renderPrivateConversationsList(){
 
       return {
         otherId,
+        hidden: deletedProfile,
+        lastAt: lastMsg ? lastMsg.created_at : '',
         html: `
         <div class="msg-item" onclick="openMatchChat('${conv.match_id}', 'messages')">
           ${avatarHtml}
@@ -9501,6 +9572,7 @@ async function renderPrivateConversationsList(){
     const seenOtherIds = new Set();
     const blockedIds = await getBlockedProfileIds();
     const dedupedCards = cards.filter(c => {
+      if(c.hidden) return false; // compte supprimé
       if(c.otherId && blockedIds.includes(c.otherId)) return false; // compte bloqué : masqué de mes conversations
       const key = c.otherId || Math.random(); // pas d'otherId connu : on ne filtre pas ce cas rare
       if(seenOtherIds.has(key)) return false;
@@ -9513,6 +9585,8 @@ async function renderPrivateConversationsList(){
       return;
     }
 
+    // La conversation avec le message le plus récent remonte en haut.
+    dedupedCards.sort((x, y) => (y.lastAt || '').localeCompare(x.lastAt || ''));
     list.innerHTML = dedupedCards.map(c => c.html).join('');
   } catch(e){
     console.warn('[Messages] Chargement des conversations privées impossible :', e.message);
@@ -9578,7 +9652,7 @@ async function renderActivityGroupsList(){
         : `<div class="msg-avatar-single" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:20px;">${emoji}</div>`;
       const badgeHtml = unreadCount ? `<span class="msg-unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>` : '';
 
-      return `
+      return { lastAt: lastMsg ? lastMsg.created_at : '', html: `
         <div class="msg-item" onclick="openActivityGroupChat('${conv.activity_id}')">
           ${avatarHtml}
           <div class="msg-info">
@@ -9587,10 +9661,12 @@ async function renderActivityGroupsList(){
             ${badgeHtml}
           </div>
         </div>
-      `;
+      ` };
     }));
 
-    list.innerHTML = cards.join('');
+    // Le groupe avec le message le plus récent remonte en haut.
+    cards.sort((x, y) => (y.lastAt || '').localeCompare(x.lastAt || ''));
+    list.innerHTML = cards.map(c => c.html).join('');
   } catch(e){
     console.warn('[Messages] Chargement des groupes impossible :', e.message);
     list.innerHTML = emptyMsgState('⚠️', 'Impossible de charger vos groupes pour le moment.', false);
@@ -9685,6 +9761,7 @@ async function openMatchProfileDetail(matchId){
 }
 
 async function openMatchChat(matchId, returnTo){
+  markMatchSeen(matchId);
   chatReturnScreen = returnTo || 'matches';
   let m = currentMatchesData.find(x => x.matchId === matchId);
   if(!m){
