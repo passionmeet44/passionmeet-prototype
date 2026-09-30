@@ -2673,7 +2673,7 @@
           }
         },
         ()=>{ usingRealLocation = false; updateLocationLabel(); },
-        { timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 5000 }
       );
     }
   }
@@ -4079,6 +4079,35 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.premiumUntil = row.premium_until || null;
   myProfile.isPremiumActive = !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date());
   myProfile.isAdmin = !!row.is_admin;
+
+  // PRIORITÉ 2 — position enregistrée en base : devient la position active
+  // tant qu'une position GPS fraîche (PRIORITÉ 1) ne l'a pas remplacée.
+  if(row.latitude != null && row.longitude != null){
+    userCoords = [row.latitude, row.longitude];
+    usingRealLocation = true;
+  }
+}
+
+// Priorité de géolocalisation, appelée à l'ouverture d'une session :
+// 1. position GPS fraîche, uniquement si la permission est DÉJÀ accordée
+//    (jamais de demande intrusive à chaque ouverture) ;
+// 2. coordonnées enregistrées dans le profil ;
+// 3. repli Nantes-centre seulement si rien d'autre n'est disponible.
+async function initGeolocationPriority(){
+  if(!usingRealLocation && myProfile.latitude != null && myProfile.longitude != null){
+    userCoords = [myProfile.latitude, myProfile.longitude];
+    usingRealLocation = true;
+  }
+  updateLocationLabel();
+  if(!navigator.geolocation) return;
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      const status = await navigator.permissions.query({ name: 'geolocation' });
+      if(status.state === 'granted') requestLocation();
+    }
+  } catch(e){
+    console.warn('[Géolocalisation] Vérification de permission impossible :', e.message);
+  }
 }
 
 async function saveProfileToSupabase(){
@@ -4370,6 +4399,7 @@ try{
         try{ renderProfileScreen(); } catch(e){ console.warn('[Auth] renderProfileScreen a échoué :', e.message); }
         window.__PM_AUTH_STEP = 'renderCategoryGrid';
         try{ renderCategoryGrid(); } catch(e){ console.warn('[Auth] renderCategoryGrid a échoué :', e.message); }
+        try{ initGeolocationPriority(); } catch(e){ console.warn('[Auth] initGeolocationPriority a échoué :', e.message); }
         window.__PM_AUTH_STEP = 'showScreen(home)';
         console.info('[Auth] 4. Navigation vers l\'accueil');
         showScreen('home');
@@ -7370,7 +7400,7 @@ async function submitRealActivity(){
       photoUrl = await uploadActivityPhoto(photoFile);
     }
 
-    const { error } = await supabaseClient.from('activities').insert({
+    const { data: createdActivity, error } = await supabaseClient.from('activities').insert({
       organizer_profile_id: myProfile.supabaseId,
       title,
       description: description || null,
@@ -7389,8 +7419,20 @@ async function submitRealActivity(){
       ...(transitAccessible ? { transit_accessible: true } : {}),
       ...(priceType === 'free' ? { is_free: true } : {}),
       ...(priceType === 'paid' ? { is_free: false, price_eur: priceEur } : {})
-    });
+    }).select('id').maybeSingle();
     if(error) throw error;
+
+    // L'organisateur participe à sa propre sortie : il occupe une place et
+    // fait partie du groupe de discussion dès sa création.
+    if(createdActivity && createdActivity.id){
+      try{
+        await supabaseClient.from('activity_participants')
+          .insert({ activity_id: createdActivity.id, profile_id: myProfile.supabaseId });
+        await getOrCreateActivityGroup(createdActivity.id);
+      } catch(e){
+        console.warn('[Activités] Inscription de l\'organisateur impossible :', e.message);
+      }
+    }
 
     if(moderation.status === 'pending_review'){
       showToast('Activité enregistrée : elle sera vérifiée avant publication.', '🕓');
@@ -7827,7 +7869,7 @@ const INTEREST_KEY_TO_CATALOG_CATEGORIES = {
   cinema: ['🎬 Sorties'],
   jeux: ['🎲 Jeux & Social'],
   bienetre: ['🏋️ Sport & Bien-être'],
-  voyage: ['🌿 Nature & Outdoor'],
+  // "voyage" volontairement non rattaché : intérêt secondaire, jamais une 10e catégorie.
   nocturne: ['🌙 Sorties & Vie nocturne'],
   karaoke: ['🎲 Jeux & Social'],
 };
@@ -8050,7 +8092,7 @@ async function renderVenueRecommendations(){
   // "Près de chez vous" : la distance réelle reste le critère principal,
   // la diversité de catégorie n'intervient qu'en cas d'égalité de pertinence.
   const nearbySorted = scored
-    .filter(a => a.distanceKm != null)
+    .filter(a => a.distanceKm != null && a.distanceKm <= activityRadius)
     .sort((x,y) => (x.distanceKm - y.distanceKm) || (reservationRank(x.reservation_status) - reservationRank(y.reservation_status)));
   const nearbyPicks = pickDiverse(nearbySorted, 3, venueDisplayedIds);
   nearbyPicks.forEach(a => venueDisplayedIds.add(a.id));
@@ -8077,6 +8119,7 @@ async function renderVenueRecommendations(){
     nearbySection.innerHTML = `
       <div class="act-section-title"><h2>📍 Près de chez vous</h2></div>
       <div class="act-section-sub">Les activités les plus proches de vous</div>
+      ${!usingRealLocation ? `<div class="act-section-sub" style="margin-top:-4px;">📍 Distance approximative</div>` : ''}
       <div class="venue-tile-grid">${nearbyPicks.map(a => buildVenueTileHtml(a, a.venue, a.distanceKm)).join('')}</div>
     `;
   } else {
@@ -8125,7 +8168,10 @@ function closeInterestsEditor(){
 async function saveInterestsEditor(){
   const selected = Array.from(document.querySelectorAll('#interests-editor-grid .cat-explorer-item.sel'))
     .map(el => el.getAttribute('data-label'));
-  myProfile.interests = selected;
+  // Préserve les intérêts hors des 9 catégories (ex. ✈️ Voyage & escapades) :
+  // cet éditeur ne gère que les 9 catégories, il ne doit rien effacer d'autre.
+  const preserved = (myProfile.interests || []).filter(i => !CATALOG_CATEGORIES.some(c => c.label === i));
+  myProfile.interests = [...selected, ...preserved];
   closeInterestsEditor();
   renderProfileScreen();
   await saveProfileToSupabase();
@@ -8760,18 +8806,21 @@ async function getOrCreateActivityGroup(activityId){
       conversationId = created.id;
     }
 
-    // Synchronise les membres avec les vrais participants (n'ajoute que ceux qui manquent)
+    // Ajoute chaque vrai participant, un par un — jamais en lot, et sans
+    // présupposer qui est déjà membre : la règle de lecture sur
+    // conversation_members ne montre les membres qu'à quelqu'un qui en fait
+    // déjà partie, donc cette liste serait fausse pour un tout premier ajout.
+    // Un doublon (participant déjà membre) est un cas normal, ignoré sans
+    // jamais bloquer l'ajout réel d'un autre participant.
     const { data: participants } = await supabaseClient
       .from('activity_participants').select('profile_id').eq('activity_id', activityId);
-    const { data: currentMembers } = await supabaseClient
-      .from('conversation_members').select('profile_id').eq('conversation_id', conversationId);
-    const currentIds = new Set((currentMembers || []).map(m => m.profile_id));
-    const missing = (participants || []).filter(p => !currentIds.has(p.profile_id));
-    if(missing.length){
+    for(const p of (participants || [])){
       const { error: syncErr } = await supabaseClient.from('conversation_members').insert(
-        missing.map(p => ({ conversation_id: conversationId, profile_id: p.profile_id }))
+        { conversation_id: conversationId, profile_id: p.profile_id }
       );
-      if(syncErr) console.warn('[Groupes] Synchronisation des membres impossible :', syncErr.message);
+      if(syncErr && syncErr.code !== '23505' && !(syncErr.message || '').toLowerCase().includes('duplicate')){
+        console.warn('[Groupes] Ajout d\'un membre impossible :', syncErr.message);
+      }
     }
     return conversationId;
   } catch(e){
