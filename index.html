@@ -2241,13 +2241,14 @@
 
   <!-- ÉDITEUR DES 9 CATÉGORIES OFFICIELLES : centres d'intérêt du profil -->
   <div class="activity-search-overlay" id="interests-editor-overlay">
-    <div class="activity-search-modal" id="interests-editor-card" style="text-align:left;">
+    <div class="activity-search-modal" id="interests-editor-card" style="text-align:left; max-height:85vh; overflow-y:auto;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
         <div class="tag-comment-title" style="margin-bottom:0;">Mes centres d'intérêt</div>
         <div style="font-size:20px; color:#B7ACBA; cursor:pointer; line-height:1;" onclick="closeInterestsEditor()">✕</div>
       </div>
       <p style="font-size:12px; color:#9584A0; margin-bottom:12px;">Choisis ce qui te correspond — utilisé pour tes recommandations dans Activités.</p>
       <div class="cat-explorer-grid" id="interests-editor-grid"></div>
+      <div id="interests-editor-subpassions"></div>
       <button class="btn-primary" style="width:100%; margin-top:16px;" onclick="saveInterestsEditor()">Enregistrer</button>
     </div>
   </div>
@@ -3826,13 +3827,7 @@ function openEditProfile(){
   document.getElementById('edit-switch-single-parent').classList.toggle('on', myProfile.isSingleParent === true);
 
   const list = document.getElementById('edit-passion-list');
-  list.innerHTML = categories.map(c => `
-    <div class="passion-card ${(myProfile.interests||[]).some(i => i.includes(c.label)) ? 'sel' : ''}" data-label="${c.emoji} ${c.label}" onclick="this.classList.toggle('sel')">
-      <div class="passion-icon" style="background:${c.bg}">${c.emoji}</div>
-      <div class="passion-info"><h4>${c.label}</h4><p>${passionTaglines[c.key] || ''}</p></div>
-      <div class="passion-check">✓</div>
-    </div>
-  `).join('');
+  list.innerHTML = buildOfficialCategoryCardsHtml(getMyCatalogCategoriesFromPassions());
 
   showScreen('edit-profile');
 }
@@ -3854,7 +3849,10 @@ function saveEditedProfile(){
   if(name) myProfile.name = name;
   if(age) myProfile.age = age;
   myProfile.bio = bio;
-  myProfile.interests = selected;
+  const preservedInterests = (myProfile.interests || []).filter(i =>
+    !CATALOG_CATEGORIES.some(c => c.label === i) && !isConvertibleLegacyInterest(i)
+  );
+  myProfile.interests = [...selected, ...preservedInterests];
   myProfile.subPassions = [...subPassionSelection];
   myProfile.modes = modes;
   myProfile.hasKids = document.getElementById('edit-switch-kids').classList.contains('on');
@@ -3943,16 +3941,41 @@ function toggleSubPassion(tag){
   renderSubPassionList();
 }
 
-function renderPassionList(){
-  const list = document.getElementById('passion-list');
-  const preSelected = [];
-  list.innerHTML = categories.map(c => `
-    <div class="passion-card ${preSelected.includes(c.key) ? 'sel' : ''}" data-label="${c.emoji} ${c.label}" onclick="this.classList.toggle('sel'); updateProfileFruit();">
+const OFFICIAL_CATEGORY_TAGLINES = {
+  "🏎️ Sensations & Adrénaline": "Pour les frissons et l'adrénaline",
+  "🎨 Créatif & Manuel": "Pour créer de ses mains",
+  "🍳 Cuisine & Gastronomie": "Pour partager de bons petits plats",
+  "🎵 Musique & Culture": "Pour vibrer en concert ou au théâtre",
+  "🎲 Jeux & Social": "Pour rire autour d'une partie serrée",
+  "🌿 Nature & Outdoor": "Pour prendre l'air et souffler un peu",
+  "🏋️ Sport & Bien-être": "Pour se dépenser ou se recentrer",
+  "🎬 Sorties": "Pour un ciné, une expo ou un marché",
+  "🌙 Sorties & Vie nocturne": "Pour un verre et danser jusqu'au bout de la nuit"
+};
+
+// Mêmes 9 catégories que « Mes centres d'intérêt », les filtres et « Pour vous » :
+// ce que la personne coche est exactement ce qui s'affiche sur son profil.
+function buildOfficialCategoryCardsHtml(selectedSet, onclickExtra){
+  return CATALOG_CATEGORIES.map(c => `
+    <div class="passion-card ${selectedSet.has(c.label) ? 'sel' : ''}" data-label="${c.label.replace(/"/g,'&quot;')}" onclick="this.classList.toggle('sel');${onclickExtra || ''}">
       <div class="passion-icon" style="background:${c.bg}">${c.emoji}</div>
-      <div class="passion-info"><h4>${c.label}</h4><p>${passionTaglines[c.key] || ''}</p></div>
+      <div class="passion-info"><h4>${c.label.replace(/^\S+\s/, '')}</h4><p>${OFFICIAL_CATEGORY_TAGLINES[c.label] || ''}</p></div>
       <div class="passion-check">✓</div>
     </div>
   `).join('');
+}
+
+// Un ancien libellé (avant les 9 catégories) déjà converti par la
+// correspondance existante : remplacé par la sélection officielle à l'enregistrement.
+function isConvertibleLegacyInterest(label){
+  const m = categories.find(c => label.includes(c.label));
+  return !!(m && INTEREST_KEY_TO_CATALOG_CATEGORIES[m.key]);
+}
+
+function renderPassionList(){
+  const list = document.getElementById('passion-list');
+  const preSelected = [];
+  list.innerHTML = buildOfficialCategoryCardsHtml(new Set(), ' updateProfileFruit();');
   passionsInitialized = true;
   updateProfileFruit();
   subPassionSelection = [...(myProfile.subPassions || [])];
@@ -8358,6 +8381,8 @@ function openInterestsEditor(){
       <span class="emoji">${c.emoji}</span><span>${c.label.replace(/^\S+\s/, '')}</span>
     </div>
   `).join('');
+  subPassionSelection = [...(myProfile.subPassions || [])];
+  renderSubPassionPicker('interests-editor-subpassions');
   document.getElementById('interests-editor-overlay').classList.add('show');
 }
 function closeInterestsEditor(){
@@ -8370,6 +8395,7 @@ async function saveInterestsEditor(){
   // cet éditeur ne gère que les 9 catégories, il ne doit rien effacer d'autre.
   const preserved = (myProfile.interests || []).filter(i => !CATALOG_CATEGORIES.some(c => c.label === i));
   myProfile.interests = [...selected, ...preserved];
+  myProfile.subPassions = [...subPassionSelection];
   closeInterestsEditor();
   renderProfileScreen();
   await saveProfileToSupabase();
