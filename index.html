@@ -1427,6 +1427,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   #prefs-radius-map{ height:150px; width:100%; border-radius:14px; margin-top:10px; overflow:hidden; position:relative; z-index:0; background:var(--lavender); }
+  .venue-tile-price{ position:absolute; top:4px; left:4px; font-size:8.5px; font-weight:800; padding:2px 6px; border-radius:6px; line-height:1.4; }
+  .venue-tile-price.free{ background:#E4F3E9; color:#2E7D4F; }
+  .venue-tile-price.paid{ background:#FCE9DC; color:var(--orange-deep); }
   .ac-moment{ position:absolute; top:8px; left:8px; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:10px; background:rgba(255,255,255,0.92); color:var(--plum); }
   .ac-heart{ position:absolute; top:6px; right:6px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.92);
     display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; box-shadow:0 2px 6px rgba(62,31,68,0.15); }
@@ -7874,6 +7877,12 @@ async function fetchVenuesCatalog(){
   }
 }
 
+function catalogPriceInfo(status){
+  if(status === 'NO_RESERVATION_REQUIRED') return { label:'Entrée libre', cls:'free' };
+  if(['ONLINE_BOOKING_VERIFIED','PHONE_OR_CONTACT_RESERVATION_CONFIRMED_BY_REVIEWS','EMAIL_RESERVATION'].includes(status)) return { label:'Payant', cls:'paid' };
+  return null;
+}
+
 function reservationBadge(status){
   if(status === 'ONLINE_BOOKING_VERIFIED') return '🎫 Réservation en ligne';
   if(status === 'EMAIL_RESERVATION') return '✉️ Réservation par email';
@@ -7907,6 +7916,7 @@ function buildVenueCardHtml(act, venue, distanceKm){
           <span>${escapeHtml(venue.name)}</span>
           ${distLabel ? `<span class="dot">·</span><span>${distLabel}</span>` : ''}
         </div>
+        ${(() => { const pr = catalogPriceInfo(act.reservation_status); return pr ? `<div class="ac-badges" style="margin-top:6px;"><span class="ac-badge ${pr.cls}">${pr.label}</span></div>` : ''; })()}
         <div class="venue-card-cta">Voir la fiche →</div>
       </div>
     </div>
@@ -7938,6 +7948,7 @@ function buildVenueTileHtml(act, venue, distanceKm){
         ${mediaContent}
         <div class="venue-tile-cat">${act.category.replace(/^\S+\s/, '')}</div>
         ${resa ? `<div class="venue-tile-resa">${resa}</div>` : ''}
+        ${(() => { const pr = catalogPriceInfo(act.reservation_status); return pr ? `<div class="venue-tile-price ${pr.cls}">${pr.label}</div>` : ''; })()}
       </div>
       <div class="venue-tile-body">
         <div class="venue-tile-title">${escapeHtml(act.activity_name)}</div>
@@ -8174,6 +8185,7 @@ async function openVenueDetail(activityId){
       <span>${act.category.replace(/^\S+\s/, '')}</span>
       ${distanceKm != null ? `<span class="dot">·</span><span>📍 ${distanceKm.toFixed(1)} km</span>` : ''}
     </div>
+    ${(() => { const pr = catalogPriceInfo(act.reservation_status); return pr ? `<div class="ac-badges" style="margin-top:8px;"><span class="ac-badge ${pr.cls}">${pr.label}</span></div>` : ''; })()}
     ${venue && venue.address ? `<div class="form-hint" style="margin-top:8px;">${escapeHtml(venue.address)}</div>` : ''}
     ${venue && venue.official_website ? `<a href="${venue.official_website}" target="_blank" rel="noopener" style="font-size:12px; color:var(--plum-soft); display:block; margin-top:6px;">Site officiel de l'établissement ↗</a>` : ''}
     ${bookingHtml}
