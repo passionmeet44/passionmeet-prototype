@@ -1426,7 +1426,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  #swipe-radius-map, #df-radius-map{ height:150px; width:100%; border-radius:14px; margin-top:10px; overflow:hidden; position:relative; z-index:0; background:var(--lavender); }
+  #prefs-radius-map{ height:150px; width:100%; border-radius:14px; margin-top:10px; overflow:hidden; position:relative; z-index:0; background:var(--lavender); }
   .radius-map-fallback{ height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px; font-size:12px; color:var(--plum-soft); }
 </style>
 </head>
@@ -1683,6 +1683,8 @@
     <div class="range-row">
       <div class="range-label">Distance de recherche <span id="prefs-distance-value">20 km</span></div>
       <input type="range" min="1" max="100" value="20" id="prefs-distance" oninput="setRadius(this.value)">
+      <div id="prefs-radius-map"></div>
+      <div id="prefs-radius-map-note" style="font-size:11px; color:#9584A0; margin-top:6px;"></div>
     </div>
 
     <div class="form-label" style="margin-top:26px;">Tranche d'âge recherchée</div>
@@ -1855,7 +1857,6 @@
     <div class="radius-slider-row">
       <div class="range-label">Rayon de recherche <span id="swipe-radius-value">20 km</span></div>
       <input type="range" min="1" max="100" value="20" id="swipe-radius-input" oninput="setRadius(this.value)">
-      <div id="swipe-radius-map"></div>
     </div>
     <div class="time-filter-row" id="swipe-mode-filter-row">
       <div class="time-chip active" data-t="tous" onclick="setSwipeModeFilter('tous')">Tous</div>
@@ -2248,7 +2249,6 @@
     <div style="padding:0 22px 100px;">
       <div class="form-label">Rayon de recherche <span id="df-radius-value"></span></div>
       <input type="range" min="1" max="100" id="df-radius-input" oninput="onDiscoverRadiusChange(this.value)">
-      <div id="df-radius-map"></div>
 
       <div class="form-label" style="margin-top:22px;">Tranche d'âge recherchée</div>
       <div class="age-inputs">
@@ -3416,6 +3416,7 @@ function initSettingsUI(){
 }
 
 function showScreen(name){
+  if(name==='onboarding-prefs'){ setTimeout(()=> updateRadiusMap(currentRadius), 300); }
   const outgoing = document.querySelector('.screen.active');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const incoming = document.getElementById('screen-'+name);
@@ -3445,7 +3446,7 @@ function showScreen(name){
     document.getElementById('nav-messages').classList.toggle('active', name==='messages');
     document.getElementById('nav-profile').classList.toggle('active', name==='profile');
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
-    if(name==='swipe'){ updateDiscoverFiltersBadge(); setTimeout(()=> updateRadiusMap(currentRadius), 300); }
+    if(name==='swipe'){ updateDiscoverFiltersBadge(); }
     if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
     if(name==='activities-list'){ renderVenueRecommendations(); }
     if(name==='matches'){ renderMatchesList(); }
@@ -5475,8 +5476,15 @@ function drawRadiusMap(containerId, km){
 }
 
 function updateRadiusMap(km){
-  drawRadiusMap('swipe-radius-map', km);
-  drawRadiusMap('df-radius-map', km);
+  drawRadiusMap('prefs-radius-map', km);
+  const note = document.getElementById('prefs-radius-map-note');
+  if(note){
+    // À cette étape de l'inscription, la localisation n'a pas encore été
+    // demandée (elle l'est juste après) : on le dit clairement.
+    note.textContent = usingRealLocation
+      ? ''
+      : "Zone indicative centrée sur Nantes — ta vraie position sera utilisée dès que tu auras autorisé la localisation.";
+  }
 }
 
 function setRadius(km){
@@ -5575,7 +5583,6 @@ function updateDiscoverFiltersBadge(){
 }
 
 function openDiscoverFilters(){
-  setTimeout(()=> updateRadiusMap(currentRadius), 350);
   document.getElementById('df-radius-input').value = currentRadius;
   document.getElementById('df-radius-value').textContent = currentRadius + ' km';
   document.getElementById('df-age-min').value = myProfile.ageMin || 18;
