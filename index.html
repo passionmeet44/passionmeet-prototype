@@ -2247,7 +2247,11 @@
         <div class="time-chip" onclick="setActivityDateFilterChip(this,'weekend')">Ce week-end</div>
         <div class="time-chip" onclick="setActivityDateFilterChip(this,'week')">Cette semaine</div>
       </div>
-      <input class="form-input" id="activity-precise-date" type="date" style="margin-top:8px; margin-bottom:8px;" onchange="onActivityPreciseDateChange(this.value)">
+      <div style="position:relative; margin-top:8px; margin-bottom:8px;">
+        <div class="form-input" id="activity-precise-date-label" style="margin-bottom:0; color:#B0A0B5;">📅 jj/mm/aaaa — touche pour choisir une date</div>
+        <input id="activity-precise-date" type="date" onchange="onActivityPreciseDateChange(this.value)"
+          style="position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; -webkit-appearance:none; border:none;">
+      </div>
       <div class="time-filter-row" id="activity-moment-chip-row">
         <div class="time-chip active" onclick="setActivityMomentChip(this,'tous')">Tous moments</div>
         <div class="time-chip" onclick="setActivityMomentChip(this,'jour')">☀️ En journée</div>
@@ -6945,6 +6949,18 @@ function openActivitySearchSection(section){
 
 // Les pilules affichent le filtre actif (ex. « Jeux & Social »), sinon leur question.
 function updateActivityFilterPills(){
+  // Texte gris d'aide tant qu'aucune date n'est choisie (un champ date vide
+  // n'affiche rien sur iPhone), puis la date choisie en toutes lettres.
+  const dateLabel = document.getElementById('activity-precise-date-label');
+  if(dateLabel){
+    if(activityPreciseDate){
+      dateLabel.textContent = '📅 ' + new Date(activityPreciseDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+      dateLabel.style.color = 'var(--plum)';
+    } else {
+      dateLabel.textContent = '📅 jj/mm/aaaa — touche pour choisir une date';
+      dateLabel.style.color = '#B0A0B5';
+    }
+  }
   const setPill = (id, label, active) => {
     const el = document.getElementById(id);
     if(el){ el.textContent = label; el.classList.toggle('active', !!active); }
