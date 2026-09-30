@@ -1432,6 +1432,23 @@
   .venue-tile-price.paid{ background:#FCE9DC; color:var(--orange-deep); }
   .profile-hero{ background:#fff !important; border-radius:24px; margin:14px 20px 0; padding-bottom:18px; box-shadow:0 4px 16px rgba(62,31,68,0.07); }
   .profile-hero h2{ color:var(--plum) !important; }
+  /* Modes du profil : une seule capsule fine, style sélecteur d'app */
+  .profile-hero .mode-badge-row{ display:flex; gap:4px; background:#F6F1F8; border-radius:999px; padding:4px; margin:12px auto 0 !important; max-width:330px; }
+  .profile-hero .mode-badge-row .mode-badge{ flex:1; display:flex; align-items:center; justify-content:center; gap:4px; text-align:center;
+    font-size:11.5px; font-weight:700; padding:7px 6px; border-radius:999px; white-space:nowrap;
+    background:transparent !important; color:#B7ACBA !important; box-shadow:none; }
+  .profile-hero .mode-badge-row .mode-badge.friend-on,
+  .profile-hero .mode-badge-row .mode-badge.love-on,
+  .profile-hero .mode-badge-row .mode-badge.couple-on{ background:#fff !important; color:var(--plum) !important; box-shadow:0 2px 6px rgba(62,31,68,0.10); }
+  /* Badges (Parent, Nouveau…) : étiquettes fines et discrètes */
+  .profile-hero .profile-badge-row{ justify-content:center; gap:6px; margin-top:10px; }
+  .profile-hero .profile-badge-row .mode-badge{ background:transparent !important; border:1px solid #E6DDEA; color:var(--plum-soft) !important;
+    font-size:11px !important; font-weight:600; padding:4px 10px !important; border-radius:999px; }
+  body.dark-mode .profile-hero .mode-badge-row{ background:#3B3042; }
+  body.dark-mode .profile-hero .mode-badge-row .mode-badge.friend-on,
+  body.dark-mode .profile-hero .mode-badge-row .mode-badge.love-on,
+  body.dark-mode .profile-hero .mode-badge-row .mode-badge.couple-on{ background:#2B2231 !important; color:#F1E9F5 !important; }
+  body.dark-mode .profile-hero .profile-badge-row .mode-badge{ border-color:#4A3F52; color:#D9CCE0 !important; }
   .profile-city-line{ font-size:13px; color:#9584A0; font-weight:600; margin-top:2px; text-align:center; }
   .pm-section-title{ font-size:11.5px; font-weight:800; color:#9584A0; text-transform:uppercase; letter-spacing:0.06em; padding:20px 26px 8px; }
   .pm-list{ background:#fff; border-radius:18px; margin:0 20px; box-shadow:0 3px 12px rgba(62,31,68,0.06); overflow:hidden; }
