@@ -1430,6 +1430,15 @@
   .venue-tile-price{ position:absolute; top:4px; left:4px; font-size:8.5px; font-weight:800; padding:2px 6px; border-radius:6px; line-height:1.4; }
   .venue-tile-price.free{ background:#E4F3E9; color:#2E7D4F; }
   .venue-tile-price.paid{ background:#FCE9DC; color:var(--orange-deep); }
+  .subp-header{ display:flex; justify-content:space-between; align-items:center; margin-top:20px; margin-bottom:8px; }
+  .subp-title{ font-size:14px; font-weight:800; color:var(--plum); }
+  .subp-counter{ font-size:12px; font-weight:800; color:var(--orange-deep); }
+  .subp-group{ margin-top:12px; }
+  .subp-group-title{ font-size:11px; font-weight:800; color:#9584A0; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px; }
+  .subp-tags{ display:flex; flex-wrap:wrap; gap:6px; }
+  .subp-tag{ padding:6px 11px; border-radius:16px; background:#fff; border:1px solid var(--lavender); font-size:12.5px; font-weight:600; color:var(--plum); cursor:pointer; }
+  .subp-tag.sel{ background:var(--plum); color:#fff; border-color:var(--plum); }
+  .subp-tag.static{ cursor:default; font-size:11.5px; padding:4px 10px; }
   .match-new-pill{ position:absolute; top:8px; right:8px; display:flex; align-items:center; gap:4px; background:#E0453A; color:#fff;
     font-size:10px; font-weight:800; padding:3px 8px; border-radius:10px; box-shadow:0 2px 6px rgba(224,69,58,0.35); }
   .match-new-pill::before{ content:''; width:6px; height:6px; border-radius:50%; background:#fff; }
@@ -1696,6 +1705,7 @@
     <div class="ob-sub">Sélectionne tout ce qui te fait vibrer — plus tu en choisis, mieux on te connecte.</div>
 
     <div class="passion-list" id="passion-list"></div>
+    <div id="signup-subpassions"></div>
 
     <div class="add-pill-row">
       <input type="text" id="custom-pill-input" placeholder="Ajouter une passion (techno, animaux…)">
@@ -2402,6 +2412,7 @@
 
     <div class="section-label">Centres d'intérêt</div>
     <div id="edit-passion-list"></div>
+    <div id="edit-subpassions"></div>
 
     <div class="section-label">À propos de vous</div>
     <div class="checkbox-row">
@@ -3792,6 +3803,8 @@ function selectEditGender(el){
 }
 
 function openEditProfile(){
+  subPassionSelection = [...(myProfile.subPassions || [])];
+  renderSubPassionPicker('edit-subpassions');
   document.getElementById('edit-name').value = myProfile.name || '';
   document.getElementById('edit-age').value = myProfile.age || '';
   document.getElementById('edit-bio').value = myProfile.bio || '';
@@ -3842,6 +3855,7 @@ function saveEditedProfile(){
   if(age) myProfile.age = age;
   myProfile.bio = bio;
   myProfile.interests = selected;
+  myProfile.subPassions = [...subPassionSelection];
   myProfile.modes = modes;
   myProfile.hasKids = document.getElementById('edit-switch-kids').classList.contains('on');
   myProfile.isNewcomer = document.getElementById('edit-switch-newcomer').classList.contains('on');
@@ -3856,6 +3870,79 @@ function saveEditedProfile(){
   showScreen('profile');
 }
 
+// Sous-passions : purement DESCRIPTIVES (profil, cartes Découvrir, goûts en
+// commun). Stockées à part (profiles.sub_passions), elles n'entrent JAMAIS
+// dans « Pour vous », le matching ou les filtres, qui restent inchangés.
+const SUB_PASSIONS = [
+  { cat:'🌿 Nature & Outdoor', tags:['Randonnée','Balade','Vélo','Plage','Paddle','Jardinage','Pêche','Camping'] },
+  { cat:'🍳 Cuisine & Gastronomie', tags:['Restaurant','Brunch','Dégustation de vin','Cours de cuisine','Pâtisserie','Street food','Bières artisanales'] },
+  { cat:'🎵 Musique & Culture', tags:['Concerts','Rock','Jazz','Karaoké','Théâtre','Musées','Lecture','Chant'] },
+  { cat:'🎲 Jeux & Social', tags:['Jeux de société','Belote','Quiz','Escape game','Pétanque','Jeux vidéo','Rencontres entre entrepreneurs'] },
+  { cat:'🎬 Sorties', tags:['Cinéma','Café','Marché','Expositions','Festivals','Brocante','Shopping'] },
+  { cat:'🌙 Sorties & Vie nocturne', tags:['Bar','Afterwork','Soirées dansantes','Cocktails','Clubbing'] },
+  { cat:'🏋️ Sport & Bien-être', tags:['Course à pied','Yoga','Fitness','Natation','Danse','Tennis','Foot','Méditation'] },
+  { cat:'🏎️ Sensations & Adrénaline', tags:['Karting','Moto','Accrobranche','Laser game','Parachutisme','Jet ski'] },
+  { cat:'🎨 Créatif & Manuel', tags:['Poterie','Peinture','Photographie','Couture','DIY','Dessin'] },
+  { cat:'✈️ Voyage & escapades', tags:['Escapades','Road trip','Week-ends','Échanges autour du voyage'] }
+];
+const POPULAR_SUB_PASSIONS = ['Randonnée','Balade','Restaurant','Concerts','Jeux de société','Brunch'];
+const MAX_SUB_PASSIONS = 20;
+let subPassionSelection = [];
+let subPassionSearch = '';
+let subPassionContainerId = null;
+
+// Squelette (titre, compteur, recherche) posé une fois ; seule la liste des
+// tags est redessinée ensuite, pour ne jamais perdre le clavier en tapant.
+function renderSubPassionPicker(containerId){
+  subPassionContainerId = containerId;
+  subPassionSearch = '';
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = `
+    <div class="subp-header">
+      <div class="subp-title">Précise tes goûts <span style="font-weight:500; font-size:12px; color:#9584A0;">(facultatif)</span></div>
+      <div class="subp-counter" id="${containerId}-counter"></div>
+    </div>
+    <input class="form-input" id="${containerId}-search" type="text" placeholder="🔎 Chercher un goût (rock, brunch, paddle…)"
+      style="margin-bottom:0;" oninput="onSubPassionSearch(this.value)">
+    <div id="${containerId}-list"></div>`;
+  renderSubPassionList();
+}
+
+function renderSubPassionList(){
+  const cid = subPassionContainerId;
+  const listEl = document.getElementById(cid + '-list');
+  const counterEl = document.getElementById(cid + '-counter');
+  if(counterEl) counterEl.textContent = `${subPassionSelection.length}/${MAX_SUB_PASSIONS}`;
+  if(!listEl) return;
+  const q = normalizeText(subPassionSearch);
+  const tagHtml = t => `<span class="subp-tag ${subPassionSelection.includes(t) ? 'sel' : ''}" onclick="toggleSubPassion('${t.replace(/'/g, "\\'")}')">${escapeHtml(t)}</span>`;
+  const groups = SUB_PASSIONS.map(g => {
+    const tags = g.tags.filter(t => !q || normalizeText(t).includes(q));
+    return tags.length ? `<div class="subp-group"><div class="subp-group-title">${g.cat}</div><div class="subp-tags">${tags.map(tagHtml).join('')}</div></div>` : '';
+  }).join('');
+  const popular = !q ? `<div class="subp-group"><div class="subp-group-title">⭐ Les plus demandés</div><div class="subp-tags">${POPULAR_SUB_PASSIONS.map(tagHtml).join('')}</div></div>` : '';
+  listEl.innerHTML = popular + (groups || `<div class="form-hint" style="margin-top:10px;">Aucun goût ne correspond à cette recherche.</div>`);
+}
+
+function onSubPassionSearch(value){
+  subPassionSearch = value || '';
+  renderSubPassionList();
+}
+
+function toggleSubPassion(tag){
+  if(subPassionSelection.includes(tag)){
+    subPassionSelection = subPassionSelection.filter(t => t !== tag);
+  } else {
+    if(subPassionSelection.length >= MAX_SUB_PASSIONS){
+      showToast(`${MAX_SUB_PASSIONS} goûts maximum — retire-en un pour en ajouter un autre 🍊`, '✋');
+      return;
+    }
+    subPassionSelection.push(tag);
+  }
+  renderSubPassionList();
+}
+
 function renderPassionList(){
   const list = document.getElementById('passion-list');
   const preSelected = [];
@@ -3868,6 +3955,8 @@ function renderPassionList(){
   `).join('');
   passionsInitialized = true;
   updateProfileFruit();
+  subPassionSelection = [...(myProfile.subPassions || [])];
+  renderSubPassionPicker('signup-subpassions');
 }
 
 let signupPhotos = [];
@@ -4073,6 +4162,7 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.gender = row.gender || null;
   myProfile.genderPreferences = row.gender_preferences ? row.gender_preferences.split(',').filter(Boolean) : [];
   if(Array.isArray(row.passions)){ myProfile.interests = row.passions; }
+  if(Array.isArray(row.sub_passions)){ myProfile.subPassions = row.sub_passions; }
   myProfile.isSingleParent = row.is_single_parent === true; // jamais déduit, uniquement la valeur explicite stockée
   myProfile.isNewcomer = row.is_newcomer === true; // idem
   myProfile.hasKids = row.has_kids === true; // idem — ne sert jamais à déduire isSingleParent
@@ -4141,8 +4231,16 @@ async function saveProfileToSupabase(){
       onboarding_completed: true,
       updated_at: new Date().toISOString()
     };
-    const { data, error } = await supabaseClient
+    if(Array.isArray(myProfile.subPassions)) payload.sub_passions = myProfile.subPassions;
+    let { data, error } = await supabaseClient
       .from('profiles').upsert(payload, { onConflict: 'firebase_uid' }).select().maybeSingle();
+    // Colonne sub_passions pas encore créée : on enregistre tout le reste
+    // normalement, sans jamais bloquer la sauvegarde du profil pour autant.
+    if(error && (error.message || '').includes('sub_passions')){
+      delete payload.sub_passions;
+      ({ data, error } = await supabaseClient
+        .from('profiles').upsert(payload, { onConflict: 'firebase_uid' }).select().maybeSingle());
+    }
     if(error) throw error;
     if(data) myProfile.supabaseId = data.id;
     return true;
@@ -4790,7 +4888,7 @@ function signUpWithEmail(){
 }
 
 let myProfile = {
-  name: '', age: '', bio: '', hasKids: false, isNewcomer: false, isSingleParent: false, photos: [],
+  name: '', age: '', bio: '', hasKids: false, isNewcomer: false, isSingleParent: false, subPassions: [], photos: [],
   interests: [], modes: ['friend','love'],
   radiusKm: 20, ageMin: 28, ageMax: 45,
   city: '', latitude: null, longitude: null, intent: '', supabaseId: null
@@ -4814,6 +4912,7 @@ function finishSignup(){
   myProfile.bio = document.getElementById('signup-bio').value || '';
   myProfile.hasKids = document.getElementById('switch-kids').classList.contains('on');
   myProfile.interests = Array.from(document.querySelectorAll('#passion-list .passion-card.sel')).map(p => p.dataset.label);
+  myProfile.subPassions = [...subPassionSelection];
   myProfile.modes = [];
   if(document.getElementById('switch-friend').classList.contains('on')) myProfile.modes.push('friend');
   if(document.getElementById('switch-love').classList.contains('on')) myProfile.modes.push('love');
@@ -4909,6 +5008,19 @@ function renderProfileScreen(){
   const coupleBadge = document.getElementById('profile-couple');
   if(coupleBadge) coupleBadge.className = 'mode-badge ' + (myProfile.modes.includes('couple') ? 'couple-on' : 'off');
   const pillsEl = document.getElementById('profile-interests');
+  if(pillsEl){
+    let subEl = document.getElementById('profile-subpassions');
+    if(!subEl){
+      subEl = document.createElement('div');
+      subEl.id = 'profile-subpassions';
+      subEl.className = 'subp-tags';
+      subEl.style.marginTop = '10px';
+      pillsEl.insertAdjacentElement('afterend', subEl);
+    }
+    const subs = myProfile.subPassions || [];
+    subEl.innerHTML = subs.map(t => `<span class="subp-tag static">${escapeHtml(t)}</span>`).join('');
+    subEl.style.display = subs.length ? 'flex' : 'none';
+  }
   if(pillsEl){
     pillsEl.innerHTML = myProfile.interests.length
       ? myProfile.interests.map(i => `<span class="pill sel">${i}</span>`).join('')
@@ -5866,6 +5978,7 @@ function mapSupabaseRowToSwipeCard(row, photoUrl){
     color: swipeAvatarPalette[colorIndex],
     bio: row.bio,
     tags: row.passions,
+    subPassions: Array.isArray(row.sub_passions) ? row.sub_passions : [],
     modes: modes.length ? modes : ['Amitié'],
     area: row.city || 'Zone non précisée',
     latitude: row.latitude,
@@ -5952,24 +6065,30 @@ async function loadRealSwipeProfiles(){
     // identique à avant : âge minimum/maximum inclus, et les profils sans
     // genre renseigné restent visibles même avec une préférence de genre
     // active (choix produit déjà en place, conservé à l'identique).
-    let query = supabaseClient
-      .from('profiles')
-      .select('id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, is_premium, premium_until, gender, is_single_parent')
-      .neq('firebase_uid', excludeUid)
-      .is('deleted_at', null)
-      .gte('age', myProfile.ageMin)
-      .lte('age', myProfile.ageMax);
-
-    if(blockedIds.length > 0){
-      query = query.not('id', 'in', `(${blockedIds.join(',')})`);
-    }
-
+    const swipeCols = 'id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, is_premium, premium_until, gender, is_single_parent';
     const genderPrefs = myProfile.genderPreferences || [];
-    if(genderPrefs.length > 0){
-      query = query.or(`gender.is.null,gender.in.(${genderPrefs.join(',')})`);
-    }
+    const buildSwipeQuery = cols => {
+      let query = supabaseClient
+        .from('profiles')
+        .select(cols)
+        .neq('firebase_uid', excludeUid)
+        .is('deleted_at', null)
+        .gte('age', myProfile.ageMin)
+        .lte('age', myProfile.ageMax);
+      if(blockedIds.length > 0){
+        query = query.not('id', 'in', `(${blockedIds.join(',')})`);
+      }
+      if(genderPrefs.length > 0){
+        query = query.or(`gender.is.null,gender.in.(${genderPrefs.join(',')})`);
+      }
+      return query;
+    };
 
-    const { data, error } = await query;
+    // Goûts (sub_passions) lus s'ils existent ; sinon requête d'origine.
+    let { data, error } = await buildSwipeQuery(swipeCols + ', sub_passions');
+    if(error){
+      ({ data, error } = await buildSwipeQuery(swipeCols));
+    }
     if(error) throw error;
 
     swipeDebugLines = [];
@@ -6177,6 +6296,14 @@ function renderSwipeStack(){
         ${(() => {
           const commons = p.tags.filter(t => myProfile.interests.some(i => i.toLowerCase().includes(t.toLowerCase())));
           return commons.length ? `<div class="passport-commons">❤️ ${commons.length} passion${commons.length>1?'s':''} en commun</div>` : '';
+        })()}
+        ${(() => {
+          const theirs = p.subPassions || [];
+          if(!theirs.length) return '';
+          const mine = myProfile.subPassions || [];
+          const shared = theirs.filter(t => mine.includes(t));
+          const commonHtml = shared.length ? `<div class="passport-commons">✨ En commun : ${shared.slice(0,3).map(escapeHtml).join(', ')}</div>` : '';
+          return commonHtml + `<div class="swipe-tags">${theirs.slice(0,4).map(t => `<span>${escapeHtml(t)}</span>`).join('')}</div>`;
         })()}
         <div class="swipe-tags">${p.tags.map(t=>`<span onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); openTagComment('${t.replace(/'/g,"\\'")}')">${t}</span>`).join('')}</div>
         <div class="tag-comment-hint">💬 Touchez un centre d'intérêt pour commenter</div>
