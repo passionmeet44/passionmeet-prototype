@@ -1430,6 +1430,9 @@
   .venue-tile-price{ position:absolute; top:4px; left:4px; font-size:8.5px; font-weight:800; padding:2px 6px; border-radius:6px; line-height:1.4; }
   .venue-tile-price.free{ background:#E4F3E9; color:#2E7D4F; }
   .venue-tile-price.paid{ background:#FCE9DC; color:var(--orange-deep); }
+  .match-new-pill{ position:absolute; top:8px; right:8px; display:flex; align-items:center; gap:4px; background:#E0453A; color:#fff;
+    font-size:10px; font-weight:800; padding:3px 8px; border-radius:10px; box-shadow:0 2px 6px rgba(224,69,58,0.35); }
+  .match-new-pill::before{ content:''; width:6px; height:6px; border-radius:50%; background:#fff; }
   .tab-count{ display:inline-block; min-width:16px; padding:0 5px; margin-left:6px; border-radius:8px; background:var(--orange);
     color:#fff; font-size:10px; font-weight:800; line-height:16px; text-align:center; vertical-align:middle; }
   .tab-count.hidden{ display:none; }
@@ -9256,6 +9259,9 @@ async function renderMatchesList(){
       return !blockedIds.includes(otherId);
     });
 
+    const isNewMatch = m => (m.profile_a_id === myId ? !m.seen_by_a : !m.seen_by_b);
+    visibleMatches.sort((x, y) => (isNewMatch(y) - isNewMatch(x)) || (y.created_at || '').localeCompare(x.created_at || ''));
+
     if(visibleMatches.length === 0){
       list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match… les fruits de la passion mûrissent à leur rythme 🍊<br>Continue à swiper, ça ne saurait tarder !
         <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
@@ -9265,6 +9271,7 @@ async function renderMatchesList(){
 
     const matchCards = (await Promise.all(visibleMatches.map(async (m) => {
       const otherId = m.profile_a_id === myId ? m.profile_b_id : m.profile_a_id;
+      const isNew = isNewMatch(m);
       let otherProfile = null;
       try{
         const { data: p } = await supabaseClient
@@ -9303,6 +9310,7 @@ async function renderMatchesList(){
         <div class="match-card-big" onclick="openMatchProfileDetail('${m.id}')">
           <div class="match-card-big-photo" style="${photoStyle}">
             <div class="match-card-big-mode">${m.mode === 'love' ? '💜 Rencontre' : '🤝 Amitié'}</div>
+            ${isNew ? `<div class="match-new-pill">Nouveau</div>` : ''}
           </div>
           <div class="match-card-big-body">
             <div class="match-card-big-name">${escapeHtml(name)}${age}</div>
