@@ -1427,6 +1427,24 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   #prefs-radius-map{ height:150px; width:100%; border-radius:14px; margin-top:10px; overflow:hidden; position:relative; z-index:0; background:var(--lavender); }
+  .ac-moment{ position:absolute; top:8px; left:8px; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:10px; background:rgba(255,255,255,0.92); color:var(--plum); }
+  .ac-heart{ position:absolute; top:6px; right:6px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.92);
+    display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; box-shadow:0 2px 6px rgba(62,31,68,0.15); }
+  .ac-org{ display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11.5px; color:var(--plum-soft); }
+  .ac-org-photo{ width:22px; height:22px; border-radius:50%; background-size:cover; background-position:center; background-color:var(--lavender);
+    flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; }
+  .ac-people{ display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .ac-count{ font-size:12px; font-weight:800; color:var(--plum); }
+  .ac-avatars{ display:flex; }
+  .ac-avatar{ width:26px; height:26px; border-radius:50%; border:2px solid #fff; margin-left:-6px; background-size:cover; background-position:center;
+    background-color:var(--lavender); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--plum-soft); }
+  .ac-avatars .ac-avatar:first-child{ margin-left:0; }
+  .ac-avatar.empty{ background:#fff; border:1.5px dashed #C9BDD0; color:#B0A0B5; }
+  .ac-badges{ display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+  .ac-badge{ font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:10px; background:var(--lavender); color:var(--plum-soft); }
+  .ac-badge.free{ background:#E4F3E9; color:#2E7D4F; }
+  .ac-badge.paid{ background:#FCE9DC; color:var(--orange-deep); }
+  .ac-badge.full{ background:#FCE4DC; color:#B0451F; }
   .act-filter-pills{ display:flex; gap:8px; padding:0 20px; margin-bottom:10px; }
   .act-pill{ flex:1; min-width:0; background:#fff; border:1px solid var(--lavender); border-radius:20px; padding:9px 8px;
     text-align:center; font-size:12.5px; font-weight:700; color:var(--plum); cursor:pointer;
@@ -2017,6 +2035,13 @@
         </div>
         <div class="switch" id="ract-form-transit" onclick="this.classList.toggle('on')"></div>
       </div>
+      <div class="form-label" style="margin-top:10px;">Prix</div>
+      <select class="form-input" id="ract-form-price-type" onchange="document.getElementById('ract-form-price').style.display = this.value === 'paid' ? 'block' : 'none'">
+        <option value="">Non précisé</option>
+        <option value="free">Gratuit</option>
+        <option value="paid">Payant</option>
+      </select>
+      <input class="form-input" id="ract-form-price" type="number" min="0" step="0.5" placeholder="Prix par personne (€)" style="display:none;">
 
       <div class="form-label">Mode</div>
       <div class="mode-badge-row">
@@ -7094,6 +7119,10 @@ async function geocodeLocation(query){
 function openCreateActivityReal(){
   const transitSwitch = document.getElementById('ract-form-transit');
   if(transitSwitch) transitSwitch.classList.remove('on');
+  const priceTypeReset = document.getElementById('ract-form-price-type');
+  if(priceTypeReset) priceTypeReset.value = '';
+  const priceReset = document.getElementById('ract-form-price');
+  if(priceReset){ priceReset.value = ''; priceReset.style.display = 'none'; }
   selectedLocationCoords = null;
   document.getElementById('ract-location-suggestions').style.display = 'none';
   document.getElementById('ract-form-meeting-point').value = '';
@@ -7285,6 +7314,10 @@ async function submitRealActivity(){
   const mode = document.getElementById('ract-form-mode-love').classList.contains('love-on') ? 'love' : 'friend';
   const transitEl = document.getElementById('ract-form-transit');
   const transitAccessible = !!(transitEl && transitEl.classList.contains('on'));
+  const priceTypeEl = document.getElementById('ract-form-price-type');
+  const priceType = priceTypeEl ? priceTypeEl.value : '';
+  const priceRaw = document.getElementById('ract-form-price') ? document.getElementById('ract-form-price').value : '';
+  const priceEur = priceType === 'paid' && priceRaw !== '' ? parseFloat(priceRaw) : null;
 
   // Validation des champs obligatoires
   if(!title || !category || !date || !location){
@@ -7349,7 +7382,9 @@ async function submitRealActivity(){
       mode: mode,
       moderation_status: moderation.status,
       moderation_reason: moderation.reason,
-      ...(transitAccessible ? { transit_accessible: true } : {})
+      ...(transitAccessible ? { transit_accessible: true } : {}),
+      ...(priceType === 'free' ? { is_free: true } : {}),
+      ...(priceType === 'paid' ? { is_free: false, price_eur: priceEur } : {})
     });
     if(error) throw error;
 
@@ -7444,18 +7479,63 @@ function toggleSuggestionDetail(id){
   if(el) el.classList.toggle('hidden');
 }
 
+// Favoris : chargés une seule fois par affichage de liste (promesse partagée
+// pour éviter N requêtes identiques quand plusieurs cartes se construisent).
+let favoriteActivityIdsPromise = null;
+function ensureFavoriteActivityIds(){
+  if(!favoriteActivityIdsPromise){
+    favoriteActivityIdsPromise = (async () => {
+      if(!supabaseClient || !myProfile.supabaseId) return new Set();
+      try{
+        const { data, error } = await supabaseClient
+          .from('activity_favorites').select('activity_id').eq('profile_id', myProfile.supabaseId);
+        if(error) throw error;
+        return new Set((data || []).map(r => r.activity_id));
+      } catch(e){
+        console.warn('[Favoris] Chargement impossible :', e.message);
+        return new Set();
+      }
+    })();
+  }
+  return favoriteActivityIdsPromise;
+}
+
+async function toggleActivityFavorite(activityId, el){
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  const favs = await ensureFavoriteActivityIds();
+  const isFav = favs.has(activityId);
+  try{
+    if(isFav){
+      const { error } = await supabaseClient.from('activity_favorites').delete()
+        .eq('profile_id', myProfile.supabaseId).eq('activity_id', activityId);
+      if(error) throw error;
+      favs.delete(activityId);
+    } else {
+      const { error } = await supabaseClient.from('activity_favorites')
+        .insert({ profile_id: myProfile.supabaseId, activity_id: activityId });
+      if(error && error.code !== '23505') throw error;
+      favs.add(activityId);
+    }
+    if(el){ el.textContent = favs.has(activityId) ? '❤️' : '🤍'; }
+    showToast(favs.has(activityId) ? 'Ajouté à tes favoris' : 'Retiré de tes favoris', favs.has(activityId) ? '❤️' : '🤍');
+  } catch(e){
+    console.warn('[Favoris] Action impossible :', e.message);
+    showToast("Favori impossible pour le moment, réessaie.", '⚠️');
+  }
+}
+
 async function buildActivityCardHtml(a){
   const cat = categories.find(c => c.key === a.category);
   const emoji = cat ? cat.emoji : '🎉';
 
-  let participantCount = 0;
+  // Vrais participants (identifiants), pour le compteur et les avatars.
+  let participantIds = [];
   try{
-    const { count } = await supabaseClient
-      .from('activity_participants')
-      .select('id', { count: 'exact', head: true })
-      .eq('activity_id', a.id);
-    participantCount = count || 0;
+    const { data } = await supabaseClient
+      .from('activity_participants').select('profile_id').eq('activity_id', a.id);
+    participantIds = (data || []).map(r => r.profile_id);
   } catch(e){}
+  const participantCount = participantIds.length;
 
   let organizerName = 'Membre';
   try{
@@ -7464,7 +7544,13 @@ async function buildActivityCardHtml(a){
     if(org && org.first_name) organizerName = org.first_name;
   } catch(e){}
 
-  const resolvedPhotoUrl = await resolveActivityPhotoUrl(a.photo_url, a.id);
+  const shownIds = participantIds.slice(0, 4);
+  const [resolvedPhotoUrl, organizerPhoto, favs, ...avatarUrls] = await Promise.all([
+    resolveActivityPhotoUrl(a.photo_url, a.id),
+    getMainPhotoForProfile(a.organizer_profile_id),
+    ensureFavoriteActivityIds(),
+    ...shownIds.map(id => getMainPhotoForProfile(id))
+  ]);
 
   currentActivitiesData.push({
     id: a.id, title: a.title, description: a.description, category: a.category,
@@ -7480,39 +7566,54 @@ async function buildActivityCardHtml(a){
   const isFull = a.max_participants != null && participantCount >= a.max_participants;
   const remaining = a.max_participants != null ? Math.max(a.max_participants - participantCount, 0) : null;
 
-  // Jamais de photo cassée : l'image réelle est tentée en premier, et si son
-  // chargement échoue (URL expirée, fichier introuvable...), le repli sur
-  // l'emoji de la catégorie est géré directement au niveau du <img> (onerror),
-  // sans jamais laisser une icône d'image cassée à l'écran.
   const mediaHtml = resolvedPhotoUrl
-    ? `<img src="${resolvedPhotoUrl}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'activity-card-emoji-fallback',textContent:'${emoji}',style:'font-size:28px;width:100%;height:100%;display:flex;align-items:center;justify-content:center;'}))">`
+    ? `<img src="${resolvedPhotoUrl}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${emoji}'}))">`
     : `<span>${emoji}</span>`;
 
-  // Jamais "distance non disponible" : quand la distance réelle est inconnue,
-  // on affiche uniquement le lieu, sans mention de son absence.
+  const moment = getActivityMoment(a.activity_time);
+  const momentHtml = moment ? `<div class="ac-moment">${moment === 'jour' ? '☀️ Journée' : '🌙 Soirée'}</div>` : '';
+  const isFav = favs.has(a.id);
+  const heartHtml = `<div class="ac-heart" onclick="event.stopPropagation(); toggleActivityFavorite('${a.id}', this)">${isFav ? '❤️' : '🤍'}</div>`;
+
   const locationLine = a.location
     ? `📍 ${escapeHtml(a.location)}${a.distanceKm != null ? ' · '+Math.round(a.distanceKm*10)/10+' km' : ''}`
     : (a.distanceKm != null ? `📍 ${Math.round(a.distanceKm*10)/10} km` : '');
 
-  // Places restantes uniquement si un maximum réel est défini ; sinon on
-  // affiche juste le nombre réel d'inscrits, sans rien inventer.
-  const peopleLine = isFull
-    ? `👥 Complet`
-    : (remaining != null ? `👥 ${remaining} place${remaining>1?'s':''} restante${remaining>1?'s':''}` : `👥 ${participantCount} participant${participantCount>1?'s':''}`);
+  const orgPhotoHtml = organizerPhoto
+    ? `<span class="ac-org-photo" style="background-image:url('${organizerPhoto}');"></span>`
+    : `<span class="ac-org-photo">👤</span>`;
 
-  const modeTag = a.mode === 'love' ? 'Rencontre' : 'Amitié';
-  const passionTagHtml = a.matchesPassion ? `<span class="activity-card-tag">❤️ Passion</span>` : '';
-  const fullTagHtml = isFull ? `<span class="activity-card-tag full">Complet</span>` : '';
+  // Avatars réels des inscrits, puis cases « + » pour les places encore libres
+  // (seulement si un maximum réel est défini — jamais de places inventées).
+  let avatarsHtml = avatarUrls.map(u => u
+    ? `<span class="ac-avatar" style="background-image:url('${u}');"></span>`
+    : `<span class="ac-avatar">👤</span>`).join('');
+  if(participantCount > shownIds.length){
+    avatarsHtml += `<span class="ac-avatar">+${participantCount - shownIds.length}</span>`;
+  } else if(remaining){
+    avatarsHtml += Array.from({ length: Math.min(remaining, 3) }, () => `<span class="ac-avatar empty">+</span>`).join('');
+  }
+  const countLabel = a.max_participants != null
+    ? `${participantCount}/${a.max_participants}`
+    : `${participantCount} inscrit${participantCount > 1 ? 's' : ''}`;
+
+  const badges = [];
+  if(a.is_free === true) badges.push(`<span class="ac-badge free">Gratuit</span>`);
+  else if(a.is_free === false) badges.push(`<span class="ac-badge paid">${a.price_eur != null ? String(a.price_eur).replace('.', ',') + ' €' : '€'}</span>`);
+  if(a.transit_accessible) badges.push(`<span class="ac-badge">🚋 Tram/bus</span>`);
+  if(a.matchesPassion) badges.push(`<span class="ac-badge">❤️ Passion</span>`);
+  if(isFull) badges.push(`<span class="ac-badge full">Complet</span>`);
 
   return `
     <div class="activity-card" onclick="openActivityDetail('${a.id}')">
-      <div class="activity-card-media" style="${resolvedPhotoUrl ? '' : `background:${cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)'};`}">${mediaHtml}</div>
+      <div class="activity-card-media" style="position:relative; ${resolvedPhotoUrl ? '' : `background:${cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)'};`}">${mediaHtml}${momentHtml}${heartHtml}</div>
       <div class="activity-card-body">
         <div class="activity-card-title">${escapeHtml(a.title)}</div>
-        <div class="activity-card-meta">📅 ${dateLabel ? dateLabel : 'Date à définir'}${a.activity_time ? ' · '+a.activity_time : ''}</div>
+        <div class="activity-card-meta">📅 ${dateLabel ? dateLabel : 'Date à définir'}${a.activity_time ? ' · '+String(a.activity_time).slice(0,5) : ''}</div>
         ${locationLine ? `<div class="activity-card-meta">${locationLine}</div>` : ''}
-        <div class="activity-card-meta">${peopleLine}</div>
-        <div class="activity-card-tags">${passionTagHtml}${fullTagHtml}</div>
+        <div class="ac-org">${orgPhotoHtml}<span>Organisé par <b>${escapeHtml(organizerName)}</b></span></div>
+        <div class="ac-people"><span class="ac-count">👥 ${countLabel}</span><span class="ac-avatars">${avatarsHtml}</span></div>
+        ${badges.length ? `<div class="ac-badges">${badges.join('')}</div>` : ''}
         <div class="activity-card-cta">Voir l'activité →</div>
       </div>
     </div>
@@ -7523,10 +7624,17 @@ async function buildActivityCardHtml(a){
 // entre "Dans votre univers", "Près de chez vous" et la liste complète filtrée,
 // pour ne jamais interroger Supabase deux fois pour la même chose.
 async function fetchActiveUpcomingActivities(){
-  const { data: rawData, error } = await supabaseClient
-    .from('activities')
-    .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point')
+  const baseCols = 'id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point';
+  // Colonnes ajoutées (transports, prix) : lues si elles existent, sinon on
+  // retombe sur la requête d'origine — jamais de page cassée pour autant.
+  let { data: rawData, error } = await supabaseClient
+    .from('activities').select(baseCols + ', transit_accessible, is_free, price_eur')
     .order('created_at', { ascending: false });
+  if(error){
+    ({ data: rawData, error } = await supabaseClient
+      .from('activities').select(baseCols)
+      .order('created_at', { ascending: false }));
+  }
   if(error) throw error;
   const todayStr = new Date().toISOString().slice(0,10);
   const active = (rawData || []).filter(a =>
@@ -8260,6 +8368,7 @@ function memberActivityCatalogCategories(a){
 }
 
 async function renderMemberOutingsList(){
+  favoriteActivityIdsPromise = null;
   const box = document.getElementById('member-outings-list');
   if(!box || !supabaseClient) return;
   const title = `<div class="match-section-title" style="padding:10px 0 8px;">📅 Sorties des membres</div>`;
