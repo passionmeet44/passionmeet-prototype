@@ -1430,6 +1430,29 @@
   .venue-tile-price{ position:absolute; top:4px; left:4px; font-size:8.5px; font-weight:800; padding:2px 6px; border-radius:6px; line-height:1.4; }
   .venue-tile-price.free{ background:#E4F3E9; color:#2E7D4F; }
   .venue-tile-price.paid{ background:#FCE9DC; color:var(--orange-deep); }
+  .profile-hero{ background:#fff !important; border-radius:24px; margin:14px 20px 0; padding-bottom:18px; box-shadow:0 4px 16px rgba(62,31,68,0.07); }
+  .profile-hero h2{ color:var(--plum) !important; }
+  .profile-city-line{ font-size:13px; color:#9584A0; font-weight:600; margin-top:2px; text-align:center; }
+  .pm-section-title{ font-size:11.5px; font-weight:800; color:#9584A0; text-transform:uppercase; letter-spacing:0.06em; padding:20px 26px 8px; }
+  .pm-list{ background:#fff; border-radius:18px; margin:0 20px; box-shadow:0 3px 12px rgba(62,31,68,0.06); overflow:hidden; }
+  .pm-list > * + *{ border-top:1px solid #F1ECF3; }
+  .pm-row{ display:flex; align-items:center; gap:12px; padding:13px 16px; cursor:pointer; transition:background .15s ease, transform .12s ease; }
+  .pm-row:active{ background:var(--lavender); transform:scale(0.985); }
+  .pm-row.soon{ cursor:default; }
+  .pm-row.soon:active{ background:transparent; transform:none; }
+  .pm-icon{ width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; background:#F1E9F5; }
+  .pm-icon.orange{ background:#FDEBDD; }
+  .pm-label{ flex:1; min-width:0; font-size:14px; font-weight:600; color:var(--plum); }
+  .pm-sub{ font-size:11.5px; color:#9584A0; font-weight:500; margin-top:2px; }
+  .pm-chevron{ color:#C9BDD0; font-size:22px; line-height:1; }
+  .pm-soon{ font-size:10px; font-weight:800; color:var(--orange-deep); background:#FDEBDD; padding:3px 8px; border-radius:8px; }
+  .pm-row.danger .pm-label{ color:#C0392B; }
+  .pm-block{ padding:13px 16px; }
+  .pm-block-title{ font-size:14px; font-weight:700; color:var(--plum); margin-bottom:6px; }
+  body.dark-mode .profile-hero, body.dark-mode .pm-list{ background:#2B2231 !important; }
+  body.dark-mode .profile-hero h2, body.dark-mode .pm-label, body.dark-mode .pm-block-title{ color:#F1E9F5 !important; }
+  body.dark-mode .pm-list > * + *{ border-top-color:#3B3042; }
+  body.dark-mode .pm-icon{ background:#3B3042; }
   .subp-header{ display:flex; justify-content:space-between; align-items:center; margin-top:20px; margin-bottom:8px; }
   .subp-title{ font-size:14px; font-weight:800; color:var(--plum); }
   .subp-counter{ font-size:12px; font-weight:800; color:var(--orange-deep); }
@@ -1923,10 +1946,12 @@
         <div class="avatar-edit-badge" onclick="openPhotoManager()">✏️</div>
       </div>
       <h2 id="profile-name">Camille, 34 ans</h2>
-      <div class="profile-photo-hint" style="margin-top:2px;" onclick="openEditProfile()">✏️ Modifier mon profil</div>
-      <div class="profile-photo-hint" onclick="premiumReturnScreen='profile'; showScreen('premium')" style="line-height:1.4;">🍊 PassionMeet+ <span style="font-weight:400; opacity:0.8;">— bonus facultatifs : voir qui t'a liké, likes illimités</span></div>
-      <div class="profile-photo-hint" onclick="openMyReports()">🚩 Mes signalements</div>
-      <div class="profile-photo-hint" id="admin-access-link" style="display:none;" onclick="openAdminReports()">🛠️ Signalements à traiter (admin)</div>
+      <div class="profile-city-line" id="profile-city-line"></div>
+      <div class="mode-badge-row" style="justify-content:center; margin-top:10px;">
+        <div class="mode-badge friend-on" id="profile-friend">🤝 Amitié</div>
+        <div class="mode-badge love-on" id="profile-love">💜 Rencontre</div>
+        <div class="mode-badge off" id="profile-couple">👫 Sorties en couple</div>
+      </div>
       <div class="profile-badge-row">
         <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>
         <span class="mode-badge" id="profile-newcomer-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🆕 Nouveau/nouvelle dans la région</span>
@@ -1958,15 +1983,6 @@
     </div>
 
     <div class="profile-card">
-      <div class="profile-card-title">✨ Mes modes actifs</div>
-      <div class="mode-badge-row">
-      <div class="mode-badge friend-on" id="profile-friend">🤝 Amitié</div>
-      <div class="mode-badge love-on" id="profile-love">💜 Rencontre</div>
-      <div class="mode-badge off" id="profile-couple">👫 Sorties en couple</div>
-    </div>
-    </div>
-
-    <div class="profile-card">
       <div style="display:flex; align-items:center; justify-content:space-between;">
         <div class="profile-card-title" style="margin-bottom:0;">❤️ Centres d'intérêt</div>
         <div class="report-link" style="cursor:pointer; font-size:12px;" onclick="openInterestsEditor()">✏️ Modifier</div>
@@ -1977,40 +1993,66 @@
     </div>
     </div>
 
-    <div class="profile-card">
-      <div class="profile-card-title">🔎 Préférences de recherche</div>
-      <p id="profile-prefs" class="profile-prefs-text">Recherche entre 28 et 45 ans · dans un rayon de 15 km</p>
+    <div class="pm-section-title">Mon profil</div>
+    <div class="pm-list">
+      <div class="pm-row" onclick="openEditProfile()"><div class="pm-icon">✏️</div><div class="pm-label">Modifier mon profil</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openPhotoManager()"><div class="pm-icon orange">📸</div><div class="pm-label">Mes photos</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openInterestsEditor()"><div class="pm-icon">❤️</div><div class="pm-label">Mes passions et goûts</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openDiscoverFilters()"><div class="pm-icon orange">📍</div><div class="pm-label">Ma zone et mon rayon<div class="pm-sub" id="profile-prefs"></div></div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openMyProfilePreview()"><div class="pm-icon">👀</div><div class="pm-label">Voir mon profil comme les autres</div><div class="pm-chevron">›</div></div>
     </div>
 
-    <div class="profile-card">
-      <div class="profile-card-title">📅 Mes sorties à venir</div>
-      <div id="profile-upcoming"></div>
+    <div class="pm-section-title">Mon activité</div>
+    <div class="pm-list">
+      <div class="pm-block"><div class="pm-block-title">📅 Mes sorties à venir</div><div id="profile-upcoming"></div></div>
+      <div class="pm-row" onclick="openProfileList('organized')"><div class="pm-icon orange">⭐</div><div class="pm-label">Mes sorties organisées</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openProfileList('favorites')"><div class="pm-icon">🤍</div><div class="pm-label">Mes favoris</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row soon"><div class="pm-icon orange">🚗</div><div class="pm-label">Mes covoiturages</div><span class="pm-soon">Bientôt</span></div>
+      <div class="pm-row soon"><div class="pm-icon">📊</div><div class="pm-label">Mes statistiques de fiabilité</div><span class="pm-soon">Bientôt</span></div>
     </div>
 
-    <div class="profile-card settings-card">
-      <div class="profile-card-title">⚙️ Paramètres</div>
-      <div class="settings-row">
-      <div class="settings-row-text">
-        <h4>Mode sombre</h4>
-        <p>Affichage plus confortable en soirée</p>
+    <div class="pm-section-title">Sécurité</div>
+    <div class="pm-list">
+      <div class="pm-row" onclick="openProfileList('blocked')"><div class="pm-icon">🚫</div><div class="pm-label">Profils bloqués</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openMyReports()"><div class="pm-icon orange">🚩</div><div class="pm-label">Mes signalements</div><div class="pm-chevron">›</div></div>
+      <div id="admin-access-link" style="display:none;">
+        <div class="pm-row" onclick="openAdminReports()"><div class="pm-icon">🛠️</div><div class="pm-label">Signalements à traiter (admin)</div><div class="pm-chevron">›</div></div>
       </div>
-      <div class="switch" id="switch-dark-mode" onclick="toggleDarkMode()"></div>
-    </div>
-    <div class="settings-row">
-      <div class="settings-row-text">
-        <h4>Mettre mon profil en pause</h4>
-        <p>Invisible temporairement, vos conversations restent accessibles</p>
-      </div>
-      <div class="switch" id="switch-pause-profile" onclick="toggleProfilePause()"></div>
-    </div>
-    <div class="settings-link" onclick="openLegal('cgu','profile')">Conditions Générales d'Utilisation</div>
-    <div class="settings-link" onclick="openLegal('confidentialite','profile')">Politique de confidentialité</div>
-    <div class="settings-link" onclick="logOut()">Déconnexion</div>
+      <div class="pm-row soon"><div class="pm-icon">🪪</div><div class="pm-label">Vérification d'identité</div><span class="pm-soon">Bientôt</span></div>
+      <div class="pm-row soon"><div class="pm-icon orange">📍</div><div class="pm-label">Partage de position avec un proche</div><span class="pm-soon">Bientôt</span></div>
     </div>
 
-    <div class="profile-card danger-card">
-      <div class="settings-link danger" onclick="deleteMyAccount()">Supprimer mon compte</div>
+    <div class="pm-section-title">PassionMeet+</div>
+    <div class="pm-list">
+      <div class="pm-row" onclick="premiumReturnScreen='profile'; showScreen('premium')"><div class="pm-icon orange">🍊</div><div class="pm-label">PassionMeet+<div class="pm-sub">Bonus facultatifs : voir qui t'a liké, likes illimités</div></div><div class="pm-chevron">›</div></div>
     </div>
+
+    <div class="pm-section-title">Paramètres</div>
+    <div class="pm-list">
+      <div class="pm-row" style="cursor:default;"><div class="pm-icon">🌙</div><div class="pm-label">Mode sombre<div class="pm-sub">Affichage plus confortable en soirée</div></div><div class="switch" id="switch-dark-mode" onclick="toggleDarkMode()"></div></div>
+      <div class="pm-row" style="cursor:default;"><div class="pm-icon orange">⏸️</div><div class="pm-label">Mettre mon profil en pause<div class="pm-sub">Invisible temporairement, conversations accessibles</div></div><div class="switch" id="switch-pause-profile" onclick="toggleProfilePause()"></div></div>
+      <div class="pm-row" onclick="openLegal('cgu','profile')"><div class="pm-icon">📄</div><div class="pm-label">Conditions générales d'utilisation</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openLegal('confidentialite','profile')"><div class="pm-icon orange">🔒</div><div class="pm-label">Politique de confidentialité</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="logOut()"><div class="pm-icon">🚪</div><div class="pm-label">Se déconnecter</div><div class="pm-chevron">›</div></div>
+    </div>
+
+    <div class="pm-section-title">Aide</div>
+    <div class="pm-list">
+      <a class="pm-row" href="mailto:contact.passionmeet@gmail.com" style="text-decoration:none;"><div class="pm-icon orange">✉️</div><div class="pm-label">Nous contacter<div class="pm-sub">contact.passionmeet@gmail.com</div></div><div class="pm-chevron">›</div></a>
+    </div>
+
+    <div class="pm-list" style="margin-top:22px; margin-bottom:34px;">
+      <div class="pm-row danger" onclick="deleteMyAccount()"><div class="pm-icon" style="background:#FCE4DC;">🗑️</div><div class="pm-label">Supprimer mon compte</div></div>
+    </div>
+  </div>
+
+  <!-- LISTES DU PROFIL : favoris, sorties organisées, profils bloqués -->
+  <div class="screen" id="screen-profile-list" style="position:relative;">
+    <div class="msg-header" style="display:flex; align-items:center; gap:12px;">
+      <div style="cursor:pointer; font-size:22px; color:var(--plum);" onclick="showScreen('profile')">←</div>
+      <h1 id="profile-list-title" style="margin:0;"></h1>
+    </div>
+    <div id="profile-list-body" style="padding:0 20px 100px;"></div>
   </div>
 
   <!-- CREATE ACTIVITY (réelle, Supabase) -->
@@ -2321,7 +2363,7 @@
   <!-- PROFIL DÉTAILLÉ D'UN MATCH -->
   <div class="screen" id="screen-match-profile-detail" style="position:relative;">
     <div style="position:sticky; top:0; z-index:5; padding:14px 16px 0;">
-      <div style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(62,31,68,0.15); cursor:pointer;" onclick="showScreen('matches')">←</div>
+      <div style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(62,31,68,0.15); cursor:pointer;" onclick="showScreen(matchProfileDetailReturn)">←</div>
     </div>
     <div id="match-profile-detail-body"></div>
   </div>
@@ -4995,6 +5037,8 @@ function computeProfileCompletion(){
 }
 
 function renderProfileScreen(){
+  const cityLine = document.getElementById('profile-city-line');
+  if(cityLine) cityLine.textContent = myProfile.city ? `📍 ${myProfile.city}` : '';
   migrateOldInterestsIfNeeded(); // convertit silencieusement les anciennes catégories vers les 9 officielles
   const nameEl = document.getElementById('profile-name');
   if(nameEl) nameEl.textContent = myProfile.name + (myProfile.age ? ', ' + myProfile.age + ' ans' : '');
@@ -9858,7 +9902,123 @@ async function loadRealMessages(conversationId){
 // Ouvre la fiche détaillée d'un match (photos, bio, passions, badges).
 // Marque le match comme "vu" pour l'utilisateur courant s'il ne l'était pas
 // déjà — c'est ce qui fait disparaître l'effet flouté "Nouveau match".
+let matchProfileDetailReturn = 'matches';
+
+async function openProfileList(kind){
+  const titles = { favorites:'🤍 Mes favoris', organized:'⭐ Mes sorties organisées', blocked:'🚫 Profils bloqués' };
+  document.getElementById('profile-list-title').textContent = titles[kind] || '';
+  const body = document.getElementById('profile-list-body');
+  body.innerHTML = emptyMsgState('⏳', 'Chargement…', false);
+  showScreen('profile-list');
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  try{
+    if(kind === 'blocked'){ await renderBlockedProfilesList(body); return; }
+    const all = await fetchActiveUpcomingActivities();
+    let items = [];
+    if(kind === 'favorites'){
+      favoriteActivityIdsPromise = null;
+      const favs = await ensureFavoriteActivityIds();
+      items = all.filter(a => favs.has(a.id));
+    } else if(kind === 'organized'){
+      items = all.filter(a => a.organizer_profile_id === myProfile.supabaseId);
+    }
+    if(!items.length){
+      body.innerHTML = kind === 'favorites'
+        ? emptyMsgState('🤍', "Aucun favori pour l'instant… touche le cœur d'une sortie pour la garder ici 🍊", false)
+        : emptyMsgState('⭐', "Tu n'as pas encore de sortie organisée à venir… lance-toi, les autres n'attendent que ça 🍊", false);
+      return;
+    }
+    items = items.map(a => ({ ...a, distanceKm: getActivityDistanceKm(a) }));
+    const cards = await Promise.all(items.map(a => buildActivityCardHtml(a)));
+    body.innerHTML = cards.join('');
+  } catch(e){
+    console.warn('[Profil] Liste indisponible :', e.message);
+    body.innerHTML = emptyMsgState('⚠️', 'Impossible de charger cette liste pour le moment.', false);
+  }
+}
+
+async function renderBlockedProfilesList(body){
+  const { data, error } = await supabaseClient
+    .from('blocked_users').select('blocked_profile_id').eq('blocker_profile_id', myProfile.supabaseId);
+  if(error) throw error;
+  if(!data || !data.length){
+    body.innerHTML = emptyMsgState('🕊️', 'Aucun profil bloqué. Tout le monde est en paix 🍊', false);
+    return;
+  }
+  const rows = await Promise.all(data.map(async r => {
+    let name = 'Membre';
+    try{
+      const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', r.blocked_profile_id).maybeSingle();
+      if(p && p.first_name) name = p.first_name;
+    } catch(e){}
+    const photo = await getMainPhotoForProfile(r.blocked_profile_id);
+    const avatar = photo
+      ? `<div class="pm-icon" style="background-image:url('${photo}'); background-size:cover; background-position:center; border-radius:50%;"></div>`
+      : `<div class="pm-icon" style="border-radius:50%;">👤</div>`;
+    return `<div class="pm-row" style="cursor:default;">${avatar}<div class="pm-label">${escapeHtml(name)}</div>
+      <button class="btn-primary" style="width:auto; margin:0; padding:8px 14px; font-size:12.5px;" onclick="unblockUser('${r.blocked_profile_id}')">Débloquer</button></div>`;
+  }));
+  body.innerHTML = `<div class="pm-list" style="margin:0;">${rows.join('')}</div>`;
+}
+
+async function unblockUser(profileId){
+  if(!confirm("Débloquer ce profil ? Il pourra de nouveau apparaître dans Découvrir, tes matchs et tes messages.")) return;
+  try{
+    const { error } = await supabaseClient.from('blocked_users').delete()
+      .eq('blocker_profile_id', myProfile.supabaseId).eq('blocked_profile_id', profileId);
+    if(error) throw error;
+    showToast('Profil débloqué', '🕊️');
+    openProfileList('blocked');
+  } catch(e){
+    console.warn('[Blocage] Déblocage impossible :', e.message);
+    showToast("Déblocage impossible pour le moment, réessaie.", '⚠️');
+  }
+}
+
+// Aperçu de son propre profil, tel que les autres le voient (réutilise
+// l'écran de profil détaillé, sans les boutons message / bloquer).
+async function openMyProfilePreview(){
+  if(!supabaseClient || !myProfile.supabaseId){ showToast("Aperçu indisponible pour le moment", '⚠️'); return; }
+  const photoUrls = [];
+  try{
+    const { data: rows } = await supabaseClient
+      .from('profile_photos').select('storage_path').eq('user_id', myProfile.supabaseId).order('position', { ascending: true });
+    for(const r of (rows || [])){
+      const u = await getSignedPhotoUrl(r.storage_path);
+      if(u) photoUrls.push(u);
+    }
+  } catch(e){}
+  const photosHtml = photoUrls.length
+    ? photoUrls.map(u => `<div class="match-profile-photo" style="background-image:url('${u}');"></div>`).join('')
+    : `<div class="match-profile-photo" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);"></div>`;
+  const modeLabels = { friend:'🤝 Amitié', love:'💜 Rencontre', couple:'👫 Sorties en couple' };
+  const modesHtml = (myProfile.modes || []).map(m => modeLabels[m] ? `<span class="msg-mode-tag ${m === 'love' ? 'love' : 'friend'}">${modeLabels[m]}</span>` : '').join(' ');
+  const badgeStyle = 'padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);';
+  const badgesHtml = [
+    myProfile.isNewcomer ? `<span class="mode-badge" style="${badgeStyle}">🆕 Nouveau/nouvelle dans la région</span>` : '',
+    myProfile.isSingleParent ? `<span class="mode-badge" style="${badgeStyle}">🧑‍🧒 Parent solo</span>` : '',
+    myProfile.hasKids ? `<span class="mode-badge" style="${badgeStyle}">👨‍👩‍👧 Parent</span>` : ''
+  ].filter(Boolean).join('');
+  const passionsHtml = (myProfile.interests || []).map(t => `<span>${escapeHtml(t)}</span>`).join('');
+  const subsHtml = (myProfile.subPassions || []).map(t => `<span class="subp-tag static">${escapeHtml(t)}</span>`).join('');
+  document.getElementById('match-profile-detail-body').innerHTML = `
+    <div style="margin:0 20px 10px; padding:10px 14px; background:#FDEBDD; border-radius:14px; font-size:12.5px; color:var(--orange-deep); font-weight:700; text-align:center;">👀 Voici ton profil tel que les autres le voient</div>
+    <div class="match-profile-photos">${photosHtml}</div>
+    <div style="padding:16px 20px 100px;">
+      <h2 style="font-family:var(--font-display); color:var(--plum); margin:0;">${escapeHtml(myProfile.name || 'Moi')}${myProfile.age ? ', ' + escapeHtml(String(myProfile.age)) : ''}</h2>
+      ${modesHtml ? `<div style="margin-top:8px;">${modesHtml}</div>` : ''}
+      ${badgesHtml ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">${badgesHtml}</div>` : ''}
+      ${myProfile.bio ? `<p style="margin-top:14px; color:var(--plum-soft); line-height:1.5;">${escapeHtml(myProfile.bio)}</p>` : ''}
+      ${passionsHtml ? `<div class="swipe-tags" style="margin-top:14px;">${passionsHtml}</div>` : ''}
+      ${subsHtml ? `<div class="subp-tags" style="margin-top:10px;">${subsHtml}</div>` : ''}
+    </div>`;
+  matchProfileDetailReturn = 'profile';
+  showScreen('match-profile-detail');
+}
+
+
 async function openMatchProfileDetail(matchId){
+  matchProfileDetailReturn = 'matches';
   if(!supabaseClient || !myProfile.supabaseId) return;
   try{
     const { data: m, error } = await supabaseClient
