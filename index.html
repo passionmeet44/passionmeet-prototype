@@ -6837,7 +6837,8 @@ async function markMatchSeen(matchId){
     if(!m) return;
     const iAmA = m.profile_a_id === myProfile.supabaseId;
     if(iAmA ? m.seen_by_a : m.seen_by_b) return;
-    await supabaseClient.from('matches').update({ [iAmA ? 'seen_by_a' : 'seen_by_b']: true }).eq('id', matchId);
+    const { error: seenErr } = await supabaseClient.rpc('mark_match_seen', { p_match_id: matchId });
+    if(seenErr) throw seenErr;
     refreshUnreadBadges();
   } catch(e){
     console.warn('[Matchs] Marquage vu impossible :', e.message);
@@ -9723,7 +9724,8 @@ async function openMatchProfileDetail(matchId){
 
     if(!alreadySeen){
       const field = iAmA ? 'seen_by_a' : 'seen_by_b';
-      await supabaseClient.from('matches').update({ [field]: true }).eq('id', matchId);
+      const { error: seenErr } = await supabaseClient.rpc('mark_match_seen', { p_match_id: matchId });
+      if(seenErr) console.warn('[Matchs] Marquage vu impossible :', seenErr.message);
       refreshUnreadBadges();
     }
 
