@@ -1932,6 +1932,54 @@
   body.dark-mode .fl-footer{ background:linear-gradient(to top, #16101A 70%, rgba(22,16,26,0)); }
   body.dark-mode .ui-ico circle[fill="#fff"]{ fill:#231A29; }
 </style>
+
+<style id="pm-design-4">
+  /* Liste des messages */
+  #screen-messages .tier-tabs{ display:flex; gap:4px; background:#F1E9F5; border-radius:999px; padding:4px; margin:16px 20px 8px; }
+  #screen-messages .tier-tab{ flex:1; text-align:center; border:none !important; background:transparent !important; color:#9584A0 !important;
+    box-shadow:none !important; padding:9px 6px; font-weight:700; border-radius:999px; white-space:nowrap; }
+  #screen-messages .tier-tab.active{ background:#fff !important; color:#3E1F44 !important; box-shadow:0 2px 6px rgba(62,31,68,0.12) !important; }
+  #screen-messages .msg-header{ padding-left:20px !important; padding-right:20px !important; }
+  .msg-item{ gap:12px; }
+  .msg-avatar-single{ width:52px !important; height:52px !important; flex-shrink:0; }
+  .msg-avatar-single.group-avatar{ border-radius:16px !important; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:var(--font-display); font-size:21px; font-weight:800; }
+  .msg-info{ min-width:0; flex:1; }
+  .msg-info-top h4{ font-size:15.5px !important; font-weight:800; }
+  .msg-preview{ font-size:13px !important; color:var(--pm-muted) !important; }
+
+  /* Discussion */
+  .chat-header{ gap:10px; }
+  .chat-head-avatar{ width:40px; height:40px; border-radius:50%; flex-shrink:0; background:#C98BA8 center/cover no-repeat;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-family:var(--font-display); font-weight:800; font-size:17px; cursor:pointer; }
+  .chat-head-avatar.group{ border-radius:13px; }
+  .chat-header h3{ font-size:16.5px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-safety-btn{ display:flex !important; align-items:center; justify-content:center; color:var(--plum); }
+  .chat-body{ gap:6px !important; padding:16px 14px !important; }
+  .bubble{ border-radius:20px !important; padding:10px 14px !important; font-size:14.5px !important; line-height:1.4; }
+  .bubble-row.them .bubble{ background:#fff !important; color:var(--plum) !important; box-shadow:0 1px 2px rgba(62,31,68,0.06), 0 3px 10px rgba(62,31,68,0.05); }
+  .bubble-group-row{ display:flex; align-items:flex-end; gap:8px; max-width:85%; }
+  .bubble-group-row.first{ margin-top:8px; }
+  .bubble-group-row .bubble-row{ max-width:100%; }
+  .bubble-avatar{ width:30px; height:30px; border-radius:50%; flex-shrink:0; background-size:cover; background-position:center;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-family:var(--font-display); font-weight:800; font-size:13px; }
+  .bubble-avatar.spacer{ visibility:hidden; }
+  .bubble-sender{ font-weight:700; color:var(--plum-soft) !important; font-size:11.5px !important; }
+  .chat-starters-label{ text-transform:none; letter-spacing:0; color:var(--pm-muted) !important; }
+  .chat-starter-chip{ background:#fff !important; border:1px solid #EADFEE !important; color:var(--plum) !important; border-radius:999px !important; font-weight:600; }
+  .chat-input{ border-radius:999px !important; border:1.5px solid var(--line) !important; padding:12px 16px !important; font-size:15px; }
+  .chat-input:focus{ outline:none; border-color:var(--orange) !important; }
+  .chat-send{ width:46px !important; height:46px !important; border-radius:50% !important; display:flex !important; align-items:center;
+    justify-content:center; color:#fff !important; background:linear-gradient(135deg, var(--orange), var(--orange-deep)) !important;
+    box-shadow:0 6px 14px rgba(229,114,42,0.32); border:none; flex-shrink:0; }
+
+  body.dark-mode #screen-messages .tier-tabs{ background:#2E2335; }
+  body.dark-mode #screen-messages .tier-tab{ color:#B9A8C2 !important; }
+  body.dark-mode #screen-messages .tier-tab.active{ background:#3B3042 !important; color:#F3EAF6 !important; }
+  body.dark-mode .bubble-row.them .bubble{ background:#2E2335 !important; color:#F3EAF6 !important; box-shadow:none; }
+  body.dark-mode .chat-starter-chip{ background:#231A29 !important; border-color:#3B3042 !important; color:#F3EAF6 !important; }
+  body.dark-mode .chat-input{ background:#231A29 !important; color:#F3EAF6; }
+</style>
 </head>
 <body>
 
@@ -3024,17 +3072,18 @@
   <div class="screen" id="screen-chat" style="flex-direction:column; padding-bottom:0;">
     <div class="chat-header">
       <div class="chat-back" onclick="showScreen(chatReturnScreen)">←</div>
-      <div style="flex:1;" onclick="openGroupDetailsFromChat()">
+      <div class="chat-head-avatar" id="chat-head-avatar" onclick="openGroupDetailsFromChat()"></div>
+      <div style="flex:1; min-width:0;" onclick="openGroupDetailsFromChat()">
         <h3 id="chat-title"></h3>
         <p id="chat-subtitle"></p>
       </div>
-      <div class="chat-safety-btn" onclick="openSafety()" title="Sécurité">🛡️</div>
+      <div class="chat-safety-btn" onclick="openSafety()" title="Sécurité" aria-label="Sécurité"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.3-2.9 7.9-7 9.5-4.1-1.6-7-5.2-7-9.5V6l7-3z"/><path d="M9 12l2 2 4-4" stroke-linecap="round"/></svg></div>
     </div>
     <div class="chat-body" id="chat-body"></div>
     <div class="chat-starters hidden" id="chat-starters"></div>
     <div class="chat-input-row">
       <input class="chat-input" id="chat-input" type="text" placeholder="Écrire un message…" onkeydown="if(event.key==='Enter') sendMessage()">
-      <button class="chat-send" onclick="sendMessage()">➤</button>
+      <button class="chat-send" onclick="sendMessage()" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h12"/><path d="M12 6l6 6-6 6"/></svg></button>
     </div>
   </div>
 
@@ -3054,24 +3103,22 @@
         <div class="safety-check">✅</div>
         <div><h4>Prévenez un proche</h4><p>Partagez le lieu et l'heure de votre rendez-vous.</p></div>
       </div>
-      <div class="safety-item">
-        <div>
-          <div class="safety-check" id="safety-share-icon">⬜</div>
-        </div>
+      <div class="safety-item" onclick="openMyLocationShare()" style="cursor:pointer;">
+        <div class="safety-check" id="safety-share-icon">📍</div>
         <div style="flex:1;">
-          <h4>Partager ma position</h4>
-          <p id="safety-share-desc">Partagez votre position en direct avec un proche pendant la rencontre.</p>
+          <h4>Prévenir un proche</h4>
+          <p id="safety-share-desc">Envoie-lui un lien privé avec ta sortie et ta position, depuis la fiche de ta sortie.</p>
         </div>
-        <div class="switch" id="switch-share-location" onclick="toggleLocationShare()"></div>
+        <div class="switch" id="switch-share-location" style="display:none;"></div>
       </div>
       <div class="safety-item" onclick="openUserReportModal()" style="cursor:pointer;">
         <div class="safety-check">🚩</div>
         <div><h4>Signaler un comportement</h4><p>Un souci avec cette personne ? Signalez-le en un clic, à tout moment.</p></div>
       </div>
-      <div class="safety-item" onclick="showToast('Assistance PassionMeet contactée', '🆘')" style="cursor:pointer;">
-        <div class="safety-check">🆘</div>
-        <div><h4>Besoin d'aide</h4><p>Contactez notre assistance en cas de doute ou d'urgence.</p></div>
-      </div>
+      <a class="safety-item" href="mailto:contact.passionmeet@gmail.com?subject=Besoin%20d%27aide%20PassionMeet" style="cursor:pointer; text-decoration:none; color:inherit;">
+        <div class="safety-check">✉️</div>
+        <div><h4>Besoin d'aide</h4><p>Écris à l'équipe PassionMeet. En cas d'urgence ou de danger, appelle immédiatement le <b>112</b>.</p></div>
+      </a>
     </div>
   </div>
 
@@ -9787,17 +9834,23 @@ async function loadRealGroupMessages(conversationId){
       .order('created_at', { ascending: true });
     if(error) throw error;
 
-    const senderNames = {};
-    return await Promise.all((data || []).map(async (m) => {
-      if(m.sender_profile_id === myProfile.supabaseId) return { from:'me', text:m.content };
-      if(!senderNames[m.sender_profile_id]){
-        try{
-          const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', m.sender_profile_id).maybeSingle();
-          senderNames[m.sender_profile_id] = p && p.first_name ? p.first_name : 'Membre';
-        } catch(e){ senderNames[m.sender_profile_id] = 'Membre'; }
-      }
-      return { from: senderNames[m.sender_profile_id], text: m.content };
+    // Prénom et photo de chaque auteur, chargés une seule fois par personne.
+    const senders = {};
+    const otherIds = [...new Set((data || []).map(m => m.sender_profile_id).filter(id => id && id !== myProfile.supabaseId))];
+    await Promise.all(otherIds.map(async id => {
+      let name = 'Membre', photo = null;
+      try{
+        const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', id).maybeSingle();
+        if(p && p.first_name) name = p.first_name;
+      } catch(e){}
+      try{ photo = await getMainPhotoForProfile(id); } catch(e){}
+      senders[id] = { name, photo };
     }));
+    return (data || []).map(m => {
+      if(m.sender_profile_id === myProfile.supabaseId) return { from:'me', text:m.content };
+      const snd = senders[m.sender_profile_id] || { name:'Membre', photo:null };
+      return { from: snd.name, senderId: m.sender_profile_id, photo: snd.photo, text: m.content };
+    });
   } catch(e){
     console.warn('[Groupes] Chargement des messages impossible :', e.message);
     return [];
@@ -9823,6 +9876,7 @@ async function openActivityGroupChat(activityId){
     activityId: activityId
   };
   document.getElementById('chat-title').textContent = activity.title;
+  setChatHeaderAvatar(groupCoverPhoto(activity), activity.title, true);
   updateChatSubtitle();
   renderChatBody();
   renderChatStarters();
@@ -11108,10 +11162,12 @@ async function renderActivityGroupsList(){
       if(!activity){
         activity = await fetchSingleActivityForDetail(conv.activity_id);
       }
+      // Sortie masquée (passée depuis plus de 7 jours, ou organisateur parti) : groupe retiré de la liste.
+      if(activity && activity.moderationStatus && activity.moderationStatus !== 'active') return null;
       const title = activity ? activity.title : 'Activité';
       const emoji = activity ? activity.emoji : '🎉';
       const bg = activity ? activity.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)';
-      const photoUrl = activity ? activity.photoUrl : null;
+      const photoUrl = groupCoverPhoto(activity);
 
       const { data: lastMsgRows } = await supabaseClient
         .from('messages').select('content, created_at, sender_profile_id')
@@ -11135,8 +11191,8 @@ async function renderActivityGroupsList(){
       }
       const timeLabel = lastMsg ? new Date(lastMsg.created_at).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) : '';
       const avatarHtml = photoUrl
-        ? `<div class="msg-avatar-single" style="background-image:url('${photoUrl}'); background-size:cover; background-position:center;"></div>`
-        : `<div class="msg-avatar-single" style="background:${bg}; display:flex; align-items:center; justify-content:center; font-size:20px;">${emoji}</div>`;
+        ? `<div class="msg-avatar-single group-avatar" style="background-image:url('${photoUrl}'); background-size:cover; background-position:center;"></div>`
+        : `<div class="msg-avatar-single group-avatar" style="background:${avatarColorFor(title)};">${escapeHtml(String(title).charAt(0).toUpperCase())}</div>`;
       const badgeHtml = unreadCount ? `<span class="msg-unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>` : '';
 
       return { lastAt: lastMsg ? lastMsg.created_at : '', html: `
@@ -11152,8 +11208,11 @@ async function renderActivityGroupsList(){
     }));
 
     // Le groupe avec le message le plus récent remonte en haut.
-    cards.sort((x, y) => (y.lastAt || '').localeCompare(x.lastAt || ''));
-    list.innerHTML = cards.map(c => c.html).join('');
+    const visibleCards = cards.filter(Boolean);
+    visibleCards.sort((x, y) => (y.lastAt || '').localeCompare(x.lastAt || ''));
+    list.innerHTML = visibleCards.length
+      ? visibleCards.map(c => c.html).join('')
+      : emptyMsgState('👥', "Aucun groupe pour l'instant… rejoins une sortie et la discussion s'ouvre ici 🍊", false);
   } catch(e){
     console.warn('[Messages] Chargement des groupes impossible :', e.message);
     list.innerHTML = emptyMsgState('⚠️', 'Impossible de charger vos groupes pour le moment.', false);
@@ -11436,6 +11495,8 @@ async function openMatchChat(matchId, returnTo){
     otherProfileId: m.otherId
   };
   document.getElementById('chat-title').textContent = m.name;
+  setChatHeaderAvatar(m.photoUrl || null, m.name, false);
+  if(!m.photoUrl && m.otherId){ getMainPhotoForProfile(m.otherId).then(u => { if(u && currentConversation && currentConversation.name === m.name) setChatHeaderAvatar(u, m.name, false); }); }
   updateChatSubtitle();
   renderChatBody();
   renderChatStarters();
@@ -11461,6 +11522,7 @@ function openChat(id){
   currentConversation = conversations.find(c => c.id === id);
   const c = currentConversation;
   document.getElementById('chat-title').textContent = c.name;
+  setChatHeaderAvatar(c.photoUrl || null, c.name, c.type === 'group');
   updateChatSubtitle();
   renderChatBody();
   renderChatStarters();
@@ -11472,7 +11534,7 @@ function getChatStarters(conv){
   if(tag){
     const t = tag.toLowerCase();
     return [
-      `❤️ Vous avez ${tag} en commun — depuis quand tu pratiques ?`,
+      `On a ${tag} en commun, depuis quand tu pratiques ?`,
       `Tu connais un bon spot pour ${t} dans le coin ?`,
       `Ça te dirait qu'on fasse ${t} ensemble un de ces jours ?`
     ];
@@ -11496,7 +11558,7 @@ function renderChatStarters(){
   const starters = getChatStarters(currentConversation);
   wrap.classList.remove('hidden');
   wrap.innerHTML = `
-    <div class="chat-starters-label">💬 Pour lancer la conversation</div>
+    <div class="chat-starters-label">Pour lancer la conversation</div>
     <div class="chat-starters-row">
       ${starters.map(s => `<div class="chat-starter-chip" onclick="useChatStarter('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('')}
     </div>
@@ -11511,12 +11573,10 @@ function useChatStarter(text){
 
 function openSafety(){
   if(!currentConversation) return;
-  const sw = document.getElementById('switch-share-location');
-  sw.classList.toggle('on', !!currentConversation.sharingLocation);
-  document.getElementById('safety-share-desc').textContent = currentConversation.sharingLocation
-    ? `Votre position est partagée en direct avec ${currentConversation.name}.`
-    : `Partagez votre position en direct avec un proche pendant la rencontre.`;
-  document.getElementById('safety-share-icon').textContent = currentConversation.sharingLocation ? '📍' : '⬜';
+  // Reflète le VRAI partage de position (lien privé envoyé à un proche).
+  document.getElementById('safety-share-desc').textContent = activeLocationShare
+    ? `Ta position est partagée avec un proche jusqu'à ${activeLocationShare.expiresAt.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })}. Touche pour gérer.`
+    : `Envoie-lui un lien privé avec ta sortie et ta position, depuis la fiche de ta sortie.`;
   showScreen('safety');
 }
 
@@ -11542,18 +11602,68 @@ function toggleLocationShare(){
   updateChatSubtitle();
 }
 
+// ---------- Messagerie : photos à la place des emojis ----------
+// Photo d'un groupe : photo de la sortie, sinon photo de sa catégorie.
+function categoryPhotoFor(category){
+  const direct = CATALOG_CATEGORIES.find(c => c.label === category);
+  if(direct && direct.photoUrl) return direct.photoUrl;
+  const mapped = INTEREST_KEY_TO_CATALOG_CATEGORIES[category];
+  if(mapped && mapped[0]){
+    const c = CATALOG_CATEGORIES.find(x => x.label === mapped[0]);
+    if(c && c.photoUrl) return c.photoUrl;
+  }
+  return null;
+}
+function groupCoverPhoto(activity){
+  if(!activity) return null;
+  return activity.photoUrl || categoryPhotoFor(activity.category);
+}
+
+function avatarColorFor(name){
+  const palette = ['#8B5A8C','#E5722A','#4E9A6E','#6B4472','#C98BA8','#D2691E','#3E7CB1'];
+  let h = 0;
+  for(const ch of String(name || '?')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return palette[h % palette.length];
+}
+
+function setChatHeaderAvatar(url, name, isGroup){
+  const el = document.getElementById('chat-head-avatar');
+  if(!el) return;
+  el.classList.toggle('group', !!isGroup);
+  if(url){
+    el.style.backgroundImage = `url('${url}')`;
+    el.style.backgroundColor = '';
+    el.textContent = '';
+  } else {
+    el.style.backgroundImage = '';
+    el.style.backgroundColor = avatarColorFor(name);
+    el.textContent = String(name || '?').trim().charAt(0).toUpperCase();
+  }
+}
+
 function renderChatBody(){
   const body = document.getElementById('chat-body');
   const c = currentConversation;
-  body.innerHTML = c.messages.map(m => {
+  body.innerHTML = c.messages.map((m, i) => {
     const isMe = m.from === 'me';
-    const senderLabel = (!isMe && c.type === 'group') ? `<div class="bubble-sender">${m.from}</div>` : '';
-    return `
-      <div class="bubble-row ${isMe ? 'me' : 'them'}">
-        ${senderLabel}
-        <div class="bubble">${m.text}</div>
-      </div>
-    `;
+    if(isMe || c.type !== 'group'){
+      return `<div class="bubble-row ${isMe ? 'me' : 'them'}"><div class="bubble">${escapeHtml(m.text)}</div></div>`;
+    }
+    // Groupe : prénom et photo au début de chaque série de messages d'une même personne.
+    const prev = c.messages[i - 1];
+    const startsRun = !prev || prev.from === 'me' || (prev.senderId || prev.from) !== (m.senderId || m.from);
+    const avatar = startsRun
+      ? (m.photo
+          ? `<div class="bubble-avatar" style="background-image:url('${m.photo}');"></div>`
+          : `<div class="bubble-avatar" style="background-color:${avatarColorFor(m.from)};">${escapeHtml(String(m.from).charAt(0).toUpperCase())}</div>`)
+      : `<div class="bubble-avatar spacer"></div>`;
+    return `<div class="bubble-group-row ${startsRun ? 'first' : ''}">
+        ${avatar}
+        <div class="bubble-row them">
+          ${startsRun ? `<div class="bubble-sender">${escapeHtml(m.from)}</div>` : ''}
+          <div class="bubble">${escapeHtml(m.text)}</div>
+        </div>
+      </div>`;
   }).join('');
   body.scrollTop = body.scrollHeight;
 }
