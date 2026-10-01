@@ -1868,6 +1868,13 @@
 
 <style id="pm-design-3">
   .ui-ico{ flex-shrink:0; }
+  /* Activités : étiquette de catégorie lisible (clair et sombre), en-tête aéré */
+  .venue-tile-cat{ text-transform:none !important; letter-spacing:0 !important; font-size:9.5px !important; font-weight:700 !important;
+    right:auto !important; max-width:calc(100% - 8px); padding:3px 7px !important; border-radius:999px !important;
+    background:rgba(26,12,30,0.58) !important; color:#fff !important;
+    -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+  #screen-activities-list h1 + p{ margin-bottom:14px; color:var(--pm-muted); }
+  #screen-activities-list h1{ font-family:var(--font-display); font-size:27px !important; font-weight:800; letter-spacing:-0.01em; }
   #screen-swipe .swipe-header .profile-photo-hint{ display:inline-flex !important; align-items:center; gap:6px; }
 
   /* Page Filtres */
@@ -5684,11 +5691,16 @@ async function renderUpcomingActivities(){
   try{
     const { data, error } = await supabaseClient
       .from('activity_participants')
-      .select('activity_id, activities(id, title, activity_date, activity_time, location)')
+      .select('activity_id, activities(id, title, activity_date, activity_time, location, moderation_status)')
       .eq('profile_id', myProfile.supabaseId);
     if(error) throw error;
 
-    const rows = (data || []).filter(r => r.activities);
+    // Uniquement ce qui est encore à venir : une sortie passée ou masquée n'a
+    // plus sa place ici (les sorties sans date sont des lieux du catalogue).
+    const todayLocal = localIsoDate(new Date());
+    const rows = (data || []).filter(r => r.activities
+      && (r.activities.moderation_status || 'active') === 'active'
+      && (!r.activities.activity_date || r.activities.activity_date >= todayLocal));
     if(rows.length === 0){
       el.innerHTML = '<p style="font-size:12px; color:#B7ACBA;">Aucune sortie prévue… tu ne vas quand même pas rester à presser des oranges tout seul ? 🍊 Propose une activité !</p>';
       return;
@@ -8562,7 +8574,7 @@ async function buildActivityCardHtml(a){
 // entre "Dans votre univers", "Près de chez vous" et la liste complète filtrée,
 // pour ne jamais interroger Supabase deux fois pour la même chose.
 async function fetchActiveUpcomingActivities(){
-  const baseCols = 'id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point';
+  const baseCols = 'id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point, venue_activity_id';
   // Colonnes ajoutées (transports, prix) : lues si elles existent, sinon on
   // retombe sur la requête d'origine — jamais de page cassée pour autant.
   let rawData = null, error = null;
@@ -8580,10 +8592,23 @@ async function fetchActiveUpcomingActivities(){
       a.activity_date = nextRecurringDate(a.activity_date, a.recurrence, todayStr);
     }
   });
-  const active = (rawData || []).filter(a =>
+  // Les fiches techniques créées quand on rejoint un lieu du catalogue
+  // (venue_activity_id) ne sont pas des sorties de membres : jamais listées ici.
+  let active = (rawData || []).filter(a =>
     (a.moderation_status || 'active') === 'active' &&
+    !a.venue_activity_id &&
     (!a.activity_date || a.activity_date >= todayStr)
   );
+  // Organisateur qui a supprimé son compte : sa sortie n'a plus de responsable.
+  const organizerIds = [...new Set(active.map(a => a.organizer_profile_id).filter(Boolean))];
+  if(organizerIds.length){
+    try{
+      const { data: deletedOrgs } = await supabaseClient
+        .from('profiles').select('id').in('id', organizerIds).not('deleted_at', 'is', null);
+      const deletedSet = new Set((deletedOrgs || []).map(p => p.id));
+      if(deletedSet.size) active = active.filter(a => !deletedSet.has(a.organizer_profile_id));
+    } catch(e){}
+  }
   // Déduplication défensive par identifiant réel, centralisée ici pour que
   // tous les écrans (recommandations, liste complète) en bénéficient : une
   // même activité ne peut jamais apparaître deux fois côté affichage.
@@ -8844,7 +8869,7 @@ function reservationBadge(status){
 function buildVenueCardHtml(act, venue, distanceKm){
   const cat = catalogCategoryInfo(act.category);
   const resa = reservationBadge(act.reservation_status);
-  const distLabel = distanceKm != null ? `📍 ${distanceKm < 1 ? Math.round(distanceKm*1000)+' m' : distanceKm.toFixed(1)+' km'}` : null;
+  const distLabel = distanceKm != null ? `📍 ${distanceKm < 1 ? Math.round(distanceKm*1000)+' m' : distanceKm.toFixed(1).replace('.', ',')+' km'}` : null;
   // Priorité réelle : photo de l'activité (champ DB, absent des données
   // actuelles) > photo réelle confirmée avec licence claire (table vérifiée
   // manuellement) > photo de catégorie > emoji si même cette photo échoue.
@@ -8883,7 +8908,7 @@ function buildVenueTileHtml(act, venue, distanceKm){
     : act.reservation_status === 'EMAIL_RESERVATION' ? '✉️'
     : act.reservation_status === 'PHONE_OR_CONTACT_RESERVATION_CONFIRMED_BY_REVIEWS' ? '📞'
     : null;
-  const distLabel = distanceKm != null ? (distanceKm < 1 ? Math.round(distanceKm*1000)+'m' : distanceKm.toFixed(1)+'km') : null;
+  const distLabel = distanceKm != null ? (distanceKm < 1 ? Math.round(distanceKm*1000)+' m' : distanceKm.toFixed(1).replace('.', ',')+' km') : null;
   // Priorité réelle : photo de l'activité (champ DB, absent des données
   // actuelles) > photo réelle confirmée avec licence claire (table vérifiée
   // manuellement) > photo de catégorie > emoji si même cette photo échoue.
