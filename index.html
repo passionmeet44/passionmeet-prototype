@@ -1568,6 +1568,215 @@
   .act-pill-search{ flex:0 0 42px; }
   .radius-map-fallback{ height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px; font-size:12px; color:var(--plum-soft); }
 </style>
+
+<style id="pm-design-system">
+/* ==================================================================
+   FINITION VISUELLE — couche finale, ne change aucun comportement.
+   Identité conservée : crème, violet profond, orange passion,
+   Baloo 2 (titres) + Work Sans (texte).
+   ================================================================== */
+  body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
+  :root{
+    --pm-shadow: 0 1px 2px rgba(62,31,68,0.05), 0 8px 22px rgba(62,31,68,0.07);
+    --pm-shadow-strong: 0 14px 34px rgba(62,31,68,0.24);
+    --pm-muted: #8E7D98;
+  }
+
+  /* ---------- Accueil : la grande carte « fruit de la passion » ---------- */
+  .home-hero{ position:relative; overflow:hidden; margin:6px 0 18px; padding:18px 18px 24px; border-radius:28px;
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgba(242,146,75,0.45) 0%, rgba(242,146,75,0) 55%),
+      linear-gradient(160deg, #4B2754 0%, #3E1F44 58%, #2C1531 100%);
+    box-shadow: var(--pm-shadow-strong); }
+  /* Fruit de la passion coupé : peau violette, chair dorée, graines éparpillées */
+  .home-hero::after{ content:''; position:absolute; right:-52px; bottom:-54px; width:150px; height:150px; border-radius:50%;
+    background:
+      radial-gradient(circle at 30% 38%, #3B1C22 0 3.5px, rgba(255,231,166,0.55) 4.5px, transparent 6.0px),
+      radial-gradient(circle at 46% 26%, #3B1C22 0 3px, rgba(255,231,166,0.55) 4px, transparent 5.5px),
+      radial-gradient(circle at 58% 44%, #3B1C22 0 3.5px, rgba(255,231,166,0.55) 4.5px, transparent 6.0px),
+      radial-gradient(circle at 36% 58%, #3B1C22 0 3px, rgba(255,231,166,0.55) 4px, transparent 5.5px),
+      radial-gradient(circle at 50% 66%, #3B1C22 0 3.5px, rgba(255,231,166,0.55) 4.5px, transparent 6.0px),
+      radial-gradient(circle at 66% 30%, #3B1C22 0 3px, rgba(255,231,166,0.55) 4px, transparent 5.5px),
+      radial-gradient(circle at 24% 24%, #3B1C22 0 2.5px, rgba(255,231,166,0.55) 3.5px, transparent 5.0px),
+      radial-gradient(circle at 70% 58%, #3B1C22 0 2.5px, rgba(255,231,166,0.55) 3.5px, transparent 5.0px),
+      radial-gradient(circle at 42% 46%, #3B1C22 0 2.5px, rgba(255,231,166,0.55) 3.5px, transparent 5.0px),
+      radial-gradient(circle at 56% 18%, #3B1C22 0 2.5px, rgba(255,231,166,0.55) 3.5px, transparent 5.0px),
+      radial-gradient(circle at 42% 44%, #FFE7A6 0%, #F8C24E 34%, #EE8A2E 70%, #D2691E 100%);
+    border:11px solid #6E2F78;
+    box-shadow: inset 0 0 0 5px #F6E1B0, inset -10px -12px 24px rgba(120,40,0,0.25), 0 8px 20px rgba(0,0,0,0.28); }
+  .home-hero-top{ position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+  .home-hero .home-location{ color:rgba(255,255,255,0.9) !important; font-size:12.5px; font-weight:600; margin:0;
+    background:rgba(255,255,255,0.13); padding:5px 11px; border-radius:999px; }
+  .home-free-chip{ font-size:11.5px; font-weight:800; color:#3E1F44; background:#F6B94D; padding:5px 11px; border-radius:999px; }
+  .home-hero h1{ position:relative; z-index:1; font-family:var(--font-display); font-size:31px; line-height:1.08; font-weight:800;
+    color:#fff !important; margin:20px 0 6px; max-width:72%; letter-spacing:-0.01em; }
+  .home-hero-sub{ position:relative; z-index:1; font-size:14.5px; line-height:1.4; color:rgba(255,255,255,0.82); max-width:58%; }
+
+  .home-intents{ display:flex; flex-direction:column; gap:12px; margin-bottom:24px; }
+  .hi-featured{ display:flex; align-items:center; gap:14px; padding:15px 14px 15px 15px; border-radius:22px; background:#fff;
+    box-shadow:var(--pm-shadow); cursor:pointer; transition:transform .15s ease; }
+  .hi-featured .hi-icon{ width:52px; height:52px; border-radius:17px; font-size:25px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#F3E9F2,#E4D2E6); }
+  .hi-text{ min-width:0; }
+  .hi-featured h4{ font-family:var(--font-display); font-size:18px; font-weight:800; color:var(--plum); line-height:1.15; }
+  .hi-featured p{ font-size:12.5px; color:var(--pm-muted); margin-top:2px; }
+  .hi-go{ margin-left:auto; width:34px; height:34px; border-radius:50%; flex-shrink:0; background:#3E1F44; color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1; }
+  .hi-row{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+  .hi-tile{ background:#fff; border-radius:20px; padding:14px 8px 13px; text-align:center; box-shadow:var(--pm-shadow);
+    cursor:pointer; transition:transform .15s ease; }
+  .hi-tile .hi-icon{ width:44px; height:44px; border-radius:15px; margin:0 auto 9px; background:#F3E9F2; font-size:21px;
+    display:flex; align-items:center; justify-content:center; }
+  .hi-tile .hi-icon.orange{ background:#FDEBDD; }
+  .hi-tile h4{ font-family:var(--font-display); font-size:13.5px; font-weight:800; line-height:1.15; color:var(--plum); }
+  .hi-tile p{ font-size:11px; color:var(--pm-muted); margin-top:3px; line-height:1.25; }
+  .hi-featured:active, .hi-tile:active{ transform:scale(0.97); }
+
+  /* ---------- Titres d'écran et de section ---------- */
+  .msg-header h1{ font-size:27px !important; font-weight:800; letter-spacing:-0.01em; }
+  .act-section-title h2{ font-family:var(--font-display); font-size:19px; font-weight:800; letter-spacing:-0.005em; }
+  .match-section-title{ font-family:var(--font-display); font-size:17px !important; font-weight:800; }
+  .ob-title{ letter-spacing:-0.01em; }
+
+  /* ---------- Boutons ---------- */
+  .btn-primary{ border-radius:18px; font-weight:700; letter-spacing:0.01em; min-height:50px;
+    box-shadow:0 8px 20px rgba(229,114,42,0.30); transition:transform .12s ease, box-shadow .12s ease; }
+  .btn-primary:active{ transform:scale(0.98); box-shadow:0 4px 10px rgba(229,114,42,0.25); }
+  .btn-join{ border-radius:18px; min-height:50px; font-weight:700; transition:transform .12s ease; }
+  .btn-join:active{ transform:scale(0.98); }
+
+  /* ---------- Champs de saisie ---------- */
+  .form-input, .form-textarea{ border:1.5px solid var(--line) !important; border-radius:14px !important; padding:13px 14px;
+    font-size:15px; transition:border-color .15s ease, box-shadow .15s ease; }
+  .form-input:focus, .form-textarea:focus{ outline:none; border-color:var(--orange) !important; box-shadow:0 0 0 4px rgba(242,146,75,0.16); }
+  .form-input::placeholder, .form-textarea::placeholder{ color:#B9ACC1; }
+
+  /* ---------- Cartes : une seule famille d'ombres ---------- */
+  .activity-card, .venue-card, .venue-tile, .digest-card, .match-card-big, .card, .mode-card, .choice-card{
+    box-shadow:var(--pm-shadow) !important; }
+  .activity-card, .venue-card, .digest-card{ border-radius:20px !important; }
+  .swipe-card{ border-radius:28px !important; box-shadow:0 18px 40px rgba(62,31,68,0.22) !important; }
+
+  /* ---------- Messages ---------- */
+  .msg-item{ border-radius:16px; padding:12px 10px; transition:background .15s ease; }
+  .msg-item:active{ background:var(--lavender); }
+
+  /* ---------- Puces et onglets ---------- */
+  .pill, .time-chip, .tier-tab{ border-radius:999px; }
+
+  /* ---------- Barre de navigation du bas ---------- */
+  .bottom-nav{ border-radius:24px 24px 0 0; box-shadow:0 -8px 24px rgba(62,31,68,0.20); }
+  .nav-item{ transition:color .15s ease; }
+  .nav-item.active{ color:#F6B94D !important; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+    .hi-featured:active, .hi-tile:active, .btn-primary:active, .btn-join:active{ transform:none; }
+  }
+
+/* ==================================================================
+   MODE SOMBRE — palette pensée pour le sombre
+   ================================================================== */
+  body.dark-mode{
+    --cream:#16101A; --cream-card:#231A29; --lavender:#2E2335; --lavender-deep:#3A2C44; --line:#3B3042;
+    --plum:#F3EAF6; --plum-soft:#CDB7D6; --pm-muted:#B9A8C2;
+    background:#16101A; color:#F3EAF6;
+  }
+  body.dark-mode .screen{ background:#16101A; }
+
+  /* Fonds blancs écrits en dur -> surface sombre */
+  body.dark-mode #screen-profile .profile-card,
+  body.dark-mode .ac-avatar.empty,
+  body.dark-mode .act-pill,
+  body.dark-mode .act-search-bar,
+  body.dark-mode .activity-card,
+  body.dark-mode .activity-search-modal,
+  body.dark-mode .add-pill-row input,
+  body.dark-mode .age-inputs input,
+  body.dark-mode .att-chip,
+  body.dark-mode .btn-safety,
+  body.dark-mode .card,
+  body.dark-mode .cat-row,
+  body.dark-mode .chat-header,
+  body.dark-mode .chat-input-row,
+  body.dark-mode .choice-card,
+  body.dark-mode .compat-card,
+  body.dark-mode .cp-btn.light,
+  body.dark-mode .cp-card,
+  body.dark-mode .digest-card,
+  body.dark-mode .form-input,
+  body.dark-mode .form-textarea,
+  body.dark-mode .hi-featured,
+  body.dark-mode .hi-tile,
+  body.dark-mode .home-choice-item,
+  body.dark-mode .intent-card,
+  body.dark-mode .login-big-btn,
+  body.dark-mode .login-pill-btn,
+  body.dark-mode .login-tile,
+  body.dark-mode .lp-card,
+  body.dark-mode .match-card-big,
+  body.dark-mode .mode-card,
+  body.dark-mode .nav-fab-plate,
+  body.dark-mode .passion-card,
+  body.dark-mode .photo-slot,
+  body.dark-mode .pm-list,
+  body.dark-mode .profile-card,
+  body.dark-mode .profile-hero,
+  body.dark-mode .profile-hero .mode-badge-row .mode-badge.friend-on,
+  body.dark-mode .profile-hero .mode-badge-row .mode-badge.love-on,
+  body.dark-mode .profile-hero .mode-badge-row .mode-badge.couple-on,
+  body.dark-mode .rd-action,
+  body.dark-mode .rd-card,
+  body.dark-mode .splash-link,
+  body.dark-mode .subp-tag,
+  body.dark-mode .swipe-btn,
+  body.dark-mode .swipe-card,
+  body.dark-mode .swipe-info,
+  body.dark-mode .tag-comment-card,
+  body.dark-mode .venue-card,
+  body.dark-mode .venue-tile{ background:#231A29 !important; border-color:#3B3042 !important; }
+  body.dark-mode [style*="background:#fff"], body.dark-mode [style*="background: #fff"],
+  body.dark-mode [style*="background:#FFF"], body.dark-mode [style*="background:white"]{ background:#231A29 !important; }
+
+  /* Fonds violets (boutons, puces sélectionnées) : restent violets et lisibles */
+  body.dark-mode .act-pill.active,
+  body.dark-mode .add-pill-btn,
+  body.dark-mode .badge.partner,
+  body.dark-mode .cat-explorer-item.sel,
+  body.dark-mode .cp-btn,
+  body.dark-mode .photo-slot .photo-add-icon,
+  body.dark-mode .pill.sel,
+  body.dark-mode .radius-btn.active,
+  body.dark-mode .subp-tag.sel,
+  body.dark-mode .tab.active,
+  body.dark-mode .tier-cta.plus,
+  body.dark-mode .tier-tab.active,
+  body.dark-mode .time-chip.active,
+  body.dark-mode .toast{ background:#7A4E83 !important; color:#fff !important; border-color:#7A4E83 !important; }
+  body.dark-mode [style*="background:var(--plum)"]{ background:#7A4E83 !important; color:#fff !important; }
+  body.dark-mode .bottom-nav, body.dark-mode .app-top-bar{ background:#1F1724 !important; box-shadow:0 -8px 24px rgba(0,0,0,0.45); }
+  body.dark-mode .hi-go{ background:#7A4E83; }
+
+  /* Textes secondaires : plus clairs pour rester lisibles */
+  body.dark-mode .cp-meta, body.dark-mode .pm-sub, body.dark-mode .pm-section-title, body.dark-mode .act-section-sub,
+  body.dark-mode .match-section-sub, body.dark-mode .venue-card-meta, body.dark-mode .venue-tile-meta, body.dark-mode .form-hint,
+  body.dark-mode .subp-group-title, body.dark-mode .activity-card-meta, body.dark-mode .profile-city-line,
+  body.dark-mode .home-location, body.dark-mode .msg-info p, body.dark-mode .form-label{ color:#B9A8C2 !important; }
+  body.dark-mode [style*="color:#9584A0"], body.dark-mode [style*="color:#B0A0B5"], body.dark-mode [style*="color:#B7ACBA"]{ color:#B9A8C2 !important; }
+  body.dark-mode .home-hero .home-location{ color:rgba(255,255,255,0.9) !important; }
+  body.dark-mode .rd-card .detail-desc{ color:#D8C8DF; }
+  body.dark-mode .form-input, body.dark-mode .form-textarea{ color:#F3EAF6; }
+  body.dark-mode .form-input::placeholder, body.dark-mode .form-textarea::placeholder{ color:#8E7D98; }
+
+  /* Pastilles colorées : versions sombres */
+  body.dark-mode .ac-badge.free, body.dark-mode .venue-tile-price.free, body.dark-mode .reliable-tag,
+  body.dark-mode .att-chip.on.present, body.dark-mode .rd-safety{ background:rgba(78,154,110,0.20) !important; color:#93D6AE !important; border-color:rgba(78,154,110,0.35) !important; }
+  body.dark-mode .ac-badge.paid, body.dark-mode .venue-tile-price.paid, body.dark-mode .pm-soon{ background:rgba(229,114,42,0.20) !important; color:#F7A86E !important; }
+  body.dark-mode .ac-badge.full, body.dark-mode .cp-full, body.dark-mode .att-chip.on.absent{ background:rgba(224,71,63,0.20) !important; color:#F29A93 !important; border-color:rgba(224,71,63,0.35) !important; }
+  body.dark-mode #screen-activity-detail-real .btn-join.cancel{ background:rgba(224,71,63,0.16) !important; color:#F29A93 !important; border-color:rgba(224,71,63,0.45) !important; }
+  body.dark-mode .hi-featured .hi-icon, body.dark-mode .hi-tile .hi-icon{ background:#2E2335; }
+  body.dark-mode .home-hero{ box-shadow:0 14px 34px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.07); }
+</style>
 </head>
 <body>
 
@@ -1857,37 +2066,42 @@
 
   <!-- HOME -->
   <div class="screen" id="screen-home">
-    <div class="home-header">
-      <div>
+    <div class="home-hero">
+      <div class="home-hero-top">
         <div class="home-location" id="location-label">📍 44 · Loire-Atlantique</div>
-        <h1 id="home-greeting">Bonjour Camille</h1>
-        <div style="font-size:12px; font-weight:700; color:var(--orange-deep); margin-top:2px;">Gratuit pour de vrai 🍊</div>
+        <div class="home-free-chip">Gratuit pour de vrai 🍊</div>
       </div>
+      <h1 id="home-greeting">Bonjour Camille</h1>
+      <p class="home-hero-sub">Qu'est-ce que tu vas découvrir aujourd'hui ?</p>
     </div>
 
     <!-- STEP 1 : QUOI -->
     <div class="home-step" id="home-step-1">
-      <div class="home-question">Qu'est-ce que tu vas découvrir aujourd'hui ?</div>
-      <div class="intent-grid intent-grid-3">
-        <div class="intent-card wide featured" onclick="showScreen('swipe')">
-          <div class="intent-icon">💜</div>
-          <h4>Faire une rencontre</h4>
-          <p>Une intention plus romantique</p>
+      <div class="home-intents">
+        <div class="hi-featured" onclick="showScreen('swipe')">
+          <div class="hi-icon">💜</div>
+          <div class="hi-text">
+            <h4>Faire une rencontre</h4>
+            <p>Découvre les profils près de chez toi</p>
+          </div>
+          <span class="hi-go">›</span>
         </div>
-        <div class="intent-card wide accent-green" onclick="showScreen('activities-list')">
-          <div class="intent-icon">🤝</div>
-          <h4>Nouveaux amis</h4>
-          <p>Élargir son cercle</p>
-        </div>
-        <div class="intent-card wide accent-orange" onclick="openCreateActivityReal()">
-          <div class="intent-icon">🧡</div>
-          <h4>Créer une activité</h4>
-          <p>Créer et publier une activité</p>
-        </div>
-        <div class="intent-card wide accent-teal" onclick="showScreen('matches')">
-          <div class="intent-icon">🔎</div>
-          <h4>Mes matchs</h4>
-          <p>Découvrir les personnes</p>
+        <div class="hi-row">
+          <div class="hi-tile" onclick="showScreen('activities-list')">
+            <div class="hi-icon">🤝</div>
+            <h4>Nouveaux amis</h4>
+            <p>Sorties et activités</p>
+          </div>
+          <div class="hi-tile" onclick="openCreateActivityReal()">
+            <div class="hi-icon orange">✨</div>
+            <h4>Créer une activité</h4>
+            <p>Lance ta sortie</p>
+          </div>
+          <div class="hi-tile" onclick="showScreen('matches')">
+            <div class="hi-icon">💬</div>
+            <h4>Mes matchs</h4>
+            <p>Tes connexions</p>
+          </div>
         </div>
       </div>
       <div id="weekly-digest"></div>
