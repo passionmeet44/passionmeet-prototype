@@ -1777,6 +1777,94 @@
   body.dark-mode .hi-featured .hi-icon, body.dark-mode .hi-tile .hi-icon{ background:#2E2335; }
   body.dark-mode .home-hero{ box-shadow:0 14px 34px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.07); }
 </style>
+
+<style id="pm-design-2">
+  /* Accueil : photo de profil + opportunités en cartes photo */
+  .home-hero::after{ display:none !important; }
+  .home-avatar{ position:absolute; top:16px; right:16px; z-index:2; width:56px; height:56px; border-radius:50%;
+    background:#F6B94D center/cover no-repeat; border:3px solid rgba(255,255,255,0.9); box-shadow:0 6px 16px rgba(0,0,0,0.25);
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:24px; font-weight:800; color:#3E1F44; cursor:pointer; }
+  .home-hero-top{ padding-right:66px; }
+  .home-hero h1{ max-width:100% !important; }
+  .home-hero-sub{ max-width:90% !important; }
+  .dg-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .dg-card{ position:relative; height:134px; border-radius:20px; overflow:hidden; cursor:pointer; box-shadow:var(--pm-shadow);
+    background:linear-gradient(135deg,#6B4472,#3E1F44); transition:transform .15s ease; }
+  .dg-card.big{ grid-column:1 / -1; height:178px; }
+  .dg-card:active{ transform:scale(0.98); }
+  .dg-photo{ position:absolute; inset:0; background-size:cover; background-position:center; }
+  .dg-shade{ position:absolute; inset:0; background:linear-gradient(to top, rgba(26,12,30,0.88) 0%, rgba(26,12,30,0.30) 55%, rgba(26,12,30,0.05) 100%); }
+  .dg-cat{ position:absolute; top:10px; left:10px; max-width:calc(100% - 20px); font-size:10.5px; font-weight:800; color:#3E1F44;
+    background:rgba(255,255,255,0.93); padding:4px 9px; border-radius:999px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dg-card:not(.big) .dg-cat{ max-width:calc(100% - 20px); }
+  .dg-pass{ position:absolute; top:10px; right:10px; font-size:10.5px; font-weight:800; color:#fff; background:rgba(229,114,42,0.95); padding:4px 9px; border-radius:999px; }
+  .dg-card:not(.big) .dg-pass{ top:auto; bottom:52px; left:10px; right:auto; }
+  .dg-body{ position:absolute; left:12px; right:12px; bottom:11px; color:#fff; }
+  .dg-body h4{ font-family:var(--font-display); font-size:15px; font-weight:800; line-height:1.15; color:#fff;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .dg-card.big .dg-body h4{ font-size:21px; }
+  .dg-body p{ font-size:11.5px; color:rgba(255,255,255,0.88); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #weekly-digest .act-see-all{ text-align:center; margin-top:12px; font-weight:700; color:var(--orange-deep); }
+
+  /* Découvrir */
+  #screen-swipe .swipe-header h1{ font-family:var(--font-display); font-size:27px; font-weight:800; color:var(--plum); letter-spacing:-0.01em; }
+  #screen-swipe .swipe-header p{ font-size:13px; color:var(--pm-muted); }
+  #screen-swipe .radius-slider-row{ display:none !important; }
+  #swipe-mode-filter-row{ display:inline-flex !important; gap:4px; background:#F1E9F5; border-radius:999px; padding:4px; margin:12px auto 14px !important; width:auto !important; }
+  #swipe-mode-filter-row .time-chip{ border:none !important; background:transparent !important; margin:0 !important; padding:7px 14px; font-weight:700; color:#9584A0 !important; box-shadow:none !important; }
+  #swipe-mode-filter-row .time-chip.active{ background:#fff !important; color:#3E1F44 !important; box-shadow:0 2px 6px rgba(62,31,68,0.12) !important; }
+  .swipe-stack{ max-width:360px !important; height:min(520px, calc(100vh - 340px)) !important; min-height:430px; }
+  .swipe-stack::before{ display:none; }
+  .swipe-card .swipe-photo{ position:absolute; inset:0; }
+  .sw-initial{ font-size:96px; opacity:0.9; margin-bottom:120px; }
+  .swipe-card .swipe-modes{ z-index:3; }
+  .swipe-card .swipe-modes span{ background:rgba(255,255,255,0.93); font-size:11px; padding:5px 10px; border-radius:999px; color:#3E1F44; }
+  .sw-overlay{ position:absolute; left:0; right:0; bottom:0; z-index:2; padding:80px 18px 18px; text-align:left;
+    background:linear-gradient(to top, rgba(26,12,30,0.94) 0%, rgba(26,12,30,0.72) 45%, rgba(26,12,30,0) 100%);
+    color:#fff; font-family:var(--font-body); font-size:13px; font-weight:400; }
+  .sw-name{ font-family:var(--font-display); font-size:29px; font-weight:800; line-height:1.05; color:#fff; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .sw-age{ font-size:24px; font-weight:600; color:rgba(255,255,255,0.9); }
+  .sw-overlay .reliable-tag{ font-family:var(--font-body); align-self:center; }
+  .sw-meta{ font-size:12.5px; color:rgba(255,255,255,0.88); margin-top:5px; }
+  .sw-bio{ font-size:13px; line-height:1.4; color:rgba(255,255,255,0.92); margin-top:8px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .sw-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .sw-chips span{ font-size:11.5px; font-weight:600; padding:5px 10px; border-radius:999px; color:#fff; cursor:pointer;
+    background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.20); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+  .sw-chips span.shared{ background:rgba(229,114,42,0.92); border-color:transparent; }
+  .sw-compat{ display:inline-block; margin-top:10px; font-size:11.5px; font-weight:800; color:#3E1F44; background:#F6B94D; padding:6px 12px; border-radius:999px; cursor:pointer; }
+  .swipe-actions{ gap:16px !important; margin-top:18px !important; align-items:center; }
+  .swipe-btn{ width:58px; height:58px; background:#fff; border:2px solid transparent !important; box-shadow:0 8px 20px rgba(62,31,68,0.15) !important; transition:transform .12s ease; }
+  .swipe-btn:active{ transform:scale(0.92); }
+  .swipe-btn.pass{ border-color:#F3C9C9 !important; color:#C0392B; font-size:24px; font-weight:800; }
+  .swipe-btn.friend{ border-color:#E4D2E6 !important; }
+  .swipe-btn.love{ width:70px !important; height:70px !important; border-color:#F8C9A4 !important; box-shadow:0 10px 24px rgba(229,114,42,0.28) !important; }
+  #swipe-undo-btn{ width:44px !important; height:44px !important; background:#fff !important; border-color:#ECE4F0 !important; font-size:16px !important; }
+  .sw-empty{ height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+    padding:28px 22px; background:#fff; border-radius:28px; box-shadow:var(--pm-shadow); }
+  .sw-empty-icon{ width:78px; height:78px; border-radius:26px; background:linear-gradient(135deg,#F3E9F2,#FDEBDD); font-size:36px;
+    display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+  .sw-empty h3{ font-family:var(--font-display); font-size:22px; font-weight:800; color:var(--plum); }
+  .sw-empty p{ font-size:13.5px; line-height:1.5; color:var(--pm-muted); margin-top:6px; max-width:270px; }
+  .sw-empty-actions{ display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; margin-top:20px; }
+
+  #screen-swipe .swipe-header > div[style*="display:flex"]{ justify-content:center; }
+  #screen-swipe .swipe-header .profile-photo-hint{ text-decoration:none !important; background:#fff; border:1px solid #EADFEE;
+    padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700; color:var(--plum); box-shadow:0 2px 6px rgba(62,31,68,0.06); }
+  body.dark-mode #screen-swipe .swipe-header .profile-photo-hint{ background:#231A29; border-color:#3B3042; }
+  body.dark-mode .discover-toggle{ background:#231A29 !important; }
+  body.dark-mode .discover-toggle-indicator{ background:#3B3042 !important; box-shadow:none !important; }
+  body.dark-mode .discover-toggle-btn{ color:#B9A8C2 !important; }
+  body.dark-mode .discover-toggle-btn.active{ color:#F3EAF6 !important; }
+  body.dark-mode .sw-empty, body.dark-mode .swipe-btn, body.dark-mode #swipe-undo-btn{ background:#231A29 !important; }
+  body.dark-mode .sw-empty-icon{ background:#2E2335; }
+  body.dark-mode #swipe-mode-filter-row{ background:#2E2335; }
+  body.dark-mode #swipe-mode-filter-row .time-chip{ color:#B9A8C2 !important; }
+  body.dark-mode #swipe-mode-filter-row .time-chip.active{ background:#3B3042 !important; color:#F3EAF6 !important; }
+  body.dark-mode .swipe-btn.pass{ border-color:rgba(224,71,63,0.4) !important; }
+  body.dark-mode .swipe-btn.friend{ border-color:#3B3042 !important; }
+  body.dark-mode .swipe-btn.love{ border-color:rgba(229,114,42,0.45) !important; }
+</style>
 </head>
 <body>
 
@@ -2069,10 +2157,10 @@
     <div class="home-hero">
       <div class="home-hero-top">
         <div class="home-location" id="location-label">📍 44 · Loire-Atlantique</div>
-        <div class="home-free-chip">Gratuit pour de vrai 🍊</div>
       </div>
+      <div class="home-avatar" id="home-avatar" onclick="showScreen('profile')"></div>
       <h1 id="home-greeting">Bonjour Camille</h1>
-      <p class="home-hero-sub">Qu'est-ce que tu vas découvrir aujourd'hui ?</p>
+      <p class="home-hero-sub">Qu'est-ce que tu vas découvrir aujourd'hui&nbsp;?</p>
     </div>
 
     <!-- STEP 1 : QUOI -->
@@ -5328,6 +5416,7 @@ let myUpcomingActivities = [
 ];
 
 function updateHomeGreeting(){
+  setHomeAvatar();
   const el = document.getElementById('home-greeting');
   if(!el) return;
   const firstName = (myProfile.name || '').trim().split(' ')[0];
@@ -5697,20 +5786,25 @@ async function renderWeeklyDigest(){
   const top = candidates.slice(0, 3); // exactement 3 pour tenir sans scroll horizontal ni carte coupée
   if(top.length === 0){ container.innerHTML = ''; return; }
   container.innerHTML = `
-    <div class="digest-title">✨ Tes opportunités de la semaine</div>
-    <div class="digest-row">
-      ${top.map(x => `
-        <div class="digest-card" onclick="openVenueDetail('${x.a.id}')">
-          <div class="digest-emoji">${catalogCategoryInfo(x.a.category).emoji}</div>
-          <div class="digest-score">${x.score}%</div>
-          <div class="digest-card-body">
+    <div class="act-section-title" style="margin:4px 2px 10px;"><h2>Tes opportunités de la semaine</h2></div>
+    <div class="dg-grid">
+      ${top.map((x, i) => {
+        const photo = digestPhotoFor(x.a, x.venue);
+        const cat = catalogCategoryInfo(x.a.category);
+        return `
+        <div class="dg-card ${i === 0 ? 'big' : ''}" onclick="openVenueDetail('${x.a.id}')">
+          ${photo ? `<div class="dg-photo" style="background-image:url('${photo}');"></div>` : ''}
+          <div class="dg-shade"></div>
+          <div class="dg-cat">${cat && cat.label ? cat.label : ''}</div>
+          ${x.matches ? '<div class="dg-pass">❤️ Ta passion</div>' : ''}
+          <div class="dg-body">
             <h4>${escapeHtml(x.a.activity_name)}</h4>
-            <p>📍 ${x.dist.toFixed(1)} km</p>
+            <p>📍 ${escapeHtml(x.venue.name || '')} · ${x.dist.toFixed(1)} km</p>
           </div>
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>
-    <div class="act-see-all" onclick="showScreen('activities-list')">Voir toutes les opportunités →</div>
+    <div class="act-see-all" onclick="showScreen('activities-list')">Voir toutes les opportunités</div>
   `;
 }
 
@@ -6726,6 +6820,45 @@ function buildSwipeDebugHtml(){
     </div>`;
 }
 
+// Écrans vides de Découvrir : une vraie carte, jamais de panneau technique.
+function swipeEmptyState(icon, title, text, withActions, extraHtml){
+  return `<div class="sw-empty">
+    <div class="sw-empty-icon">${icon}</div>
+    <h3>${title}</h3>
+    <p>${text}</p>
+    ${extraHtml || ''}
+    ${withActions ? `<div class="sw-empty-actions">
+      <button class="btn-primary" style="margin:0; width:100%;" onclick="openDiscoverFilters()">Élargir ma recherche</button>
+      <button class="rd-action" style="width:100%;" onclick="showScreen('activities-list')">Voir les activités près de moi</button>
+    </div>` : ''}
+  </div>`;
+}
+
+// Photo ronde de l'utilisateur dans la carte d'accueil (ou son initiale).
+let homeAvatarUrl = null;
+async function setHomeAvatar(){
+  const el = document.getElementById('home-avatar');
+  if(!el) return;
+  const initial = (myProfile.name || '?').trim().charAt(0).toUpperCase();
+  if(!homeAvatarUrl && supabaseClient && myProfile.supabaseId){
+    try{ homeAvatarUrl = await getMainPhotoForProfile(myProfile.supabaseId); } catch(e){}
+  }
+  if(homeAvatarUrl){
+    el.style.backgroundImage = `url('${homeAvatarUrl}')`;
+    el.textContent = '';
+  } else {
+    el.style.backgroundImage = '';
+    el.textContent = initial;
+  }
+}
+
+// Photo d'une opportunité : vraie photo confirmée, sinon photo de catégorie.
+function digestPhotoFor(a, venue){
+  const confirmed = (typeof getConfirmedRealPhoto === 'function') ? getConfirmedRealPhoto(a.activity_name, venue ? venue.name : '') : null;
+  const cat = catalogCategoryInfo(a.category);
+  return a.photo_url || (confirmed && confirmed.url) || (cat && cat.photoUrl) || null;
+}
+
 function renderSwipeStack(){
   const stack = document.getElementById('swipe-stack');
   stack.innerHTML = '';
@@ -6743,18 +6876,17 @@ function renderSwipeStack(){
       return;
     }
     if(swipeLoadState === 'error'){
-      stack.innerHTML = `<div class="swipe-empty"><span>⚠️</span>Impossible de charger les profils pour le moment.<br><span style="text-decoration:underline; cursor:pointer;" onclick="loadRealSwipeProfiles()">Réessayer</span>${buildSwipeDebugHtml()}</div>`;
+      stack.innerHTML = swipeEmptyState('⚠️', 'Profils indisponibles', "Vérifie ta connexion internet, puis réessaie.", false, `<div class="sw-empty-actions"><button class="btn-primary" style="margin:0; width:100%;" onclick="loadRealSwipeProfiles()">Réessayer</button></div>`);
       return;
     }
     if(swipeLoadState === 'empty'){
-      stack.innerHTML = `<div class="swipe-empty"><span>🌱</span>Personne d'autre pour l'instant.<br>Reviens bientôt, la communauté grandit !${buildSwipeDebugHtml()}</div>`;
+      stack.innerHTML = swipeEmptyState('🌱', "Personne d'autre pour l'instant", "La communauté grandit chaque jour. En attendant, rejoins une sortie : c'est aussi comme ça qu'on se rencontre.", true);
       return;
     }
   }
 
   if(swipeIndex >= filteredProfiles.length){
-    const debugForCriteria = (supabaseClient && realSwipeProfiles !== null) ? buildSwipeDebugHtml() : '';
-    stack.innerHTML = `<div class="swipe-empty"><span>✨</span>Tu as fait le tour du verger 🍊<br>Plus de profils correspondant à vos critères<br>Essayez d'élargir la distance ou la tranche d'âge !${debugForCriteria}</div>`;
+    stack.innerHTML = swipeEmptyState('✨', 'Tu as fait le tour', "Plus de profils pour tes critères actuels. Élargis ta distance ou ta tranche d'âge pour en découvrir d'autres.", true);
     return;
   }
 
@@ -6769,33 +6901,30 @@ function renderSwipeStack(){
     const photoStyle = p.photo
       ? `background-image:url('${p.photo}'); background-size:cover; background-position:center;`
       : `background:${p.color};`;
+    const km = getProfileDistance(p);
+    const commons = p.tags.filter(t => myProfile.interests.some(i => i.toLowerCase().includes(t.toLowerCase())));
+    const theirSubs = p.subPassions || [];
+    const mySubs = myProfile.subPassions || [];
+    const sharedSubs = theirSubs.filter(t => mySubs.includes(t));
+    const subChips = [...sharedSubs, ...theirSubs.filter(t => !sharedSubs.includes(t))].slice(0, 3);
+    const modeIcon = m => m === 'Rencontre' ? '💜' : (m === 'Amitié' ? '🤝' : '👫');
     card.innerHTML = `
       <div class="swipe-photo" style="${photoStyle}">
-        ${p.photo ? '' : p.initial}
-        <div class="swipe-modes">${p.modes.map(m=>`<span>${m}</span>`).join('')}</div>
-        <div class="swipe-distance">📍 ${p.area} · ${getProfileDistance(p).toFixed(1)} km</div>
+        ${p.photo ? '' : `<span class="sw-initial">${p.initial}</span>`}
+        <div class="swipe-modes">${p.modes.map(m => `<span>${modeIcon(m)} ${m}</span>`).join('')}</div>
         <div class="stamp pass">✕ PASSE</div>
         <div class="stamp friend">🤝 AMITIÉ</div>
         <div class="stamp love">💜 RENCONTRE</div>
-      </div>
-      <div class="swipe-info">
-        <h3>${p.name}${p.age ? ', ' + p.age : ''}${p.isReliable ? '<span class="reliable-tag">Fiable ✓</span>' : ''}</h3>
-        ${(() => {
-          const commons = p.tags.filter(t => myProfile.interests.some(i => i.toLowerCase().includes(t.toLowerCase())));
-          return commons.length ? `<div class="passport-commons">❤️ ${commons.length} passion${commons.length>1?'s':''} en commun</div>` : '';
-        })()}
-        ${(() => {
-          const theirs = p.subPassions || [];
-          if(!theirs.length) return '';
-          const mine = myProfile.subPassions || [];
-          const shared = theirs.filter(t => mine.includes(t));
-          const commonHtml = shared.length ? `<div class="passport-commons">✨ En commun : ${shared.slice(0,3).map(escapeHtml).join(', ')}</div>` : '';
-          return commonHtml + `<div class="swipe-tags">${theirs.slice(0,4).map(t => `<span>${escapeHtml(t)}</span>`).join('')}</div>`;
-        })()}
-        <div class="swipe-tags">${p.tags.map(t=>`<span onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); openTagComment('${t.replace(/'/g,"\\'")}')">${t}</span>`).join('')}</div>
-        <div class="tag-comment-hint">💬 Touchez un centre d'intérêt pour commenter</div>
-        <div class="compat-badge" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); openCompatibility(${realIdx})">${(() => { const c = computeCompatibility(p); return `✨ Pourquoi ${c.score}% compatible ?`; })()}</div>
-        <p class="swipe-bio-text">${p.bio}</p>
+        <div class="sw-overlay">
+          <div class="sw-name">${escapeHtml(p.name || '')}${p.age ? `<span class="sw-age">${p.age}</span>` : ''}${p.isReliable ? '<span class="reliable-tag">Fiable ✓</span>' : ''}</div>
+          <div class="sw-meta">📍 ${p.area ? escapeHtml(p.area) + ' · ' : ''}${km.toFixed(1)} km${commons.length ? ` · ❤️ ${commons.length} passion${commons.length > 1 ? 's' : ''} en commun` : ''}</div>
+          ${p.bio ? `<p class="sw-bio">${escapeHtml(p.bio)}</p>` : ''}
+          <div class="sw-chips">
+            ${p.tags.slice(0, 3).map(t => `<span onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); openTagComment('${t.replace(/'/g,"\\'")}')">${t}</span>`).join('')}
+            ${subChips.map(t => `<span class="${sharedSubs.includes(t) ? 'shared' : ''}">${escapeHtml(t)}</span>`).join('')}
+          </div>
+          <div class="sw-compat" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation(); openCompatibility(${realIdx})">${(() => { const c = computeCompatibility(p); return `✨ Pourquoi ${c.score}% compatible ?`; })()}</div>
+        </div>
       </div>
     `;
     stack.appendChild(card);
