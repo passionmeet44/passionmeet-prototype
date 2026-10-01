@@ -1987,18 +1987,27 @@
   input, textarea, select, .form-input, .form-textarea, .chat-input, .tag-comment-input,
   .age-inputs input, .add-pill-row input, .fl-age input{ font-size:16px !important; }
 
-  /* Discussion : l'écran prend exactement la place laissée par le clavier,
-     le champ de saisie reste toujours visible juste au-dessus. */
-  #screen-chat.active{ height:var(--app-height, 100dvh) !important; max-height:var(--app-height, 100dvh); }
-  .chat-input-row{ padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px)) !important; flex-shrink:0; }
-  .chat-header{ flex-shrink:0; }
+  /* Discussion : écran FIXE à la taille de la zone visible. En-tête en haut,
+     saisie en bas, seule la zone des messages défile (comme WhatsApp). */
+  #screen-chat.active{ position:fixed !important; top:0; left:0; right:0; height:100%; max-width:480px; margin:0 auto;
+    min-height:0 !important; padding:0 !important; overflow:hidden !important; z-index:60;
+    display:flex !important; flex-direction:column; background:var(--cream); }
+  #screen-chat .chat-header{ flex-shrink:0; }
+  #screen-chat .chat-starters{ flex-shrink:0; }
+  #screen-chat .chat-input-row{ flex-shrink:0; padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px)) !important; }
 
-  /* Bulles : jamais compressées (elles se superposaient quand il y en avait beaucoup) */
-  .chat-body{ gap:3px !important; }
-  .chat-body > *{ flex-shrink:0 !important; }
-  .bubble-group-row.first, .bubble-group-row + .bubble-row.me,
-  .bubble-row.me + .bubble-row.them, .bubble-row.them + .bubble-row.me{ margin-top:12px; }
-  .bubble-row{ max-width:78%; }
+  /* Bulles : empilées simplement, l'une sous l'autre — aucun chevauchement possible */
+  #screen-chat .chat-body{ flex:1 1 auto; min-height:0; display:block !important; overflow-y:auto;
+    -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  #screen-chat .chat-body > *{ margin-top:3px; }
+  #screen-chat .chat-body > *:first-child{ margin-top:0; }
+  #screen-chat .chat-body > .bubble-row{ width:fit-content; max-width:78%; }
+  #screen-chat .chat-body > .bubble-row.me{ margin-left:auto; }
+  #screen-chat .chat-body > .bubble-group-row{ width:fit-content; max-width:85%; }
+  #screen-chat .chat-body > .bubble-group-row.first,
+  #screen-chat .chat-body > .bubble-group-row + .bubble-row.me,
+  #screen-chat .chat-body > .bubble-row.me + .bubble-row.them,
+  #screen-chat .chat-body > .bubble-row.them + .bubble-row.me{ margin-top:14px; }
 </style>
 </head>
 <body>
@@ -4131,6 +4140,7 @@ function initSettingsUI(){
 }
 
 function showScreen(name){
+  if(window.fitChatToViewport) setTimeout(window.fitChatToViewport, 0);
   if(typeof publicViewerMode !== 'undefined' && publicViewerMode && name !== 'location-viewer') return;
   if(name==='onboarding-prefs'){ setTimeout(()=> updateRadiusMap(currentRadius), 300); }
   const outgoing = document.querySelector('.screen.active');
@@ -11662,23 +11672,30 @@ function setChatHeaderAvatar(url, name, isGroup){
 }
 
 
-// Clavier iPhone : la hauteur visible réelle (sans le clavier) sert de hauteur
-// à l'écran de discussion, et le dernier message reste visible.
+// Clavier iPhone : l'écran de discussion (fixe) épouse la zone réellement
+// visible. On ajuste seulement sa hauteur et sa position, sans jamais forcer
+// le défilement de la page.
 (function(){
   const vv = window.visualViewport;
-  const apply = () => {
-    const h = vv ? vv.height : window.innerHeight;
-    document.documentElement.style.setProperty('--app-height', h + 'px');
+  let raf = null, lastH = 0;
+  function fit(){
+    raf = null;
     const chat = document.getElementById('screen-chat');
-    if(chat && chat.classList.contains('active')){
-      window.scrollTo(0, 0);
+    if(!chat) return;
+    if(!chat.classList.contains('active')){ chat.style.height = ''; chat.style.top = ''; return; }
+    const h = vv ? vv.height : window.innerHeight;
+    chat.style.height = h + 'px';
+    chat.style.top = (vv ? vv.offsetTop : 0) + 'px';
+    if(lastH && h < lastH - 80){
       const body = document.getElementById('chat-body');
       if(body) body.scrollTop = body.scrollHeight;
     }
-  };
-  if(vv){ vv.addEventListener('resize', apply); vv.addEventListener('scroll', apply); }
-  window.addEventListener('resize', apply);
-  apply();
+    lastH = h;
+  }
+  function schedule(){ if(!raf) raf = requestAnimationFrame(fit); }
+  if(vv){ vv.addEventListener('resize', schedule); vv.addEventListener('scroll', schedule); }
+  window.addEventListener('resize', schedule);
+  window.fitChatToViewport = schedule;
 })();
 
 function renderChatBody(){
