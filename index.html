@@ -1865,6 +1865,59 @@
   body.dark-mode .swipe-btn.friend{ border-color:#3B3042 !important; }
   body.dark-mode .swipe-btn.love{ border-color:rgba(229,114,42,0.45) !important; }
 </style>
+
+<style id="pm-design-3">
+  .ui-ico{ flex-shrink:0; }
+  #screen-swipe .swipe-header .profile-photo-hint{ display:inline-flex !important; align-items:center; gap:6px; }
+
+  /* Page Filtres */
+  #screen-discover-filters{ padding:0 !important; }
+  .fl-head{ display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top, 0px) + 16px) 20px 8px; }
+  .fl-head h1{ flex:1; font-family:var(--font-display); font-size:27px; font-weight:800; color:var(--plum); letter-spacing:-0.01em; }
+  .fl-back{ width:38px; height:38px; border-radius:50%; background:#fff; box-shadow:var(--pm-shadow); display:flex; align-items:center;
+    justify-content:center; font-size:19px; color:var(--plum); cursor:pointer; flex-shrink:0; }
+  .fl-reset{ font-size:13px; font-weight:700; color:var(--orange-deep); cursor:pointer; padding:6px 2px; }
+  .fl-body{ padding:6px 20px 120px; display:flex; flex-direction:column; gap:12px; }
+  .fl-card{ background:#fff; border-radius:20px; padding:16px; box-shadow:var(--pm-shadow); }
+  .fl-row{ display:flex; justify-content:space-between; align-items:center; }
+  .fl-title{ font-family:var(--font-display); font-size:16px; font-weight:800; color:var(--plum); margin-bottom:10px; }
+  .fl-row .fl-title{ margin-bottom:0; }
+  .fl-value{ font-size:13px; font-weight:800; color:#3E1F44; background:#F6B94D; padding:4px 11px; border-radius:999px; }
+  .fl-hint{ font-size:12px; color:var(--pm-muted); margin-top:8px; line-height:1.4; }
+  .fl-range{ -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:999px; background:#EADFEE; margin:18px 0 4px; outline:none; }
+  .fl-range::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:26px; height:26px; border-radius:50%;
+    background:linear-gradient(135deg, var(--orange), var(--orange-deep)); border:3px solid #fff; box-shadow:0 3px 10px rgba(229,114,42,0.4); cursor:pointer; }
+  .fl-range::-moz-range-thumb{ width:22px; height:22px; border-radius:50%; background:var(--orange-deep); border:3px solid #fff; cursor:pointer; }
+  .fl-age{ display:flex; align-items:center; gap:10px; }
+  .fl-age input{ width:78px; text-align:center; font-size:17px; font-weight:700; color:var(--plum); padding:11px 8px;
+    border:1.5px solid var(--line); border-radius:14px; background:#FBF7FC; font-family:var(--font-body); }
+  .fl-age input:focus{ outline:none; border-color:var(--orange); box-shadow:0 0 0 4px rgba(242,146,75,0.16); }
+  .fl-age span{ font-size:14px; font-weight:600; color:var(--pm-muted); }
+  .fl-seg{ display:flex; gap:4px; background:#F1E9F5; border-radius:999px; padding:4px; }
+  .fl-seg .pill{ flex:1; text-align:center; margin:0 !important; border:none !important; background:transparent !important;
+    color:#9584A0 !important; font-weight:700; padding:9px 6px; border-radius:999px; box-shadow:none !important; white-space:nowrap; }
+  .fl-seg .pill.sel{ background:#fff !important; color:#3E1F44 !important; box-shadow:0 2px 6px rgba(62,31,68,0.12) !important; }
+  .fl-chips{ gap:8px !important; }
+  .fl-chips .pill{ margin:0 !important; border:1.5px solid #EADFEE !important; background:#fff !important; color:var(--plum) !important;
+    font-weight:600; padding:8px 14px; }
+  .fl-chips .pill.sel{ background:#3E1F44 !important; border-color:#3E1F44 !important; color:#fff !important; }
+  .fl-switch-card{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
+  .fl-switch-card .switch{ flex-shrink:0; }
+  .fl-footer{ position:fixed; left:0; right:0; bottom:0; z-index:45; padding:12px 20px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    background:linear-gradient(to top, var(--cream) 70%, rgba(254,248,238,0)); }
+
+  body.dark-mode .fl-back, body.dark-mode .fl-card{ background:#231A29 !important; }
+  body.dark-mode .fl-range{ background:#3B3042; }
+  body.dark-mode .fl-range::-webkit-slider-thumb{ border-color:#231A29; }
+  body.dark-mode .fl-age input{ background:#2E2335; border-color:#3B3042 !important; color:#F3EAF6; }
+  body.dark-mode .fl-seg{ background:#2E2335; }
+  body.dark-mode .fl-seg .pill{ color:#B9A8C2 !important; }
+  body.dark-mode .fl-seg .pill.sel{ background:#3B3042 !important; color:#F3EAF6 !important; }
+  body.dark-mode .fl-chips .pill{ background:#231A29 !important; border-color:#3B3042 !important; color:#F3EAF6 !important; }
+  body.dark-mode .fl-chips .pill.sel{ background:#7A4E83 !important; border-color:#7A4E83 !important; }
+  body.dark-mode .fl-footer{ background:linear-gradient(to top, #16101A 70%, rgba(22,16,26,0)); }
+  body.dark-mode .ui-ico circle[fill="#fff"]{ fill:#231A29; }
+</style>
 </head>
 <body>
 
@@ -2288,7 +2341,7 @@
   <div class="screen" id="screen-swipe">
     <div class="discover-toggle" style="margin-top:6px;">
       <div class="discover-toggle-indicator right"></div>
-      <div class="discover-toggle-btn" data-tab="home" onclick="showScreen('home')">
+      <div class="discover-toggle-btn" data-tab="home" onclick="showScreen('activities-list')">
         <span class="discover-toggle-icon">🧭</span>Activités
       </div>
       <div class="discover-toggle-btn active" data-tab="swipe" onclick="showScreen('swipe')">
@@ -2299,8 +2352,8 @@
       <h1>Découvrir des profils</h1>
       <p>Glissez pour choisir : ✕ passer · 🤝 amitié · 💜 rencontre</p>
       <div style="display:flex; gap:10px; margin-top:6px;">
-        <div class="profile-photo-hint" id="discover-filters-btn" style="margin-top:0;" onclick="openDiscoverFilters()">🎛️ Filtres<span id="discover-filters-badge"></span></div>
-        <div class="profile-photo-hint" style="margin-top:0;" onclick="openSwipeTutorial()">❔ Comment ça marche ?</div>
+        <div class="profile-photo-hint" id="discover-filters-btn" style="margin-top:0;" onclick="openDiscoverFilters()"><svg class="ui-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.7" fill="#fff"/><circle cx="15" cy="17" r="2.7" fill="#fff"/></svg>Filtres<span id="discover-filters-badge"></span></div>
+        <div class="profile-photo-hint" style="margin-top:0;" onclick="openSwipeTutorial()"><svg class="ui-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.3"/><circle cx="12" cy="16.9" r="0.7" fill="currentColor"/></svg>Comment ça marche&nbsp;?</div>
       </div>
     </div>
     <div class="radius-slider-row">
@@ -2800,45 +2853,61 @@
   <!-- EDIT PROFILE -->
   <!-- DISCOVER FILTERS -->
   <div class="screen" id="screen-discover-filters" style="position:relative;">
-    <div class="detail-back" onclick="showScreen('swipe')" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
-    <div class="ob-title">Filtres de découverte</div>
-    <div class="ob-sub">Affinez les profils que vous voyez dans Découvrir.</div>
-    <div style="padding:0 22px 100px;">
-      <div class="form-label">Rayon de recherche <span id="df-radius-value"></span></div>
-      <input type="range" min="1" max="100" id="df-radius-input" oninput="onDiscoverRadiusChange(this.value)">
+    <div class="fl-head">
+      <div class="fl-back" onclick="showScreen('swipe')" aria-label="Retour">←</div>
+      <h1>Filtres</h1>
+      <div class="fl-reset" onclick="resetDiscoverFilters()">Réinitialiser</div>
+    </div>
 
-      <div class="form-label" style="margin-top:22px;">Tranche d'âge recherchée</div>
-      <div class="age-inputs">
-        <input type="number" id="df-age-min" min="18" max="99">
-        <span>à</span>
-        <input type="number" id="df-age-max" min="18" max="99">
+    <div class="fl-body">
+      <div class="fl-card">
+        <div class="fl-row"><div class="fl-title">Distance</div><div class="fl-value" id="df-radius-value"></div></div>
+        <input type="range" class="fl-range" min="1" max="100" id="df-radius-input" oninput="onDiscoverRadiusChange(this.value)">
+        <div class="fl-hint">Profils situés dans ce rayon autour de toi</div>
       </div>
 
-      <div class="form-label" style="margin-top:22px;">Mode recherché</div>
-      <div class="pills">
-        <div class="pill" id="df-mode-tous" onclick="setDiscoverModeFilter('tous')">Tous</div>
-        <div class="pill" id="df-mode-friend" onclick="setDiscoverModeFilter('friend')">🤝 Amitié</div>
-        <div class="pill" id="df-mode-love" onclick="setDiscoverModeFilter('love')">💜 Rencontre</div>
+      <div class="fl-card">
+        <div class="fl-title">Âge</div>
+        <div class="fl-age">
+          <input type="number" id="df-age-min" min="18" max="99" inputmode="numeric">
+          <span>à</span>
+          <input type="number" id="df-age-max" min="18" max="99" inputmode="numeric">
+          <span>ans</span>
+        </div>
       </div>
 
-      <div class="form-label" style="margin-top:22px;">Genres recherchés</div>
-      <div class="pills" id="df-gender-pills">
-        <div class="pill" data-gender="homme" onclick="toggleDiscoverGenderPref(this)">Homme</div>
-        <div class="pill" data-gender="femme" onclick="toggleDiscoverGenderPref(this)">Femme</div>
-        <div class="pill" data-gender="non_binaire" onclick="toggleDiscoverGenderPref(this)">Non-binaire</div>
-        <div class="pill" data-gender="autre" onclick="toggleDiscoverGenderPref(this)">Autre</div>
-        <div class="pill" data-gender="ne_pas_preciser" onclick="toggleDiscoverGenderPref(this)">Préfère ne pas préciser</div>
+      <div class="fl-card">
+        <div class="fl-title">Je cherche</div>
+        <div class="fl-seg">
+          <div class="pill" id="df-mode-tous" onclick="setDiscoverModeFilter('tous')">Tous</div>
+          <div class="pill" id="df-mode-friend" onclick="setDiscoverModeFilter('friend')">🤝 Amitié</div>
+          <div class="pill" id="df-mode-love" onclick="setDiscoverModeFilter('love')">💜 Rencontre</div>
+        </div>
       </div>
-      <p style="font-size:11.5px; color:#B0A0B5; margin-top:4px;">Aucune sélection = tous les genres, y compris non renseigné</p>
 
-      <div class="mode-card" id="df-passions-card" style="margin-top:22px;">
-        <div class="mode-icon friend">❤️</div>
-        <div class="mode-info"><h3>Passions communes en priorité</h3><p>Affiche d'abord les profils qui partagent au moins une passion avec vous</p></div>
+      <div class="fl-card">
+        <div class="fl-title">Genres</div>
+        <div class="pills fl-chips" id="df-gender-pills">
+          <div class="pill" data-gender="homme" onclick="toggleDiscoverGenderPref(this)">Homme</div>
+          <div class="pill" data-gender="femme" onclick="toggleDiscoverGenderPref(this)">Femme</div>
+          <div class="pill" data-gender="non_binaire" onclick="toggleDiscoverGenderPref(this)">Non-binaire</div>
+          <div class="pill" data-gender="autre" onclick="toggleDiscoverGenderPref(this)">Autre</div>
+          <div class="pill" data-gender="ne_pas_preciser" onclick="toggleDiscoverGenderPref(this)">Préfère ne pas préciser</div>
+        </div>
+        <div class="fl-hint">Aucun choix : tout le monde, y compris sans genre renseigné</div>
+      </div>
+
+      <div class="fl-card fl-switch-card" id="df-passions-card">
+        <div>
+          <div class="fl-title" style="margin:0;">Passions communes en priorité</div>
+          <div class="fl-hint" style="margin-top:3px;">Les profils qui partagent au moins une passion avec toi s'affichent d'abord</div>
+        </div>
         <div class="switch" id="df-passions-switch" onclick="togglePrioritizeSharedPassions()"></div>
       </div>
+    </div>
 
-      <div class="report-link" style="margin-top:22px;" onclick="resetDiscoverFilters()">✕ Réinitialiser tous les filtres</div>
-      <button class="btn-primary" style="width:100%; margin-top:18px;" onclick="applyDiscoverFiltersAndClose()">Appliquer</button>
+    <div class="fl-footer">
+      <button class="btn-primary" style="width:100%; margin:0;" onclick="applyDiscoverFiltersAndClose()">Appliquer</button>
     </div>
   </div>
 
