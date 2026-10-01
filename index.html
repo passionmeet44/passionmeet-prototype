@@ -1485,6 +1485,13 @@
   body.dark-mode .pm-list > * + *{ border-top-color:#3B3042; }
   body.dark-mode .pm-icon{ background:#3B3042; }
   .cp-section{ margin-top:18px; }
+  .rd-safety{ background:#E4F3E9 !important; color:#2E7D4F !important; border-color:#BFE3CB !important; }
+  .share-live-banner{ position:fixed; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top, 0px) + 62px); z-index:60;
+    background:#2E7D4F; color:#fff; font-size:12px; font-weight:700; padding:7px 10px 7px 14px; border-radius:999px;
+    display:flex; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(0,0,0,0.18); white-space:nowrap; }
+  .slb-act{ background:rgba(255,255,255,0.22); padding:3px 9px; border-radius:8px; cursor:pointer; }
+  .slb-act.stop{ background:#fff; color:#C0392B; }
+  .lp-card{ background:#fff; border-radius:20px; padding:20px 18px; width:100%; max-width:380px; box-shadow:0 10px 30px rgba(62,31,68,0.2); text-align:left; }
   .att-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; font-size:13.5px; color:var(--plum); }
   .att-row + .att-row{ border-top:1px solid #F1ECF3; }
   .att-choices{ display:flex; gap:6px; flex-shrink:0; }
@@ -2094,7 +2101,7 @@
         <div class="pm-row" onclick="openAdminReports()"><div class="pm-icon">🛠️</div><div class="pm-label">Signalements à traiter (admin)</div><div class="pm-chevron">›</div></div>
       </div>
       <div class="pm-row soon"><div class="pm-icon">🪪</div><div class="pm-label">Vérification d'identité</div><span class="pm-soon">Bientôt</span></div>
-      <div class="pm-row soon"><div class="pm-icon orange">📍</div><div class="pm-label">Partage de position avec un proche</div><span class="pm-soon">Bientôt</span></div>
+      <div class="pm-row" onclick="openMyLocationShare()"><div class="pm-icon orange">📍</div><div class="pm-label">Partage de position avec un proche</div><div class="pm-chevron">›</div></div>
     </div>
 
     <div class="pm-section-title">PassionMeet+</div>
@@ -2120,6 +2127,32 @@
       <div class="pm-row danger" onclick="deleteMyAccount()"><div class="pm-icon" style="background:#FCE4DC;">🗑️</div><div class="pm-label">Supprimer mon compte</div></div>
     </div>
   </div>
+
+  <!-- SUIVI DE POSITION (page ouverte par le proche, sans compte) -->
+  <div class="screen" id="screen-location-viewer">
+    <div style="padding:26px 20px 60px; width:100%; box-sizing:border-box;">
+      <div class="ob-title" style="margin-bottom:8px;">📍 Suivi PassionMeet</div>
+      <div id="lv-body"><div class="cp-meta">Chargement…</div></div>
+      <div class="cp-meta" style="margin-top:22px; text-align:center;"><a href="./" style="color:var(--plum-soft);">Découvrir PassionMeet 🍊</a></div>
+    </div>
+  </div>
+
+  <div class="tag-comment-overlay" id="location-share-overlay" onclick="if(event.target===this) closeLocationShareSheet()">
+    <div class="lp-card">
+      <div style="font-family:var(--font-display); font-size:18px; font-weight:800; color:var(--plum); margin-bottom:8px;">📍 Prévenir un proche</div>
+      <div class="cp-meta" style="font-size:13px; line-height:1.5;">Ton proche reçoit un <b>lien privé</b>, sans avoir besoin de l'appli, avec les infos de ta sortie et ta dernière position connue. Tu peux arrêter à tout moment ; à la fin, ta position est effacée.</div>
+      <div class="cp-meta" style="margin-top:8px; line-height:1.5;">⚠️ Ta position n'est envoyée que lorsque PassionMeet est ouvert à l'écran. Ton proche verra l'heure de la dernière mise à jour.</div>
+      <div class="form-label" style="margin-top:14px;">Pendant combien de temps ?</div>
+      <div class="rd-actions" style="margin-top:6px;">
+        <button class="rd-action" onclick="startLocationShare(1)">1 h</button>
+        <button class="rd-action" onclick="startLocationShare(2)">2 h</button>
+        <button class="rd-action" onclick="startLocationShare(3)">3 h</button>
+      </div>
+      <div style="text-align:center; margin-top:14px; font-size:13px; font-weight:700; color:#9584A0; cursor:pointer;" onclick="closeLocationShareSheet()">Annuler</div>
+    </div>
+  </div>
+
+  <div id="share-live-banner" class="share-live-banner" style="display:none;"></div>
 
   <!-- LISTES DU PROFIL : favoris, sorties organisées, profils bloqués -->
   <div class="screen" id="screen-profile-list" style="position:relative;">
@@ -2260,6 +2293,7 @@
         <button class="rd-action" id="ract-group-btn" style="display:none;" onclick="openActivityGroupChat(currentActivityDetail.id)">💬 Écrire au groupe</button>
         <button class="rd-action" onclick="shareCurrentActivity()">📤 Partager</button>
       </div>
+      <button class="rd-action rd-safety" id="ract-safety-btn" style="display:none; width:100%; margin-top:10px;" onclick="openLocationShareSheet()">📍 Prévenir un proche</button>
       <div id="ract-carpool-section" class="cp-section rd-card"></div>
       <div class="report-link" id="ract-report-link" onclick="openActivityReportModal()">🚩 Signaler cette activité</div>
     </div>
@@ -3645,6 +3679,7 @@ function initSettingsUI(){
 }
 
 function showScreen(name){
+  if(typeof publicViewerMode !== 'undefined' && publicViewerMode && name !== 'location-viewer') return;
   if(name==='onboarding-prefs'){ setTimeout(()=> updateRadiusMap(currentRadius), 300); }
   const outgoing = document.querySelector('.screen.active');
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -4681,6 +4716,7 @@ try{
         try{ renderCategoryGrid(); } catch(e){ console.warn('[Auth] renderCategoryGrid a échoué :', e.message); }
         try{ initGeolocationPriority(); } catch(e){ console.warn('[Auth] initGeolocationPriority a échoué :', e.message); }
         try{ openSharedActivityFromUrl(); } catch(e){ console.warn('[Auth] Lien de sortie partagée :', e.message); }
+        try{ resumeLocationShareIfAny(); } catch(e){ console.warn('[Auth] Reprise du partage de position :', e.message); }
         window.__PM_AUTH_STEP = 'showScreen(home)';
         console.info('[Auth] 4. Navigation vers l\'accueil');
         showScreen('home');
@@ -4730,6 +4766,7 @@ function saveProfileLocally(){
 }
 
 function logOut(){
+  if(activeLocationShare) stopLocationShare(true);
   if(!firebaseAuth){
     showToast("Déconnexion impossible ici — ouvrez le fichier dans un vrai navigateur", "⚠️");
     return;
@@ -9812,6 +9849,241 @@ async function openReliabilityStats(){
     <div class="cp-meta" style="margin-top:12px; line-height:1.5;">Après chaque sortie, l'organisateur indique qui était présent. Le badge Fiable ✓ s'obtient à partir de ${RELIABLE_MIN_OUTINGS} sorties pointées et 80 % de présence. Se désinscrire avant la sortie ne compte jamais comme une absence.</div>`;
 }
 
+// ---------- Partage de position avec un proche ----------
+// Le proche reçoit un lien privé (…?suivi=JETON) lisible sans compte.
+// Position envoyée uniquement quand l'appli est ouverte (limite du web) ;
+// à l'arrêt ou à l'expiration, la position est effacée de la base.
+var publicViewerMode = new URLSearchParams(location.search).has('suivi');
+let activeLocationShare = null;   // { id, token, expiresAt, watchId, lastSent }
+let locationViewerTimer = null;
+
+function shareLinkFor(token){ return `${location.origin}${location.pathname}?suivi=${token}`; }
+
+function openLocationShareSheet(){
+  if(activeLocationShare){ showToast('Ta position est déjà partagée — utilise le bandeau vert en haut', '📍'); return; }
+  document.getElementById('location-share-overlay').classList.add('show');
+}
+function closeLocationShareSheet(){ document.getElementById('location-share-overlay').classList.remove('show'); }
+
+function randomShareToken(){
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function getPositionOnce(){
+  return new Promise((resolve, reject) => {
+    if(!navigator.geolocation) return reject(new Error('Géolocalisation indisponible'));
+    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy:true, timeout:15000 });
+  });
+}
+
+async function sendShareLink(token, activityTitle, expiresAt){
+  const url = shareLinkFor(token);
+  const until = new Date(expiresAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  const text = `📍 ${myProfile.name || 'Je'} partage sa position avec toi${activityTitle ? ` pendant la sortie « ${activityTitle} »` : ''}, jusqu'à ${until}. Suis-la ici :`;
+  try{
+    if(navigator.share){ await navigator.share({ title:'Suivi PassionMeet', text, url }); return; }
+  } catch(e){
+    if(e && e.name === 'AbortError'){ showToast("Lien non envoyé — touche « Lien » dans le bandeau vert pour l'envoyer", '📍'); return; }
+  }
+  try{
+    await navigator.clipboard.writeText(text + '\n' + url);
+    showToast('Lien copié — envoie-le à ton proche par SMS ou WhatsApp', '📋');
+  } catch(e){
+    prompt('Copie ce lien et envoie-le à ton proche :', url);
+  }
+}
+
+async function startLocationShare(hours){
+  const a = currentActivityDetail;
+  if(!a || !supabaseClient || !myProfile.supabaseId) return;
+  closeLocationShareSheet();
+  let pos;
+  try{ pos = await getPositionOnce(); }
+  catch(e){ showToast('Autorise la localisation pour partager ta position', '📍'); return; }
+  const token = randomShareToken();
+  const expiresAt = new Date(Date.now() + hours * 3600 * 1000);
+  try{
+    const { data, error } = await supabaseClient.from('location_shares').insert({
+      profile_id: myProfile.supabaseId, activity_id: a.id, token,
+      expires_at: expiresAt.toISOString(),
+      last_lat: pos.coords.latitude, last_lng: pos.coords.longitude, last_updated: new Date().toISOString()
+    }).select('id').maybeSingle();
+    if(error) throw error;
+    beginLocationWatch(data.id, token, expiresAt, a.title);
+    try{ localStorage.setItem('pm_active_share', JSON.stringify({ id: data.id, token, expiresAt: expiresAt.toISOString(), title: a.title })); } catch(e){}
+  } catch(e){
+    console.warn('[Partage position] Création impossible :', e.message);
+    showToast('Partage impossible pour le moment, réessaie.', '⚠️');
+    return;
+  }
+  await sendShareLink(token, a.title, expiresAt);
+}
+
+function beginLocationWatch(id, token, expiresAt, title){
+  if(activeLocationShare && activeLocationShare.watchId != null && navigator.geolocation){
+    navigator.geolocation.clearWatch(activeLocationShare.watchId);
+  }
+  activeLocationShare = { id, token, title, expiresAt: new Date(expiresAt), watchId: null, lastSent: Date.now() };
+  if(navigator.geolocation){
+    activeLocationShare.watchId = navigator.geolocation.watchPosition(p => sendSharePosition(p), () => {}, { enableHighAccuracy:true, maximumAge:15000 });
+  }
+  const ms = activeLocationShare.expiresAt.getTime() - Date.now();
+  if(ms > 0) setTimeout(() => { if(activeLocationShare && activeLocationShare.id === id) stopLocationShare(true); }, Math.min(ms, 2147483000));
+  updateShareBanner();
+}
+
+async function sendSharePosition(p){
+  const s = activeLocationShare;
+  if(!s) return;
+  if(Date.now() > s.expiresAt.getTime()){ stopLocationShare(true); return; }
+  if(Date.now() - s.lastSent < 20000) return; // au plus une mise à jour toutes les 20 s
+  s.lastSent = Date.now();
+  try{
+    await supabaseClient.from('location_shares').update({
+      last_lat: p.coords.latitude, last_lng: p.coords.longitude, last_updated: new Date().toISOString()
+    }).eq('id', s.id);
+  } catch(e){}
+}
+
+async function stopLocationShare(silent){
+  const s = activeLocationShare;
+  activeLocationShare = null;
+  try{ localStorage.removeItem('pm_active_share'); } catch(e){}
+  updateShareBanner();
+  if(!s) return;
+  if(s.watchId != null && navigator.geolocation) navigator.geolocation.clearWatch(s.watchId);
+  try{
+    await supabaseClient.from('location_shares').update({ active:false, last_lat:null, last_lng:null }).eq('id', s.id);
+  } catch(e){}
+  if(!silent) showToast('Partage arrêté — ta position a été effacée', '📍');
+}
+
+function updateShareBanner(){
+  const b = document.getElementById('share-live-banner');
+  if(!b) return;
+  const s = activeLocationShare;
+  if(!s){ b.style.display = 'none'; b.innerHTML = ''; return; }
+  const until = s.expiresAt.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  b.innerHTML = `📍 Position partagée jusqu'à ${until}
+    <span class="slb-act" onclick="reshareLocationLink()">Lien</span>
+    <span class="slb-act stop" onclick="stopLocationShare(false)">Arrêter</span>`;
+  b.style.display = 'flex';
+}
+
+function reshareLocationLink(){
+  const s = activeLocationShare;
+  if(s) sendShareLink(s.token, s.title, s.expiresAt);
+}
+
+// À la réouverture de l'appli : reprend un partage encore valide, ou l'efface.
+function resumeLocationShareIfAny(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('pm_active_share') || 'null');
+    if(!saved) return;
+    if(new Date(saved.expiresAt).getTime() <= Date.now()){
+      localStorage.removeItem('pm_active_share');
+      if(supabaseClient) supabaseClient.from('location_shares').update({ active:false, last_lat:null, last_lng:null }).eq('id', saved.id).then(() => {});
+      return;
+    }
+    beginLocationWatch(saved.id, saved.token, saved.expiresAt, saved.title);
+  } catch(e){}
+}
+
+function openMyLocationShare(){
+  document.getElementById('profile-list-title').textContent = '📍 Partage de position';
+  const body = document.getElementById('profile-list-body');
+  showScreen('profile-list');
+  const s = activeLocationShare;
+  if(s){
+    const until = s.expiresAt.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+    body.innerHTML = `<div class="rd-card" style="text-align:center;">
+        <div style="font-size:34px;">📍</div>
+        <b style="color:var(--plum);">Ta position est partagée jusqu'à ${until}</b>
+        ${s.title ? `<div class="cp-meta">Sortie : ${escapeHtml(s.title)}</div>` : ''}
+        <div class="rd-actions" style="margin-top:14px;">
+          <button class="rd-action" onclick="reshareLocationLink()">Renvoyer le lien</button>
+          <button class="rd-action" style="color:#C0392B; border-color:#F2B8B0; background:#FDECEA;" onclick="stopLocationShare(false).then(openMyLocationShare)">Arrêter</button>
+        </div>
+      </div>`;
+  } else {
+    body.innerHTML = `<div class="rd-card">
+        <div class="rd-card-title">Avant un premier rendez-vous</div>
+        <div class="cp-meta" style="font-size:13px; line-height:1.55;">Ouvre la fiche de ta sortie et touche <b>« 📍 Prévenir un proche »</b>. Ton proche reçoit un lien privé, sans avoir besoin de l'appli, avec les infos de la sortie et ta dernière position connue. Tu choisis la durée (1 à 3 h) et tu peux arrêter à tout moment : ta position est alors effacée.</div>
+        <div class="cp-meta" style="margin-top:10px; line-height:1.5;">⚠️ Ta position n'est envoyée que lorsque PassionMeet est ouvert à l'écran. Ton proche voit l'heure de la dernière mise à jour.</div>
+      </div>`;
+  }
+}
+
+// ---------- Page de suivi pour le proche (sans compte) ----------
+async function startPublicViewer(){
+  showScreen('location-viewer');
+  await renderLocationViewer();
+  locationViewerTimer = setInterval(renderLocationViewer, 30000);
+}
+
+async function renderLocationViewer(){
+  const body = document.getElementById('lv-body');
+  if(!body) return;
+  const token = new URLSearchParams(location.search).get('suivi');
+  const stop = () => { if(locationViewerTimer){ clearInterval(locationViewerTimer); locationViewerTimer = null; } };
+  if(!supabaseClient || !token){ body.innerHTML = `<div class="rd-card">Lien de suivi invalide.</div>`; stop(); return; }
+  let r = null;
+  try{
+    const { data, error } = await supabaseClient.rpc('get_shared_location', { p_token: token });
+    if(error) throw error;
+    r = data;
+  } catch(e){
+    body.innerHTML = `<div class="rd-card">Impossible de charger le suivi pour le moment. Nouvel essai dans 30 secondes…</div>`;
+    return;
+  }
+  if(!r){ body.innerHTML = `<div class="rd-card">Ce lien de suivi n'existe pas ou n'est plus valide.</div>`; stop(); return; }
+  if(r.status === 'ended'){
+    body.innerHTML = `<div class="rd-card" style="text-align:center;"><div style="font-size:34px;">✅</div>
+      <b style="color:var(--plum);">Ce partage est terminé.</b>
+      <div class="cp-meta">La position n'est plus disponible : elle a été effacée.</div></div>`;
+    stop();
+    return;
+  }
+  const act = r.activity || null;
+  const mins = r.updated_at ? Math.max(0, Math.round((Date.now() - new Date(r.updated_at).getTime()) / 60000)) : null;
+  const fresh = mins != null && mins <= 10;
+  const until = new Date(r.expires_at).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  const dateLabel = act && act.date ? new Date(act.date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' }) : '';
+  const parts = (r.participants || []).filter(Boolean);
+  const freshness = mins == null ? ''
+    : fresh ? `🟢 Mise à jour il y a ${mins < 1 ? 'moins d’1' : mins} min`
+    : `⚠️ Dernière position il y a ${mins} min — l'application n'est peut-être plus ouverte`;
+  body.innerHTML = `
+    <div class="cp-meta" style="font-size:14px; margin-bottom:10px;"><b style="color:var(--plum);">${escapeHtml(r.first_name || 'Ton proche')}</b> partage sa position avec toi jusqu'à ${until}.</div>
+    <div class="rd-card" style="padding:0; overflow:hidden; margin-top:0;">
+      ${r.lat != null ? '<div id="lv-map" style="height:230px; position:relative; z-index:0;"></div>' : '<div class="cp-meta" style="padding:16px;">Position pas encore reçue.</div>'}
+      <div style="padding:10px 14px; font-size:12.5px; font-weight:700; color:${fresh ? '#2E7D4F' : '#B0451F'};">${freshness}</div>
+    </div>
+    ${act ? `<div class="rd-card">
+      <div class="rd-card-title">${escapeHtml(act.title || 'Sortie')}</div>
+      ${dateLabel ? `<div class="cp-meta">📅 ${dateLabel}${act.time ? ' · ' + escapeHtml(String(act.time).slice(0,5)) : ''}</div>` : ''}
+      ${act.location ? `<div class="cp-meta">📍 ${escapeHtml(act.location)}</div>` : ''}
+      ${act.meeting_point ? `<div class="cp-meta">🚩 Rendez-vous : ${escapeHtml(act.meeting_point)}</div>` : ''}
+      ${parts.length ? `<div class="cp-meta">👥 Avec : ${parts.map(escapeHtml).join(', ')}</div>` : ''}
+    </div>` : ''}
+    <div class="cp-meta" style="margin-top:14px; line-height:1.5;">En cas d'inquiétude, appelle directement la personne. En cas d'urgence, compose le <b>112</b>.</div>
+    <div class="cp-meta" style="margin-top:6px;">Cette page se met à jour toute seule toutes les 30 secondes.</div>`;
+  if(r.lat != null && typeof L !== 'undefined'){
+    try{
+      const map = L.map(document.getElementById('lv-map'));
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap © CARTO'
+      }).addTo(map);
+      L.circleMarker([r.lat, r.lng], { radius:9, color:'#fff', weight:3, fillColor:'#6B4472', fillOpacity:1 }).addTo(map);
+      map.setView([r.lat, r.lng], 15);
+    } catch(e){}
+  }
+}
+
+window.addEventListener('load', () => { if(publicViewerMode) startPublicViewer(); });
+
 async function openActivityDetail(activityId){
   let a = currentActivitiesData.find(x => x.id === activityId);
   if(!a){
@@ -9884,6 +10156,8 @@ async function refreshActivityParticipants(activityId){
     const participantIds = (data || []).map(p => p.profile_id);
     const groupBtn = document.getElementById('ract-group-btn');
     if(groupBtn) groupBtn.style.display = participantIds.includes(myProfile.supabaseId) ? '' : 'none';
+    const safetyBtn = document.getElementById('ract-safety-btn');
+    if(safetyBtn) safetyBtn.style.display = participantIds.includes(myProfile.supabaseId) ? '' : 'none';
     renderCarpoolSection(activityId, participantIds.includes(myProfile.supabaseId));
     const maxLabel = currentActivityDetail && currentActivityDetail.maxParticipants ? `/${currentActivityDetail.maxParticipants}` : '';
     titleEl.textContent = `👥 ${participantIds.length}${maxLabel} participant${participantIds.length>1?'s':''}`;
