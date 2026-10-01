@@ -1980,6 +1980,26 @@
   body.dark-mode .chat-starter-chip{ background:#231A29 !important; border-color:#3B3042 !important; color:#F3EAF6 !important; }
   body.dark-mode .chat-input{ background:#231A29 !important; color:#F3EAF6; }
 </style>
+
+<style id="pm-fix-keyboard">
+  /* iPhone : un champ en dessous de 16 px déclenche un zoom automatique de
+     la page au toucher. Tous les champs passent à 16 px, partout. */
+  input, textarea, select, .form-input, .form-textarea, .chat-input, .tag-comment-input,
+  .age-inputs input, .add-pill-row input, .fl-age input{ font-size:16px !important; }
+
+  /* Discussion : l'écran prend exactement la place laissée par le clavier,
+     le champ de saisie reste toujours visible juste au-dessus. */
+  #screen-chat.active{ height:var(--app-height, 100dvh) !important; max-height:var(--app-height, 100dvh); }
+  .chat-input-row{ padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px)) !important; flex-shrink:0; }
+  .chat-header{ flex-shrink:0; }
+
+  /* Bulles : jamais compressées (elles se superposaient quand il y en avait beaucoup) */
+  .chat-body{ gap:3px !important; }
+  .chat-body > *{ flex-shrink:0 !important; }
+  .bubble-group-row.first, .bubble-group-row + .bubble-row.me,
+  .bubble-row.me + .bubble-row.them, .bubble-row.them + .bubble-row.me{ margin-top:12px; }
+  .bubble-row{ max-width:78%; }
+</style>
 </head>
 <body>
 
@@ -11640,6 +11660,26 @@ function setChatHeaderAvatar(url, name, isGroup){
     el.textContent = String(name || '?').trim().charAt(0).toUpperCase();
   }
 }
+
+
+// Clavier iPhone : la hauteur visible réelle (sans le clavier) sert de hauteur
+// à l'écran de discussion, et le dernier message reste visible.
+(function(){
+  const vv = window.visualViewport;
+  const apply = () => {
+    const h = vv ? vv.height : window.innerHeight;
+    document.documentElement.style.setProperty('--app-height', h + 'px');
+    const chat = document.getElementById('screen-chat');
+    if(chat && chat.classList.contains('active')){
+      window.scrollTo(0, 0);
+      const body = document.getElementById('chat-body');
+      if(body) body.scrollTop = body.scrollHeight;
+    }
+  };
+  if(vv){ vv.addEventListener('resize', apply); vv.addEventListener('scroll', apply); }
+  window.addEventListener('resize', apply);
+  apply();
+})();
 
 function renderChatBody(){
   const body = document.getElementById('chat-body');
