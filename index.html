@@ -5909,6 +5909,21 @@ let filteredProfiles = [];
 // Carte du rayon : cercle autour de la position utilisée pour les distances,
 // qui s'agrandit avec le curseur. Aucune donnée envoyée à un tiers en dehors
 // du chargement des tuiles OpenStreetMap.
+// Fond de carte. CARTO exige une clé gratuite depuis fin août 2026 (sinon
+// filigrane « API key required ») : https://carto.com/basemaps/apikey
+// Colle la clé ci-dessous. Tant qu'elle est vide, on utilise OpenStreetMap.
+const CARTO_API_KEY = 'cb1_4641_1_78cc30e4048027394a864557';
+function mapTileUrl(){
+  return CARTO_API_KEY
+    ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`
+    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+}
+function mapTileOptions(){
+  return CARTO_API_KEY
+    ? { subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap © CARTO' }
+    : { maxZoom:19, attribution:'© OpenStreetMap' };
+}
+
 const radiusMaps = {}; // une carte par conteneur (Découvrir + panneau Filtres)
 
 function drawRadiusMap(containerId, km){
@@ -5930,8 +5945,8 @@ function drawRadiusMap(containerId, km){
     if(!entry){
       el.innerHTML = '';
       const map = L.map(el, { zoomControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap © CARTO'
+      L.tileLayer(mapTileUrl(), {
+        ...mapTileOptions()
       }).addTo(map);
       const circle = L.circle(userCoords, { radius: radiusM, color:'#6B4472', weight:2, fillColor:'#E5722A', fillOpacity:0.15 }).addTo(map);
       entry = radiusMaps[containerId] = { map, circle };
@@ -10073,8 +10088,8 @@ async function renderLocationViewer(){
   if(r.lat != null && typeof L !== 'undefined'){
     try{
       const map = L.map(document.getElementById('lv-map'));
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap © CARTO'
+      L.tileLayer(mapTileUrl(), {
+        ...mapTileOptions()
       }).addTo(map);
       L.circleMarker([r.lat, r.lng], { radius:9, color:'#fff', weight:3, fillColor:'#6B4472', fillOpacity:1 }).addTo(map);
       map.setView([r.lat, r.lng], 15);
