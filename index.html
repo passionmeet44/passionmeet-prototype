@@ -2108,6 +2108,164 @@
   body.dark-mode .pd-footer{ background:linear-gradient(to top, #16101A 70%, rgba(22,16,26,0)); }
   body.dark-mode .pd-block-link{ color:#F29A93; }
 </style>
+
+<style id="pm-fix-small-screens">
+  /* Pas de zoom quand on tape deux fois vite sur un bouton, partout */
+  html, body, button, a, .pill, .nav-item, .swipe-btn{ touch-action:manipulation; }
+
+  /* Découvrir tient exactement dans l'écran : la carte prend la place qui reste,
+     les boutons restent toujours visibles au-dessus de la barre du bas. */
+  #screen-swipe.active{ height:100vh; height:100dvh; overflow:hidden !important; display:flex !important; flex-direction:column;
+    box-sizing:border-box; padding-bottom:calc(56px + env(safe-area-inset-bottom, 0px) + 14px) !important; }
+  #screen-swipe.active > *{ flex-shrink:0; }
+  #screen-swipe .swipe-stack{ flex:1 1 auto !important; flex-shrink:1 !important; min-height:0 !important; height:auto !important;
+    max-height:560px; width:100%; }
+  #screen-swipe .swipe-actions{ margin-top:12px !important; }
+  @media (max-height:780px){
+    #screen-swipe .swipe-header p{ display:none; }
+    #screen-swipe .swipe-header h1{ font-size:22px !important; }
+    #swipe-mode-filter-row{ margin:8px auto 10px !important; }
+    .swipe-btn{ width:52px !important; height:52px !important; }
+    .swipe-btn.love{ width:62px !important; height:62px !important; }
+    #swipe-undo-btn{ width:40px !important; height:40px !important; }
+    .sw-name{ font-size:25px; }
+    .sw-bio{ -webkit-line-clamp:1; }
+  }
+  @media (max-height:660px){
+    #screen-swipe .swipe-header h1{ display:none; }
+    .sw-chips span:nth-child(n+4){ display:none; }
+  }
+</style>
+
+<style id="pm-swipe-toolbar">
+  .sw-toolbar{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:360px; margin:10px auto 12px; }
+  .sw-toolbar #swipe-mode-filter-row{ margin:0 !important; }
+  .sw-tool-btn{ position:relative; width:40px; height:40px; border-radius:50%; flex-shrink:0; background:#fff; color:var(--plum);
+    box-shadow:var(--pm-shadow); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .sw-tool-btn svg{ width:18px; height:18px; }
+  #discover-filters-btn #discover-filters-badge:not(:empty){ position:absolute; top:-3px; right:-3px; min-width:16px; height:16px; padding:0 4px;
+    border-radius:999px; background:var(--orange-deep); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  @media (max-height:780px){ .sw-toolbar{ margin:6px auto 8px; } }
+  body.dark-mode .sw-tool-btn{ background:#231A29; }
+  .sw-toolbar #swipe-mode-filter-row{ flex:0 1 auto; min-width:0; }
+  .sw-toolbar #swipe-mode-filter-row .time-chip{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  @media (max-width:400px){
+    .sw-toolbar{ gap:6px; }
+    .sw-tool-btn{ width:36px; height:36px; }
+    .sw-toolbar #swipe-mode-filter-row{ gap:2px; padding:3px !important; }
+    .sw-toolbar #swipe-mode-filter-row .time-chip{ font-size:11.5px !important; padding:7px 8px !important; }
+  }
+  @media (max-height:660px){ #screen-swipe .swipe-header{ display:none !important; } }
+  @media (max-width:340px){
+    .sw-tool-btn{ width:32px; height:32px; }
+    .sw-toolbar #swipe-mode-filter-row .time-chip{ font-size:10.5px !important; padding:6px 5px !important; }
+  }
+</style>
+
+<style id="pm-friend-invites">
+  .fi-suggest{ display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+  .fi-idea{ font-size:12.5px; line-height:1.4; padding:9px 12px; border-radius:14px; background:#F6F1F8; color:var(--plum); cursor:pointer; border:1px solid #EADFEE; }
+  .fi-idea:active{ background:#EFE3F3; }
+  .fi-list{ display:flex; flex-direction:column; gap:10px; padding:0 20px; margin-bottom:6px; }
+  .fi-card{ display:flex; gap:12px; align-items:flex-start; background:#fff; border-radius:18px; padding:12px; box-shadow:var(--pm-shadow); }
+  .fi-photo{ width:56px; height:56px; border-radius:50%; flex-shrink:0; background-size:cover; background-position:center;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-family:var(--font-display); font-weight:800; font-size:22px; }
+  .fi-body{ flex:1; min-width:0; }
+  .fi-name{ font-family:var(--font-display); font-size:16px; font-weight:800; color:var(--plum); }
+  .fi-msg{ font-size:13px; line-height:1.45; color:var(--plum-soft); margin-top:3px; }
+  .fi-actions{ display:flex; gap:8px; margin-top:10px; }
+  .fi-accept, .fi-decline{ flex:1; border:none; border-radius:12px; padding:9px 10px; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--font-body); }
+  .fi-accept{ background:linear-gradient(135deg, var(--orange), var(--orange-deep)); color:#fff; }
+  .fi-decline{ background:#F1E9F5; color:#6B4472; }
+  body.dark-mode .fi-card{ background:#231A29; }
+  body.dark-mode .fi-idea{ background:#2E2335; border-color:#3B3042; color:#F3EAF6; }
+  body.dark-mode .fi-decline{ background:#2E2335; color:#E2D4E8; }
+</style>
+
+<style id="pm-invites-entry">
+  #msg-invites-entry.hidden{ display:none; }
+  .inv-entry{ display:flex; align-items:center; gap:12px; padding:12px 14px; margin:2px 0 8px; border-radius:18px; cursor:pointer;
+    background:linear-gradient(135deg, #FFF3E8, #FDEBDD); border:1px solid #F8D5BA; }
+  .inv-entry:active{ transform:scale(0.99); }
+  .inv-entry-ico{ width:44px; height:44px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--orange), var(--orange-deep)); color:#fff; }
+  .inv-entry-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .inv-entry-text b{ font-family:var(--font-display); font-size:15px; font-weight:800; color:var(--plum); }
+  .inv-entry-text span{ font-size:12.5px; color:var(--plum-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .inv-entry-count{ min-width:24px; height:24px; padding:0 7px; border-radius:999px; background:#E0453A; color:#fff; font-size:12px; font-weight:800;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  #screen-invitations .fi-list{ padding:0; }
+  #screen-invitations{ padding-left:20px !important; padding-right:20px !important; box-sizing:border-box; }
+  #screen-invitations .msg-header{ padding-left:0 !important; padding-right:0 !important; }
+  body.dark-mode .inv-entry{ background:rgba(229,114,42,0.12); border-color:rgba(229,114,42,0.35); }
+  body.dark-mode .inv-entry-text span{ color:#E2D4E8; }
+</style>
+
+<style id="pm-alert-pills">
+  /* Code visuel des alertes */
+  .alert-pill{ display:inline-flex; align-items:center; justify-content:center; gap:3px; min-width:18px; height:18px; padding:0 6px;
+    border-radius:999px; color:#fff; font-size:10.5px; font-weight:800; line-height:1; flex-shrink:0; box-sizing:border-box; }
+  .alert-pill.invite{ background:#7A4E83; }
+  .alert-pill.inline{ margin-left:6px; vertical-align:middle; }
+  .inv-entry .alert-pill{ height:24px; min-width:30px; padding:0 8px; font-size:12px; gap:4px; }
+  .nav-pos-left{ position:absolute; top:0; left:26%; box-shadow:0 2px 5px rgba(0,0,0,0.25); border:1.5px solid rgba(255,255,255,0.85); height:17px; font-size:9.5px; padding:0 5px; }
+  #nav-messages-badge, .tab-count{ background:var(--orange-deep) !important; }
+  #nav-matches-badge{ background:#E0457B !important; display:inline-flex; align-items:center; gap:2px; }
+  #nav-matches-badge svg{ display:block; }
+  .nav-item{ position:relative; }
+  /* Messages : enveloppe violette à gauche de l'icône, chiffre orange à droite */
+  #nav-messages #nav-messages-badge{ left:calc(50% + 7px) !important; right:auto !important; }
+  #nav-messages .nav-pos-left{ left:auto !important; right:calc(50% + 7px) !important; }
+</style>
+
+<style id="pm-buttons">
+  /* ============ SYSTÈME DE BOUTONS : 4 familles, partout ============ */
+  /* 1. PRINCIPAL — l'action importante de l'écran */
+  .btn-primary, .login-big-btn.primary{ border-radius:16px !important; min-height:50px; padding:13px 18px; border:none;
+    font-family:var(--font-body); font-size:15px !important; font-weight:700 !important; letter-spacing:0.01em;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; }
+  .btn-join{ border-radius:16px !important; min-height:52px; font-size:15.5px !important; font-weight:800 !important; }
+
+  /* 2. SECONDAIRE — actions d'appoint, même forme, en blanc */
+  .rd-action, .btn-secondary, .login-pill-btn, .login-big-btn:not(.primary), .pf-logout{
+    border-radius:16px !important; border:1.5px solid #EADFEE !important; background:#fff !important; color:var(--plum) !important;
+    font-family:var(--font-body); font-weight:700 !important; box-shadow:none !important;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; }
+  .rd-action{ min-height:48px; font-size:14px !important; padding:11px 12px !important; }
+  .rd-action svg, .cp-btn svg{ flex-shrink:0; }
+  .rd-safety{ background:#EEF8F1 !important; border-color:#C7E6D2 !important; color:#2E7D4F !important; }
+
+  /* 3. COMPACT — dans une carte (covoiturage, invitations) */
+  .cp-btn, .fi-accept, .fi-decline{ min-height:40px; border-radius:12px !important; font-size:13px !important; font-weight:700 !important;
+    padding:9px 14px !important; display:inline-flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; }
+  .cp-btn:not(.light), .fi-accept{ background:linear-gradient(135deg, var(--orange), var(--orange-deep)) !important; color:#fff !important; border:none !important; }
+  .cp-btn.light, .fi-decline{ background:#fff !important; color:var(--plum) !important; border:1.5px solid #EADFEE !important; }
+  .cp-btn svg{ width:16px; height:16px; }
+
+  /* 4. LIENS TEXTE — neutres en gris, actions en orange, destructeurs en rouge */
+  .location-skip, .tag-comment-cancel, .match-continue{ font-size:13.5px !important; font-weight:700 !important; color:#9584A0 !important;
+    padding:10px 6px; cursor:pointer; text-decoration:none; }
+  .act-see-all, .pf-edit, .fl-reset{ font-size:13.5px !important; font-weight:700 !important; color:var(--orange-deep) !important;
+    padding:10px 6px; cursor:pointer; text-decoration:none; }
+  .report-link, .pd-block-link, .pf-delete{ font-size:13px !important; font-weight:600 !important; color:#C0392B !important;
+    padding:10px 6px; cursor:pointer; text-decoration:none; opacity:1; }
+
+  /* Retour au toucher, identique partout */
+  .btn-primary:active, .btn-join:active, .rd-action:active, .btn-secondary:active, .cp-btn:active,
+  .fi-accept:active, .fi-decline:active, .login-pill-btn:active, .login-big-btn:active, .pf-logout:active{ transform:scale(0.97); }
+  .location-skip:active, .act-see-all:active, .pf-edit:active, .fl-reset:active, .report-link:active,
+  .pd-block-link:active, .pf-delete:active, .tag-comment-cancel:active{ opacity:0.6; }
+
+  /* Mode sombre */
+  body.dark-mode .rd-action, body.dark-mode .btn-secondary, body.dark-mode .login-pill-btn, body.dark-mode .login-big-btn:not(.primary),
+  body.dark-mode .pf-logout, body.dark-mode .cp-btn.light, body.dark-mode .fi-decline{
+    background:#231A29 !important; border-color:#3B3042 !important; color:#F3EAF6 !important; }
+  body.dark-mode .cp-btn:not(.light), body.dark-mode .fi-accept{ background:linear-gradient(135deg, var(--orange), var(--orange-deep)) !important;
+    color:#fff !important; border:none !important; }
+  body.dark-mode .rd-safety{ background:rgba(78,154,110,0.16) !important; border-color:rgba(78,154,110,0.4) !important; color:#93D6AE !important; }
+  body.dark-mode .location-skip, body.dark-mode .tag-comment-cancel, body.dark-mode .match-continue{ color:#B9A8C2 !important; }
+  body.dark-mode .report-link, body.dark-mode .pd-block-link, body.dark-mode .pf-delete{ color:#F29A93 !important; }
+</style>
 </head>
 <body>
 
@@ -2541,19 +2699,20 @@
     <div class="swipe-header">
       <h1>Découvrir des profils</h1>
       <p>Glissez pour choisir : ✕ passer · 🤝 amitié · 💜 rencontre</p>
-      <div style="display:flex; gap:10px; margin-top:6px;">
-        <div class="profile-photo-hint" id="discover-filters-btn" style="margin-top:0;" onclick="openDiscoverFilters()"><svg class="ui-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.7" fill="#fff"/><circle cx="15" cy="17" r="2.7" fill="#fff"/></svg>Filtres<span id="discover-filters-badge"></span></div>
-        <div class="profile-photo-hint" style="margin-top:0;" onclick="openSwipeTutorial()"><svg class="ui-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.3"/><circle cx="12" cy="16.9" r="0.7" fill="currentColor"/></svg>Comment ça marche&nbsp;?</div>
-      </div>
+      
     </div>
     <div class="radius-slider-row">
       <div class="range-label">Rayon de recherche <span id="swipe-radius-value">20 km</span></div>
       <input type="range" min="1" max="100" value="20" id="swipe-radius-input" oninput="setRadius(this.value)">
     </div>
-    <div class="time-filter-row" id="swipe-mode-filter-row">
+    <div class="sw-toolbar">
+      <div class="time-filter-row" id="swipe-mode-filter-row">
       <div class="time-chip active" data-t="tous" onclick="setSwipeModeFilter('tous')">Tous</div>
       <div class="time-chip" data-t="Amitié" onclick="setSwipeModeFilter('Amitié')">🤝 Amitié</div>
       <div class="time-chip" data-t="Rencontre" onclick="setSwipeModeFilter('Rencontre')">💜 Rencontre</div>
+    </div>
+      <div class="sw-tool-btn" id="discover-filters-btn" onclick="openDiscoverFilters()" aria-label="Filtres"><svg class="ui-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.7" fill="#fff"/><circle cx="15" cy="17" r="2.7" fill="#fff"/></svg><span id="discover-filters-badge"></span></div>
+      <div class="sw-tool-btn" onclick="openSwipeTutorial()" aria-label="Comment ça marche ?"><svg class="ui-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.3"/><circle cx="12" cy="16.9" r="0.7" fill="currentColor"/></svg></div>
     </div>
     <div class="swipe-stack" id="swipe-stack"></div>
     <div class="swipe-actions">
@@ -2680,6 +2839,27 @@
   </div>
 
   <div id="share-live-banner" class="share-live-banner" style="display:none;"></div>
+
+  <div class="tag-comment-overlay" id="friend-invite-overlay" onclick="if(event.target===this) closeFriendInvite()">
+    <div class="lp-card">
+      <div id="fi-sheet-title" style="font-family:var(--font-display); font-size:18px; font-weight:800; color:var(--plum); margin-bottom:6px;">🤝 Inviter à discuter</div>
+      <div class="cp-meta" style="font-size:13px; line-height:1.5;">En amitié, pas besoin de match : <b id="fi-sheet-name"></b> reçoit ton invitation et peut l'accepter pour discuter avec toi.</div>
+      <div class="fi-suggest" id="fi-suggest"></div>
+      <textarea class="form-input" id="fi-message" maxlength="300" rows="3" placeholder="Un petit mot pour te présenter…" style="margin-top:10px; resize:none;"></textarea>
+      <button class="btn-primary" style="width:100%; margin-top:12px;" onclick="sendFriendInvite()">Envoyer l'invitation</button>
+      <div style="text-align:center; margin-top:12px; font-size:13px; font-weight:700; color:#9584A0; cursor:pointer;" onclick="closeFriendInvite()">Annuler</div>
+    </div>
+  </div>
+
+  <!-- INVITATIONS À DISCUTER (amitié) -->
+  <div class="screen" id="screen-invitations" style="position:relative;">
+    <div class="msg-header" style="display:flex; align-items:center; gap:12px;">
+      <div style="cursor:pointer; font-size:22px; color:var(--plum);" onclick="showScreen('messages')">←</div>
+      <h1 style="margin:0;">Invitations</h1>
+    </div>
+    <div class="cp-meta" style="font-size:13px; margin:0 0 14px; line-height:1.5;">Ces personnes aimeraient faire ta connaissance. Si tu acceptes, la discussion s'ouvre dans tes messages.</div>
+    <div id="invitations-list"></div>
+  </div>
 
   <!-- LISTES DU PROFIL : favoris, sorties organisées, profils bloqués -->
   <div class="screen" id="screen-profile-list" style="position:relative;">
@@ -2817,10 +2997,10 @@
       <div class="rd-card" id="ract-attendance" style="display:none;"></div>
       <button class="btn-join" id="ract-cta" onclick="toggleActivityParticipation()">Je participe</button>
       <div class="rd-actions">
-        <button class="rd-action" id="ract-group-btn" style="display:none;" onclick="openActivityGroupChat(currentActivityDetail.id)">💬 Écrire au groupe</button>
-        <button class="rd-action" onclick="shareCurrentActivity()">📤 Partager</button>
+        <button class="rd-action" id="ract-group-btn" style="display:none;" onclick="openActivityGroupChat(currentActivityDetail.id)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5c0 4.1-4 7.5-9 7.5-1.1 0-2.2-.2-3.2-.5L4 20l1.3-3.6C4.5 15 3 13.4 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z"/></svg>Écrire au groupe</button>
+        <button class="rd-action" onclick="shareCurrentActivity()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>Partager</button>
       </div>
-      <button class="rd-action rd-safety" id="ract-safety-btn" style="display:none; width:100%; margin-top:10px;" onclick="openLocationShareSheet()">📍 Prévenir un proche</button>
+      <button class="rd-action rd-safety" id="ract-safety-btn" style="display:none; width:100%; margin-top:10px;" onclick="openLocationShareSheet()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>Prévenir un proche</button>
       <div id="ract-carpool-section" class="cp-section rd-card"></div>
       <div class="report-link" id="ract-report-link" onclick="openActivityReportModal()">🚩 Signaler cette activité</div>
     </div>
@@ -3174,6 +3354,7 @@
       <div class="tier-tab active" id="msg-tab-private" onclick="switchMessagesTab('private')">Conversations privées<span class="tab-count hidden" id="msg-tab-private-badge"></span></div>
       <div class="tier-tab gold" id="msg-tab-groups" onclick="switchMessagesTab('groups')">Groupes d'activités<span class="tab-count hidden" id="msg-tab-groups-badge"></span></div>
     </div>
+    <div id="msg-invites-entry"></div>
     <div id="msg-list-private"></div>
     <div id="msg-list-groups" class="hidden"></div>
   </div>
@@ -4596,11 +4777,11 @@ function saveEditedProfile(){
 const SUB_PASSIONS = [
   { cat:'🌿 Nature & Outdoor', tags:['Randonnée','Balade','Vélo','Plage','Paddle','Jardinage','Pêche','Camping'] },
   { cat:'🍳 Cuisine & Gastronomie', tags:['Restaurant','Brunch','Dégustation de vin','Cours de cuisine','Pâtisserie','Street food','Bières artisanales'] },
-  { cat:'🎵 Musique & Culture', tags:['Concerts','Rock','Jazz','Karaoké','Théâtre','Musées','Lecture','Chant'] },
+  { cat:'🎵 Musique & Culture', tags:['Concerts','Rock','Jazz','Karaoké','Théâtre','Musées','Lecture','Chant','Salsa','Rock dansé','Danse de salon'] },
   { cat:'🎲 Jeux & Social', tags:['Jeux de société','Belote','Quiz','Escape game','Pétanque','Jeux vidéo','Rencontres entre entrepreneurs'] },
   { cat:'🎬 Sorties', tags:['Cinéma','Café','Marché','Expositions','Festivals','Brocante','Shopping'] },
   { cat:'🌙 Sorties & Vie nocturne', tags:['Bar','Afterwork','Soirées dansantes','Cocktails','Clubbing'] },
-  { cat:'🏋️ Sport & Bien-être', tags:['Course à pied','Yoga','Fitness','Natation','Danse','Tennis','Foot','Méditation'] },
+  { cat:'🏋️ Sport & Bien-être', tags:['Course à pied','Yoga','Fitness','Natation','Danse','Tennis','Foot','Méditation','Développement personnel','Spiritualité'] },
   { cat:'🏎️ Sensations & Adrénaline', tags:['Karting','Moto','Accrobranche','Laser game','Parachutisme','Jet ski'] },
   { cat:'🎨 Créatif & Manuel', tags:['Poterie','Peinture','Photographie','Couture','DIY','Dessin'] },
   { cat:'✈️ Voyage & escapades', tags:['Escapades','Road trip','Week-ends','Échanges autour du voyage'] }
@@ -7397,7 +7578,187 @@ async function checkAndCreateMatch(otherProfileId, mode){
   }
 }
 
+// ---------- Amitié sans match : invitation à discuter ----------
+// En amitié, pas de « like à l'aveugle » : on envoie une invitation avec un
+// petit mot, l'autre accepte ou refuse. À l'acceptation, le serveur crée un
+// match « Amitié » en coulisses : conversation et messages fonctionnent
+// ensuite exactement comme avant. Le mode Rencontre (💜) ne change pas.
+let friendInviteConfirmed = false;
+let friendInviteTarget = null;
+
+function openFriendInvite(card){
+  const p = filteredProfiles[swipeIndex];
+  if(!p || !p.isRealProfile || !p.supabaseId) return;
+  friendInviteTarget = p;
+  const name = p.name || 'Cette personne';
+  document.getElementById('fi-sheet-title').textContent = `🤝 Inviter ${name} à discuter`;
+  document.getElementById('fi-sheet-name').textContent = name;
+  const myInterests = myProfile.interests || [];
+  const commonCats = (p.tags || []).filter(t => myInterests.some(i => i.toLowerCase().includes(t.toLowerCase())));
+  const commonSubs = (p.subPassions || []).filter(t => (myProfile.subPassions || []).includes(t));
+  const topic = commonSubs[0] || (commonCats[0] ? commonCats[0].replace(/^\S+\s/, '') : null);
+  const ideas = [
+    topic ? `Salut ${name} ! On a un point commun : ${topic} 🙂 Ça te dirait d'en discuter ?` : null,
+    `Salut ${name} ! Ton profil m'a donné envie de faire connaissance, partant(e) pour une sortie un de ces jours ?`,
+    `Hello ${name} 👋 Je cherche des gens sympas pour sortir dans le coin, ça te dit ?`
+  ].filter(Boolean);
+  document.getElementById('fi-suggest').innerHTML = ideas.map((t, i) => `<div class="fi-idea" onclick="useFriendInviteIdea(${i})">${escapeHtml(t)}</div>`).join('');
+  document.getElementById('fi-suggest').dataset.ideas = JSON.stringify(ideas);
+  document.getElementById('fi-message').value = '';
+  document.getElementById('friend-invite-overlay').classList.add('show');
+}
+
+function useFriendInviteIdea(i){
+  try{
+    const ideas = JSON.parse(document.getElementById('fi-suggest').dataset.ideas || '[]');
+    if(ideas[i]) document.getElementById('fi-message').value = ideas[i];
+  } catch(e){}
+}
+
+function closeFriendInvite(){
+  document.getElementById('friend-invite-overlay').classList.remove('show');
+  friendInviteTarget = null;
+}
+
+async function sendFriendInvite(){
+  const p = friendInviteTarget;
+  if(!p || !supabaseClient || !myProfile.supabaseId) return;
+  const message = document.getElementById('fi-message').value.trim().slice(0, 300);
+  try{
+    const { error } = await supabaseClient.from('friend_requests').insert({
+      from_profile_id: myProfile.supabaseId, to_profile_id: p.supabaseId, message: message || null
+    });
+    if(error && error.code !== '23505') throw error;
+    showToast(error ? `Tu as déjà invité ${p.name}` : `Invitation envoyée à ${p.name} 🤝`, '✅');
+  } catch(e){
+    console.warn('[Amitié] Invitation impossible :', e.message);
+    showToast("L'invitation n'a pas pu partir, réessaie.", '⚠️');
+    return;
+  }
+  closeFriendInvite();
+  const card = document.querySelector('.swipe-card.top');
+  if(card){ friendInviteConfirmed = true; flyOut(card, 'friend'); }
+}
+
+// Ligne « Invitations à discuter » en haut des conversations privées.
+async function renderInvitesEntry(){
+  const box = document.getElementById('msg-invites-entry');
+  if(!box || !supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { data, error } = await supabaseClient.from('friend_requests')
+      .select('from_profile_id').eq('to_profile_id', myProfile.supabaseId).eq('status', 'pending');
+    if(error) throw error;
+    const blocked = new Set(await getBlockedProfileIds());
+    const ids = (data || []).map(r => r.from_profile_id).filter(id => !blocked.has(id));
+    if(!ids.length){ box.innerHTML = ''; return; }
+    let firstName = '';
+    try{
+      const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', ids[0]).maybeSingle();
+      firstName = p && p.first_name ? p.first_name : '';
+    } catch(e){}
+    const who = firstName
+      ? (ids.length > 1 ? `${escapeHtml(firstName)} et ${ids.length - 1} autre${ids.length > 2 ? 's' : ''} aimeraient faire ta connaissance` : `${escapeHtml(firstName)} aimerait faire ta connaissance`)
+      : `${ids.length} personne${ids.length > 1 ? 's' : ''} aimerai${ids.length > 1 ? 'ent' : 't'} faire ta connaissance`;
+    box.innerHTML = `<div class="inv-entry" onclick="openInvitationsScreen()">
+        <div class="inv-entry-ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.8 6.8L12 13l8.2-6.2"/></svg></div>
+        <div class="inv-entry-text"><b>Invitations à discuter</b><span>${who}</span></div>
+        <span class="alert-pill invite"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></svg>${ids.length > 9 ? '9+' : ids.length}</span>
+      </div>`;
+  } catch(e){ box.innerHTML = ''; }
+}
+
+function openInvitationsScreen(){
+  showScreen('invitations');
+  renderFriendInvitations();
+}
+
+async function countPendingFriendInvites(){
+  if(!supabaseClient || !myProfile.supabaseId) return 0;
+  try{
+    const { count, error } = await supabaseClient.from('friend_requests')
+      .select('id', { count:'exact', head:true }).eq('to_profile_id', myProfile.supabaseId).eq('status', 'pending');
+    if(error) throw error;
+    return count || 0;
+  } catch(e){ return 0; }
+}
+
+async function renderFriendInvitations(){
+  const box = document.getElementById('invitations-list');
+  if(!box || !supabaseClient || !myProfile.supabaseId) return;
+  try{
+    const { data, error } = await supabaseClient.from('friend_requests')
+      .select('id, from_profile_id, message, created_at')
+      .eq('to_profile_id', myProfile.supabaseId).eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    if(error) throw error;
+    const blocked = new Set(await getBlockedProfileIds());
+    const rows = (data || []).filter(r => !blocked.has(r.from_profile_id));
+    const cards = (await Promise.all(rows.map(async r => {
+      const { data: p } = await supabaseClient.from('profiles').select('first_name, age')
+        .eq('id', r.from_profile_id).is('deleted_at', null).maybeSingle();
+      if(!p) return '';
+      const name = p.first_name || 'Membre';
+      const photo = await getMainPhotoForProfile(r.from_profile_id);
+      const photoStyle = photo ? `background-image:url('${photo}');` : `background:${avatarColorFor(name)};`;
+      return `<div class="fi-card">
+          <div class="fi-photo" style="${photoStyle}">${photo ? '' : escapeHtml(name.charAt(0).toUpperCase())}</div>
+          <div class="fi-body">
+            <div class="fi-name">${escapeHtml(name)}${p.age ? ', ' + p.age : ''}</div>
+            ${r.message ? `<div class="fi-msg">« ${escapeHtml(r.message)} »</div>` : '<div class="fi-msg">Aimerait faire ta connaissance</div>'}
+            <div class="fi-actions">
+              <button class="fi-accept" onclick="acceptFriendInvite('${r.id}')">Accepter</button>
+              <button class="fi-decline" onclick="declineFriendInvite('${r.id}')">Refuser</button>
+            </div>
+          </div>
+        </div>`;
+    }))).filter(Boolean);
+    box.innerHTML = cards.length
+      ? `<div class="fi-list">${cards.join('')}</div>`
+      : emptyMsgState('📩', "Aucune invitation en attente pour l'instant 🍊", false);
+  } catch(e){
+    console.warn('[Amitié] Invitations indisponibles :', e.message);
+    box.innerHTML = '';
+  }
+}
+
+async function acceptFriendInvite(requestId){
+  try{
+    const { data: matchId, error } = await supabaseClient.rpc('accept_friend_request', { p_request_id: requestId });
+    if(error) throw error;
+    showToast("C'est parti, vous pouvez discuter 🤝", '✅');
+    refreshUnreadBadges();
+    if(matchId) setTimeout(() => openMatchChat(matchId, 'messages'), 300);
+    else renderFriendInvitations();
+  } catch(e){
+    console.warn('[Amitié] Acceptation impossible :', e.message);
+    showToast("Impossible d'accepter pour le moment, réessaie.", '⚠️');
+  }
+}
+
+async function declineFriendInvite(requestId){
+  try{
+    const { error } = await supabaseClient.rpc('decline_friend_request', { p_request_id: requestId });
+    if(error) throw error;
+    showToast('Invitation refusée', '👋');
+    refreshUnreadBadges();
+    renderFriendInvitations();
+    renderInvitesEntry();
+  } catch(e){
+    console.warn('[Amitié] Refus impossible :', e.message);
+    showToast("Impossible pour le moment, réessaie.", '⚠️');
+  }
+}
+
 function flyOut(card, type){
+  // Amitié : d'abord l'invitation (la carte revient en place), puis le départ.
+  if(type === 'friend' && !friendInviteConfirmed){
+    card.style.transform = 'translate(0,0) rotate(0deg)';
+    card.querySelectorAll('.stamp').forEach(s => { s.style.opacity = 0; });
+    openFriendInvite(card);
+    return;
+  }
+  const wasFriendInvite = (type === 'friend');
+  friendInviteConfirmed = false;
   const likedProfile = filteredProfiles[swipeIndex];
   let transform = '';
   if(type==='pass') transform = 'translate(-500px,60px) rotate(-30deg)';
@@ -7414,14 +7775,17 @@ function flyOut(card, type){
   if(isRealSwipe){
     recordSwipeAction(likedProfile.supabaseId, type);
   }
-  lastSwipedProfile = likedProfile || null;
-  lastSwipedWasReal = isRealSwipe;
+  // Une invitation envoyée ne s'annule pas avec le retour arrière.
+  lastSwipedProfile = wasFriendInvite ? null : (likedProfile || null);
+  lastSwipedWasReal = wasFriendInvite ? false : isRealSwipe;
   updateUndoButtonState();
 
   setTimeout(async ()=>{
     swipeIndex++;
     renderSwipeStack();
-    if(type==='love' || type==='friend'){
+    // Le match réciproque ne concerne plus que la Rencontre : en Amitié,
+    // c'est l'acceptation de l'invitation qui ouvre la discussion.
+    if(type==='love'){
       if(isRealSwipe){
         const { matched, matchId } = await checkAndCreateMatch(likedProfile.supabaseId, type);
         if(matched){
@@ -7791,6 +8155,31 @@ async function fetchUnreadCounts(){
   }
 }
 
+// Code visuel des alertes, identique partout :
+// orange + chiffre = messages non lus · violet + enveloppe = invitations · rose + cœur = nouveaux matchs
+const ICO_ENVELOPE_MINI = '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></svg>';
+const ICO_HEART_MINI = '<svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.6A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 7.5 2.9c0 6-7.5 10.6-7.5 10.6z"/></svg>';
+
+function updateInviteBadges(count){
+  const label = count > 9 ? '9+' : String(count || 0);
+  const nav = document.getElementById('nav-messages');
+  if(nav){
+    let b = document.getElementById('nav-invite-badge');
+    if(count > 0){
+      if(!b){ b = document.createElement('span'); b.id = 'nav-invite-badge'; b.className = 'alert-pill invite nav-pos-left'; nav.appendChild(b); }
+      b.innerHTML = ICO_ENVELOPE_MINI + label;
+    } else if(b){ b.remove(); }
+  }
+  const tab = document.getElementById('msg-tab-private');
+  if(tab){
+    let t = document.getElementById('msg-tab-invite-badge');
+    if(count > 0){
+      if(!t){ t = document.createElement('span'); t.id = 'msg-tab-invite-badge'; t.className = 'alert-pill invite inline'; tab.appendChild(t); }
+      t.innerHTML = ICO_ENVELOPE_MINI + label;
+    } else if(t){ t.remove(); }
+  }
+}
+
 function updateMatchesNavBadge(count){
   const navItem = document.getElementById('nav-matches');
   if(!navItem) return;
@@ -7802,7 +8191,7 @@ function updateMatchesNavBadge(count){
       badge.className = 'nav-badge';
       navItem.appendChild(badge);
     }
-    badge.textContent = count > 9 ? '9+' : String(count);
+    badge.innerHTML = ICO_HEART_MINI + (count > 9 ? '9+' : String(count));
   } else if(badge){
     badge.remove();
   }
@@ -7893,11 +8282,14 @@ async function fetchUnseenMatchesCount(){
 
 async function refreshUnreadBadges(){
   if(!currentFirebaseUser || !myProfile.supabaseId) return;
-  const { total, byMatch, privateCount, groupCount } = await fetchUnreadCounts();
-  updateMessagesNavBadge(total);
+  const { total: unreadTotal, byMatch, privateCount, groupCount } = await fetchUnreadCounts();
+  const pendingInvites = await countPendingFriendInvites();
+  const total = unreadTotal + pendingInvites;
+  updateMessagesNavBadge(unreadTotal);
   updateMessagesTabBadges(privateCount, groupCount);
-  // Nouveau message pendant qu'on est sur Messages : la liste se réordonne
-  // toute seule, la conversation concernée remonte en haut.
+  updateInviteBadges(pendingInvites);
+  // Nouveau message (ou nouvelle invitation) pendant qu'on est sur Messages :
+  // la liste se réordonne toute seule.
   if(total !== lastUnreadTotalForList){
     const wasKnown = lastUnreadTotalForList !== null;
     lastUnreadTotalForList = total;
@@ -7920,6 +8312,7 @@ function stopUnreadPolling(){
   updateMatchesNavBadge(0);
   updateMessagesNavBadge(0);
   updateMessagesTabBadges(0, 0);
+  updateInviteBadges(0);
 }
 
 async function markConversationMessagesRead(conversationId){
@@ -10256,8 +10649,8 @@ async function renderCarpoolSection(activityId, iAmParticipant){
       ? `<div class="cp-meta" style="margin-bottom:8px;">🙋 Cherche${otherSeekers.length > 1 ? 'nt' : ''} un trajet : ${otherSeekers.join(', ')}</div>` : '';
 
     const actions = `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
-        ${!myOffer ? `<button class="cp-btn" onclick="toggleCarpoolOfferForm()">🚗 Je propose un trajet</button>` : ''}
-        ${!myOffer && !myBooking ? `<button class="cp-btn light" onclick="toggleCarpoolSeeking(${iSeek})">${iSeek ? '✓ Je cherche un trajet' : '🙋 Je cherche un trajet'}</button>` : ''}
+        ${!myOffer ? `<button class="cp-btn" onclick="toggleCarpoolOfferForm()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15l1.6-4.6A2 2 0 0 1 7.5 9h9a2 2 0 0 1 1.9 1.4L20 15v3a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1h-9v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 15h16"/></svg>Je propose un trajet</button>` : ''}
+        ${!myOffer && !myBooking ? `<button class="cp-btn light" onclick="toggleCarpoolSeeking(${iSeek})">${iSeek ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Je cherche un trajet' : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12"/><path d="M11 11V5a1.5 1.5 0 0 1 3 0v6"/><path d="M14 11V6.5a1.5 1.5 0 0 1 3 0V14c0 3.9-2.7 7-6.5 7-2.4 0-4-1.2-5.2-3.2L4 15.3a1.5 1.5 0 0 1 2.4-1.8L8 15"/></svg>Je cherche un trajet'}</button>` : ''}
       </div>
       <div class="cp-meta" style="margin-top:8px;">Pour t'organiser avec le conducteur, écris dans le groupe de la sortie.</div>
       <div id="cp-offer-form" class="cp-card" style="display:none; margin-top:10px;">
@@ -10987,6 +11380,8 @@ function switchMessagesTab(tab){
   document.getElementById('msg-tab-private').classList.toggle('active', tab === 'private');
   document.getElementById('msg-tab-groups').classList.toggle('active', tab === 'groups');
   document.getElementById('msg-list-private').classList.toggle('hidden', tab !== 'private');
+  document.getElementById('msg-invites-entry').classList.toggle('hidden', tab !== 'private');
+  if(tab === 'private') renderInvitesEntry();
   document.getElementById('msg-list-groups').classList.toggle('hidden', tab !== 'groups');
   if(tab === 'private') renderPrivateConversationsList();
   else renderActivityGroupsList();
@@ -11141,6 +11536,7 @@ function emptyMsgState(icon, text, showDiscoverBtn){
 
 // --- Conversations privées réelles (issues d'un vrai match) ---
 async function renderPrivateConversationsList(){
+  renderInvitesEntry();
   const list = document.getElementById('msg-list-private');
   if(!supabaseClient || !myProfile.supabaseId){
     list.innerHTML = emptyMsgState('💬', 'Connectez-vous pour voir vos conversations.', false);
