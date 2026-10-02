@@ -2040,6 +2040,24 @@
   body.dark-mode .pf-delete{ color:#F29A93; }
   body.dark-mode .profile-bio-text{ color:#E2D4E8 !important; }
 </style>
+
+<style id="pm-design-6">
+  /* Carte du profil épurée : badges en icônes, pas de bande photo, modes actifs seulement */
+  .profile-hero .profile-photo-strip{ display:none !important; }
+  .profile-hero .mode-badge-row .mode-badge.off{ display:none !important; }
+  .profile-hero .mode-badge-row{ max-width:240px !important; }
+  .profile-hero .profile-badge-row{ gap:8px !important; margin-top:12px !important; }
+  .profile-hero .profile-badge-row .mode-badge{ width:34px !important; height:34px !important; padding:0 !important; border-radius:50% !important;
+    border:none !important; background:#F1E9F5 !important; color:#6B4472 !important; cursor:pointer; position:relative; vertical-align:middle; }
+  .profile-hero .profile-badge-row .mode-badge svg{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+  .profile-hero .profile-badge-row .pb-label{ display:none; }
+  .profile-hero .profile-badge-row #profile-reliable-badge{ background:#E4F3E9 !important; color:#2E7D4F !important; }
+  .profile-hero .profile-badge-row #profile-organizer-badge{ background:#FDEBDD !important; color:var(--orange-deep) !important; }
+  .avatar-edit-badge{ display:flex !important; align-items:center; justify-content:center; color:#fff; }
+  body.dark-mode .profile-hero .profile-badge-row .mode-badge{ background:#2E2335 !important; color:#E2D4E8 !important; }
+  body.dark-mode .profile-hero .profile-badge-row #profile-reliable-badge{ background:rgba(78,154,110,0.22) !important; color:#93D6AE !important; }
+  body.dark-mode .profile-hero .profile-badge-row #profile-organizer-badge{ background:rgba(229,114,42,0.20) !important; color:#F7A86E !important; }
+</style>
 </head>
 <body>
 
@@ -2501,7 +2519,7 @@
     <div class="profile-hero">
       <div class="profile-hero-photo-wrap">
         <div class="avatar-big" id="profile-avatar" onclick="openPhotoManager()">C</div>
-        <div class="avatar-edit-badge" onclick="openPhotoManager()">✏️</div>
+        <div class="avatar-edit-badge" onclick="openPhotoManager()" aria-label="Modifier mes photos"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></div>
       </div>
       <h2 id="profile-name">Camille, 34 ans</h2>
       <div class="profile-city-line" id="profile-city-line"></div>
@@ -2511,10 +2529,10 @@
         <div class="mode-badge off" id="profile-couple">👫 Sorties en couple</div>
       </div>
       <div class="profile-badge-row">
-        <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>
-        <span class="mode-badge" id="profile-newcomer-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🆕 Nouveau/nouvelle dans la région</span>
-        <span class="mode-badge" id="profile-single-parent-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🧑‍🧒 Parent solo</span>
-        <span class="mode-badge" id="profile-carpool-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;">🚗 Peut covoiturer</span>
+        <span class="mode-badge" id="profile-kids-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="2.5"/><circle cx="16.5" cy="9.5" r="2"/><path d="M4.5 19.5v-2a4.5 4.5 0 0 1 9 0v2"/><path d="M13.5 19.5v-1.5a3 3 0 0 1 6 0v1.5"/></svg><span class="pb-label">👨‍👩‍👧 Parent</span></span>
+        <span class="mode-badge" id="profile-newcomer-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-6.5 8 6.5"/><path d="M6 9.8V19.5h12V9.8"/><path d="M12 12.5v4.5M9.75 14.75h4.5"/></svg><span class="pb-label">🆕 Nouveau/nouvelle dans la région</span></span>
+        <span class="mode-badge" id="profile-single-parent-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6.5" r="2.5"/><circle cx="17" cy="10.5" r="1.8"/><path d="M5 20v-5a4 4 0 0 1 8 0v5"/><path d="M12.8 13.6l3-.6"/><path d="M15 20v-3a2 2 0 0 1 4 0v3"/></svg><span class="pb-label">🧑‍🧒 Parent solo</span></span>
+        <span class="mode-badge" id="profile-carpool-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft); display:none;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15l1.6-4.6A2 2 0 0 1 7.5 9h9a2 2 0 0 1 1.9 1.4L20 15v3a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1h-9v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 15h16"/></svg><span class="pb-label">🚗 Peut covoiturer</span></span>
       </div>
       <div class="profile-photo-strip" id="profile-photo-strip"></div>
     </div>
@@ -5675,7 +5693,7 @@ function renderProfileScreen(){
           el = document.createElement('span');
           el.id = 'profile-reliable-badge';
           el.className = 'mode-badge';
-          el.textContent = '✓ Fiable';
+          el.innerHTML = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16 9.7"/></svg><span class="pb-label">✓ Fiable</span>`;
           relBadgeRow.appendChild(el);
         }
         el.style.display = 'inline-block';
@@ -5693,7 +5711,7 @@ function renderProfileScreen(){
           el = document.createElement('span');
           el.id = 'profile-organizer-badge';
           el.className = 'mode-badge';
-          el.textContent = '⭐ Organisateur';
+          el.innerHTML = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg><span class="pb-label">⭐ Organisateur</span>`;
           orgBadgeRow.appendChild(el);
         }
         el.style.display = 'inline-block';
@@ -11762,6 +11780,21 @@ function setChatHeaderAvatar(url, name, isGroup){
   window.addEventListener('resize', schedule);
   window.fitChatToViewport = schedule;
 })();
+
+
+// Badges du profil : icônes seules ; leur signification s'affiche au toucher.
+const PROFILE_BADGE_HELP = {
+  'profile-kids-badge': 'Parent : a des enfants',
+  'profile-newcomer-badge': 'Nouveau ou nouvelle dans la région',
+  'profile-single-parent-badge': 'Parent solo',
+  'profile-carpool-badge': 'Peut covoiturer : a une voiture et peut emmener d\'autres membres',
+  'profile-organizer-badge': 'Organisateur : a organisé au moins 3 sorties',
+  'profile-reliable-badge': 'Fiable : présent à au moins 80 % de ses sorties'
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('#screen-profile .profile-badge-row .mode-badge');
+  if(b && PROFILE_BADGE_HELP[b.id]) showToast(PROFILE_BADGE_HELP[b.id], 'ℹ️');
+});
 
 function renderChatBody(){
   const body = document.getElementById('chat-body');
