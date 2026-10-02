@@ -2567,7 +2567,7 @@
     <!-- STEP 1 : QUOI -->
     <div class="home-step" id="home-step-1">
       <div class="home-intents">
-        <div class="hi-featured" onclick="showScreen('swipe')">
+        <div class="hi-featured" onclick="setSwipeModeFilter('Rencontre'); showScreen('swipe')">
           <div class="hi-icon">💜</div>
           <div class="hi-text">
             <h4>Faire une rencontre</h4>
@@ -2576,10 +2576,10 @@
           <span class="hi-go">›</span>
         </div>
         <div class="hi-row">
-          <div class="hi-tile" onclick="showScreen('activities-list')">
+          <div class="hi-tile" onclick="setSwipeModeFilter('Amitié'); showScreen('swipe')">
             <div class="hi-icon">🤝</div>
             <h4>Nouveaux amis</h4>
-            <p>Sorties et activités</p>
+            <p>Profils en mode Amitié</p>
           </div>
           <div class="hi-tile" onclick="openCreateActivityReal()">
             <div class="hi-icon orange">✨</div>
@@ -6810,7 +6810,7 @@ function openDiscoverFilters(){
   document.getElementById('df-radius-value').textContent = currentRadius + ' km';
   document.getElementById('df-age-min').value = myProfile.ageMin || 18;
   document.getElementById('df-age-max').value = myProfile.ageMax || 99;
-  ['tous','friend','love'].forEach(m => document.getElementById('df-mode-'+m).classList.toggle('sel', swipeModeFilter === m));
+  ['tous','friend','love'].forEach(m => document.getElementById('df-mode-'+m).classList.toggle('sel', DISCOVER_MODE_TO_SWIPE[m] === swipeModeFilter));
   document.querySelectorAll('#df-gender-pills .pill').forEach(p =>
     p.classList.toggle('sel', (myProfile.genderPreferences || []).includes(p.getAttribute('data-gender')))
   );
@@ -6825,8 +6825,11 @@ function onDiscoverRadiusChange(v){
   updateDiscoverFiltersBadge();
 }
 
+// La page Filtres parle en « friend / love », Découvrir en « Amitié / Rencontre » :
+// on traduit, sinon aucun profil ne correspondait jamais.
+const DISCOVER_MODE_TO_SWIPE = { tous:'tous', friend:'Amitié', love:'Rencontre' };
 function setDiscoverModeFilter(m){
-  setSwipeModeFilter(m);
+  setSwipeModeFilter(DISCOVER_MODE_TO_SWIPE[m] || 'tous');
   ['tous','friend','love'].forEach(mode => document.getElementById('df-mode-'+mode).classList.toggle('sel', mode === m));
   updateDiscoverFiltersBadge();
 }
