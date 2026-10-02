@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#FEF8EE">
 <title>PassionMeet — Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1935,11 +1935,15 @@
 
 <style id="pm-design-4">
   /* Liste des messages */
-  #screen-messages .tier-tabs{ display:flex; gap:4px; background:#F1E9F5; border-radius:999px; padding:4px; margin:16px 20px 8px; }
+  #screen-messages .tier-tabs{ display:flex; gap:4px; background:#F1E9F5; border-radius:999px; padding:4px !important; margin:14px 0 10px; }
   #screen-messages .tier-tab{ flex:1; text-align:center; border:none !important; background:transparent !important; color:#9584A0 !important;
     box-shadow:none !important; padding:9px 6px; font-weight:700; border-radius:999px; white-space:nowrap; }
   #screen-messages .tier-tab.active{ background:#fff !important; color:#3E1F44 !important; box-shadow:0 2px 6px rgba(62,31,68,0.12) !important; }
-  #screen-messages .msg-header{ padding-left:20px !important; padding-right:20px !important; }
+  #screen-messages .msg-header{ padding-left:0 !important; padding-right:0 !important; }
+  #screen-messages .msg-item{ padding:13px 4px !important; background:transparent !important; border:none !important;
+    border-radius:0 !important; box-shadow:none !important; border-bottom:1px solid var(--line) !important; }
+  #screen-messages .msg-item:last-child{ border-bottom:none !important; }
+  body.dark-mode #screen-messages .msg-item{ background:transparent !important; border-bottom-color:#2E2335 !important; }
   .msg-item{ gap:12px; }
   .msg-avatar-single{ width:52px !important; height:52px !important; flex-shrink:0; }
   .msg-avatar-single.group-avatar{ border-radius:16px !important; display:flex; align-items:center; justify-content:center;
@@ -3093,8 +3097,8 @@
       <div class="tier-tab active" id="msg-tab-private" onclick="switchMessagesTab('private')">Conversations privées<span class="tab-count hidden" id="msg-tab-private-badge"></span></div>
       <div class="tier-tab gold" id="msg-tab-groups" onclick="switchMessagesTab('groups')">Groupes d'activités<span class="tab-count hidden" id="msg-tab-groups-badge"></span></div>
     </div>
-    <div id="msg-list-private" style="padding:0 20px;"></div>
-    <div id="msg-list-groups" class="hidden" style="padding:0 20px;"></div>
+    <div id="msg-list-private"></div>
+    <div id="msg-list-groups" class="hidden"></div>
   </div>
 
   <!-- CHAT -->
@@ -11683,6 +11687,7 @@ function setChatHeaderAvatar(url, name, isGroup){
     const chat = document.getElementById('screen-chat');
     if(!chat) return;
     if(!chat.classList.contains('active')){ chat.style.height = ''; chat.style.top = ''; return; }
+    if(vv && vv.scale && vv.scale > 1.01) return; // zoom manuel en cours : on ne touche à rien
     const h = vv ? vv.height : window.innerHeight;
     chat.style.height = h + 'px';
     chat.style.top = (vv ? vv.offsetTop : 0) + 'px';
