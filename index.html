@@ -2058,6 +2058,56 @@
   body.dark-mode .profile-hero .profile-badge-row #profile-reliable-badge{ background:rgba(78,154,110,0.22) !important; color:#93D6AE !important; }
   body.dark-mode .profile-hero .profile-badge-row #profile-organizer-badge{ background:rgba(229,114,42,0.20) !important; color:#F7A86E !important; }
 </style>
+
+<style id="pm-design-7">
+  /* Fiche profil : grande photo, identité sur la photo, sections claires */
+  #screen-match-profile-detail{ padding:0 !important; }
+  #screen-match-profile-detail > div:first-child{ position:fixed !important; top:calc(env(safe-area-inset-top, 0px) + 12px); left:0; z-index:20; padding:0 16px !important; }
+  .pd-hero{ position:relative; height:min(64vh, 540px); overflow:hidden; background:#3E1F44; }
+  .pd-photos{ display:flex; height:100%; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .pd-photos::-webkit-scrollbar{ display:none; }
+  .pd-photo{ min-width:100%; height:100%; scroll-snap-align:start; background-size:cover; background-position:center; }
+  .pd-photo-empty{ display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg,#8B5A8C,#3E1F44);
+    color:rgba(255,255,255,0.9); font-family:var(--font-display); font-size:110px; font-weight:800; }
+  .pd-dots{ position:absolute; top:calc(env(safe-area-inset-top, 0px) + 22px); left:0; right:0; display:flex; justify-content:center; gap:5px; z-index:3; pointer-events:none; }
+  .pd-dots span{ width:22px; height:3px; border-radius:2px; background:rgba(255,255,255,0.45); }
+  .pd-dots span.on{ background:#fff; }
+  .pd-shade{ position:absolute; left:0; right:0; bottom:0; height:55%; pointer-events:none;
+    background:linear-gradient(to top, rgba(26,12,30,0.88) 0%, rgba(26,12,30,0.35) 55%, rgba(26,12,30,0) 100%); }
+  .pd-id{ position:absolute; left:20px; right:20px; bottom:22px; color:#fff; pointer-events:none; }
+  .pd-id h2{ font-family:var(--font-display); font-size:34px; font-weight:800; line-height:1.05; color:#fff; display:flex; align-items:baseline; gap:10px; margin:0; }
+  .pd-id h2 span{ font-size:28px; font-weight:600; color:rgba(255,255,255,0.88); }
+  .pd-city{ font-size:14px; color:rgba(255,255,255,0.88); margin-top:6px; }
+  .pd-banner{ margin:14px 20px 0; padding:10px 14px; border-radius:14px; background:#FDEBDD; color:var(--orange-deep); font-size:13px; font-weight:700; text-align:center; }
+  .pd-body{ padding:16px 20px 130px; }
+  .pd-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
+  .pd-chips span{ font-size:13px; font-weight:700; padding:7px 13px; border-radius:999px; background:#fff; color:#3E1F44; box-shadow:var(--pm-shadow); }
+  .pd-section{ background:#fff; border-radius:20px; padding:16px; margin-top:12px; box-shadow:var(--pm-shadow); }
+  .pd-title{ font-family:var(--font-display); font-size:15px; font-weight:800; color:var(--plum); margin-bottom:10px; }
+  .pd-badges{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pd-badge{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; padding:7px 11px; border-radius:999px; background:#F1E9F5; color:#6B4472; }
+  .pd-badge.green{ background:#E4F3E9; color:#2E7D4F; }
+  .pd-badge.orange{ background:#FDEBDD; color:var(--orange-deep); }
+  .pd-bio{ font-size:14.5px; line-height:1.55; color:var(--plum); margin:0; }
+  .pd-tags{ display:flex; flex-wrap:wrap; gap:7px; }
+  .pd-tags span{ font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:999px; background:#F6F1F8; color:var(--plum); border:1px solid #EADFEE; }
+  .pd-tags span.shared{ background:linear-gradient(135deg, var(--orange), var(--orange-deep)); color:#fff; border-color:transparent; }
+  .pd-hint{ font-size:11.5px; color:var(--pm-muted); margin-top:9px; }
+  .pd-block-link{ text-align:center; margin-top:22px; font-size:13px; font-weight:600; color:#B0451F; cursor:pointer; }
+  .pd-footer{ position:fixed; left:0; right:0; bottom:0; z-index:15; padding:12px 20px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    background:linear-gradient(to top, var(--cream) 70%, rgba(254,248,238,0)); }
+  body.dark-mode .pd-section, body.dark-mode .pd-chips span{ background:#231A29 !important; color:#F3EAF6; }
+  body.dark-mode .pd-badge{ background:#2E2335; color:#E2D4E8; }
+  body.dark-mode .pd-badge.green{ background:rgba(78,154,110,0.22); color:#93D6AE; }
+  body.dark-mode .pd-badge.orange{ background:rgba(229,114,42,0.20); color:#F7A86E; }
+  body.dark-mode .pd-tags span{ background:#2E2335; border-color:#3B3042; color:#F3EAF6; }
+  body.dark-mode .pd-tags span.shared{ background:linear-gradient(135deg, var(--orange), var(--orange-deep)) !important; color:#fff; border-color:transparent; }
+  #screen-match-profile-detail > div:first-child > div{ color:#3E1F44 !important; background:rgba(255,255,255,0.92) !important; font-size:18px; }
+  body.dark-mode .pd-bio{ color:#E2D4E8; }
+  body.dark-mode .pd-banner{ background:rgba(229,114,42,0.18); color:#F7A86E; }
+  body.dark-mode .pd-footer{ background:linear-gradient(to top, #16101A 70%, rgba(22,16,26,0)); }
+  body.dark-mode .pd-block-link{ color:#F29A93; }
+</style>
 </head>
 <body>
 
@@ -11304,6 +11354,71 @@ async function loadRealMessages(conversationId){
 // Ouvre la fiche détaillée d'un match (photos, bio, passions, badges).
 // Marque le match comme "vu" pour l'utilisateur courant s'il ne l'était pas
 // déjà — c'est ce qui fait disparaître l'effet flouté "Nouveau match".
+// ---------- Fiche profil (match et aperçu de son propre profil) ----------
+const PD_ICONS = {
+  kids:  '<circle cx="9" cy="7" r="2.5"/><circle cx="16.5" cy="9.5" r="2"/><path d="M4.5 19.5v-2a4.5 4.5 0 0 1 9 0v2"/><path d="M13.5 19.5v-1.5a3 3 0 0 1 6 0v1.5"/>',
+  solo:  '<circle cx="9" cy="6.5" r="2.5"/><circle cx="17" cy="10.5" r="1.8"/><path d="M5 20v-5a4 4 0 0 1 8 0v5"/><path d="M12.8 13.6l3-.6"/><path d="M15 20v-3a2 2 0 0 1 4 0v3"/>',
+  new:   '<path d="M4 11l8-6.5 8 6.5"/><path d="M6 9.8V19.5h12V9.8"/><path d="M12 12.5v4.5M9.75 14.75h4.5"/>',
+  car:   '<path d="M4 15l1.6-4.6A2 2 0 0 1 7.5 9h9a2 2 0 0 1 1.9 1.4L20 15v3a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1h-9v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 15h16"/>',
+  star:  '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+  check: '<circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.7 2.7L16 9.7"/>'
+};
+function pdIcon(name){
+  return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PD_ICONS[name] || ''}</svg>`;
+}
+
+function updatePdDots(){
+  const strip = document.getElementById('pd-photos');
+  const dots = document.querySelectorAll('#pd-dots span');
+  if(!strip || !dots.length) return;
+  const i = Math.round(strip.scrollLeft / Math.max(strip.clientWidth, 1));
+  dots.forEach((d, k) => d.classList.toggle('on', k === i));
+}
+
+// Badges réels d'une personne (jamais déduits) : libellés visibles ici,
+// puisque la personne qui regarde découvre le profil.
+function profileDetailBadges(info){
+  const out = [];
+  if(info.reliable) out.push({ icon:'check', label:'Fiable', tone:'green' });
+  if(info.organizer) out.push({ icon:'star', label:'Organisateur', tone:'orange' });
+  if(info.newcomer) out.push({ icon:'new', label:'Nouveau dans la région' });
+  if(info.singleParent) out.push({ icon:'solo', label:'Parent solo' });
+  if(info.hasKids) out.push({ icon:'kids', label:'Parent' });
+  if(info.canCarpool) out.push({ icon:'car', label:'Peut covoiturer' });
+  return out;
+}
+
+function renderProfileDetail(o){
+  const photos = o.photos || [];
+  const shared = o.sharedSubs || new Set();
+  const initial = String(o.name || '?').trim().charAt(0).toUpperCase();
+  const photosHtml = photos.length
+    ? photos.map(u => `<div class="pd-photo" style="background-image:url('${u}');"></div>`).join('')
+    : `<div class="pd-photo pd-photo-empty">${escapeHtml(initial)}</div>`;
+  const section = (title, inner) => `<div class="pd-section"><div class="pd-title">${title}</div>${inner}</div>`;
+  document.getElementById('match-profile-detail-body').innerHTML = `
+    <div class="pd-hero">
+      <div class="pd-photos" id="pd-photos" onscroll="updatePdDots()">${photosHtml}</div>
+      ${photos.length > 1 ? `<div class="pd-dots" id="pd-dots">${photos.map((_, i) => `<span class="${i === 0 ? 'on' : ''}"></span>`).join('')}</div>` : ''}
+      <div class="pd-shade"></div>
+      <div class="pd-id">
+        <h2>${escapeHtml(o.name || 'Membre')}${o.age ? `<span>${escapeHtml(String(o.age))}</span>` : ''}</h2>
+        ${o.city ? `<div class="pd-city">📍 ${escapeHtml(o.city)}</div>` : ''}
+      </div>
+    </div>
+    ${o.banner ? `<div class="pd-banner">${o.banner}</div>` : ''}
+    <div class="pd-body">
+      ${(o.chips && o.chips.length) ? `<div class="pd-chips">${o.chips.map(c => `<span>${c}</span>`).join('')}</div>` : ''}
+      ${(o.badges && o.badges.length) ? section('En bref', `<div class="pd-badges">${o.badges.map(b => `<span class="pd-badge ${b.tone || ''}">${pdIcon(b.icon)}${b.label}</span>`).join('')}</div>`) : ''}
+      ${o.bio ? section('À propos', `<p class="pd-bio">${escapeHtml(o.bio)}</p>`) : ''}
+      ${(o.passions && o.passions.length) ? section('Passions', `<div class="pd-tags">${o.passions.map(t => `<span>${escapeHtml(t)}</span>`).join('')}</div>`) : ''}
+      ${(o.subs && o.subs.length) ? section('Goûts', `<div class="pd-tags">${o.subs.map(t => `<span class="${shared.has(t) ? 'shared' : ''}">${escapeHtml(t)}</span>`).join('')}</div>${shared.size ? '<div class="pd-hint">En orange : vos goûts en commun</div>' : ''}`) : ''}
+      ${o.bottomHtml || ''}
+    </div>
+    ${o.footerHtml ? `<div class="pd-footer">${o.footerHtml}</div>` : ''}
+  `;
+}
+
 let matchProfileDetailReturn = 'matches';
 
 // Chiffres des 4 tuiles du Profil (uniquement des données réelles).
@@ -11472,31 +11587,26 @@ async function openMyProfilePreview(){
       if(u) photoUrls.push(u);
     }
   } catch(e){}
-  const photosHtml = photoUrls.length
-    ? photoUrls.map(u => `<div class="match-profile-photo" style="background-image:url('${u}');"></div>`).join('')
-    : `<div class="match-profile-photo" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);"></div>`;
   const modeLabels = { friend:'🤝 Amitié', love:'💜 Rencontre', couple:'👫 Sorties en couple' };
-  const modesHtml = (myProfile.modes || []).map(m => modeLabels[m] ? `<span class="msg-mode-tag ${m === 'love' ? 'love' : 'friend'}">${modeLabels[m]}</span>` : '').join(' ');
-  const badgeStyle = 'padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);';
-  const badgesHtml = [
-    myProfile.isNewcomer ? `<span class="mode-badge" style="${badgeStyle}">🆕 Nouveau/nouvelle dans la région</span>` : '',
-    myProfile.isSingleParent ? `<span class="mode-badge" style="${badgeStyle}">🧑‍🧒 Parent solo</span>` : '',
-    myProfile.hasKids ? `<span class="mode-badge" style="${badgeStyle}">👨‍👩‍👧 Parent</span>` : '',
-    myProfile.canCarpool ? `<span class="mode-badge" style="${badgeStyle}">🚗 Peut covoiturer</span>` : ''
-  ].filter(Boolean).join('');
-  const passionsHtml = (myProfile.interests || []).map(t => `<span>${escapeHtml(t)}</span>`).join('');
-  const subsHtml = (myProfile.subPassions || []).map(t => `<span class="subp-tag static">${escapeHtml(t)}</span>`).join('');
-  document.getElementById('match-profile-detail-body').innerHTML = `
-    <div style="margin:0 20px 10px; padding:10px 14px; background:#FDEBDD; border-radius:14px; font-size:12.5px; color:var(--orange-deep); font-weight:700; text-align:center;">👀 Voici ton profil tel que les autres le voient</div>
-    <div class="match-profile-photos">${photosHtml}</div>
-    <div style="padding:16px 20px 100px;">
-      <h2 style="font-family:var(--font-display); color:var(--plum); margin:0;">${escapeHtml(myProfile.name || 'Moi')}${myProfile.age ? ', ' + escapeHtml(String(myProfile.age)) : ''}</h2>
-      ${modesHtml ? `<div style="margin-top:8px;">${modesHtml}</div>` : ''}
-      ${badgesHtml ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">${badgesHtml}</div>` : ''}
-      ${myProfile.bio ? `<p style="margin-top:14px; color:var(--plum-soft); line-height:1.5;">${escapeHtml(myProfile.bio)}</p>` : ''}
-      ${passionsHtml ? `<div class="swipe-tags" style="margin-top:14px;">${passionsHtml}</div>` : ''}
-      ${subsHtml ? `<div class="subp-tags" style="margin-top:10px;">${subsHtml}</div>` : ''}
-    </div>`;
+  let organizerCount = 0, relStat = null;
+  try{ organizerCount = await getOrganizerCount(myProfile.supabaseId); } catch(e){}
+  try{ relStat = (await fetchReliabilityMap([myProfile.supabaseId]))[myProfile.supabaseId]; } catch(e){}
+  renderProfileDetail({
+    photos: photoUrls,
+    name: myProfile.name || 'Moi',
+    age: myProfile.age,
+    city: myProfile.city,
+    chips: (myProfile.modes || []).map(m => modeLabels[m]).filter(Boolean),
+    badges: profileDetailBadges({
+      reliable: isReliable(relStat), organizer: organizerCount >= ORGANIZER_BADGE_MIN,
+      newcomer: myProfile.isNewcomer, singleParent: myProfile.isSingleParent, hasKids: myProfile.hasKids, canCarpool: myProfile.canCarpool
+    }),
+    bio: myProfile.bio,
+    passions: myProfile.interests || [],
+    subs: myProfile.subPassions || [],
+    banner: '👀 Aperçu de ton profil, tel que les autres le voient',
+    footerHtml: `<button class="btn-primary" style="width:100%; margin:0;" onclick="openEditProfile()">Modifier mon profil</button>`
+  });
   matchProfileDetailReturn = 'profile';
   showScreen('match-profile-detail');
 }
@@ -11514,10 +11624,15 @@ async function openMatchProfileDetail(matchId){
     const iAmA = (m.profile_a_id === myId);
     const alreadySeen = iAmA ? m.seen_by_a : m.seen_by_b;
 
-    const { data: p } = await supabaseClient
-      .from('profiles')
-      .select('first_name, age, bio, passions, gender, is_newcomer, is_single_parent, has_kids')
+    const pdBaseCols = 'first_name, age, bio, passions, gender, is_newcomer, is_single_parent, has_kids, city';
+    let { data: p, error: pErr } = await supabaseClient
+      .from('profiles').select(pdBaseCols + ', sub_passions, can_carpool')
       .eq('id', otherId).is('deleted_at', null).maybeSingle();
+    if(pErr){
+      ({ data: p } = await supabaseClient
+        .from('profiles').select(pdBaseCols)
+        .eq('id', otherId).is('deleted_at', null).maybeSingle());
+    }
     if(!p){ showToast("Ce profil n'est plus disponible.", "⚠️"); return; }
 
     if(!alreadySeen){
@@ -11535,36 +11650,29 @@ async function openMatchProfileDetail(matchId){
       if(url) photoUrls.push(url);
     }
 
-    const modeLabel = m.mode === 'love' ? '💜 Rencontre' : '🤝 Amitié';
     const organizerCountForBadge = await getOrganizerCount(otherId);
     const relMapForBadge = await fetchReliabilityMap([otherId]);
-    const badgesHtml = [
-      isReliable(relMapForBadge[otherId]) ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:#E4F3E9; color:#2E7D4F;">✓ Fiable</span>` : '',
-      organizerCountForBadge >= ORGANIZER_BADGE_MIN ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">⭐ Organisateur</span>` : '',
-      p.is_newcomer ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">🆕 Nouveau/nouvelle dans la région</span>` : '',
-      p.is_single_parent ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">🧑‍🧒 Parent solo</span>` : '',
-      p.has_kids ? `<span class="mode-badge" style="padding:5px 12px; font-size:11px; background:var(--lavender); color:var(--plum-soft);">👨‍👩‍👧 Parent</span>` : ''
-    ].filter(Boolean).join('');
-    const passionsHtml = (Array.isArray(p.passions) ? p.passions : [])
-      .map(tag => `<span>${escapeHtml(tag)}</span>`).join('');
-    const photosHtml = photoUrls.length
-      ? photoUrls.map(u => `<div class="match-profile-photo" style="background-image:url('${u}');"></div>`).join('')
-      : `<div class="match-profile-photo" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);"></div>`;
-
-    document.getElementById('match-profile-detail-body').innerHTML = `
-      <div class="match-profile-photos">${photosHtml}</div>
-      <div style="padding:16px 20px 100px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <h2 style="font-family:var(--font-display); color:var(--plum); margin:0;">${escapeHtml(p.first_name || 'Membre')}${p.age ? ', '+p.age : ''}</h2>
-          <span class="msg-mode-tag ${m.mode === 'love' ? 'love' : 'friend'}">${modeLabel}</span>
-        </div>
-        ${badgesHtml ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">${badgesHtml}</div>` : ''}
-        ${p.bio ? `<p style="margin-top:14px; color:var(--plum-soft); line-height:1.5;">${escapeHtml(p.bio)}</p>` : ''}
-        ${passionsHtml ? `<div class="swipe-tags" style="margin-top:14px;">${passionsHtml}</div>` : ''}
-        <button class="btn-primary" style="width:100%; margin-top:26px;" onclick="openMatchChat('${matchId}')">💬 Envoyer un message</button>
-        <div class="report-link" style="margin-top:16px;" onclick="blockUser('${otherId}', '${escapeHtml(p.first_name || 'cette personne').replace(/'/g, "\\'")}')">🚫 Bloquer ce profil</div>
-      </div>
-    `;
+    const theirSubs = Array.isArray(p.sub_passions) ? p.sub_passions : [];
+    const mySubs = myProfile.subPassions || [];
+    const safeName = escapeHtml(p.first_name || 'cette personne').replace(/'/g, "\\'");
+    renderProfileDetail({
+      photos: photoUrls,
+      name: p.first_name || 'Membre',
+      age: p.age,
+      city: p.city,
+      chips: [m.mode === 'love' ? '💜 Match Rencontre' : '🤝 Match Amitié'],
+      badges: profileDetailBadges({
+        reliable: isReliable(relMapForBadge[otherId]),
+        organizer: organizerCountForBadge >= ORGANIZER_BADGE_MIN,
+        newcomer: p.is_newcomer, singleParent: p.is_single_parent, hasKids: p.has_kids, canCarpool: p.can_carpool
+      }),
+      bio: p.bio,
+      passions: Array.isArray(p.passions) ? p.passions : [],
+      subs: theirSubs,
+      sharedSubs: new Set(theirSubs.filter(t => mySubs.includes(t))),
+      bottomHtml: `<div class="pd-block-link" onclick="blockUser('${otherId}', '${safeName}')">Bloquer ce profil</div>`,
+      footerHtml: `<button class="btn-primary" style="width:100%; margin:0;" onclick="openMatchChat('${matchId}')">Envoyer un message</button>`
+    });
     showScreen('match-profile-detail');
   } catch(e){
     console.warn('[Matchs] Ouverture du profil impossible :', e.message);
