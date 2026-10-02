@@ -2266,6 +2266,11 @@
   body.dark-mode .location-skip, body.dark-mode .tag-comment-cancel, body.dark-mode .match-continue{ color:#B9A8C2 !important; }
   body.dark-mode .report-link, body.dark-mode .pd-block-link, body.dark-mode .pf-delete{ color:#F29A93 !important; }
 </style>
+
+<style id="pm-newcomer">
+  .ac-badge.newbie{ background:#E9F6EC; color:#2E7D4F; }
+  body.dark-mode .ac-badge.newbie{ background:rgba(78,154,110,0.20); color:#93D6AE; }
+</style>
 </head>
 <body>
 
@@ -2911,6 +2916,13 @@
         </div>
         <div class="switch" id="ract-form-transit" onclick="this.classList.toggle('on')"></div>
       </div>
+      <div class="checkbox-row" style="margin-top:10px;">
+        <div>
+          <h4>🌱 Ouverte aux nouveaux</h4>
+          <p>Idéal pour ceux qui ne connaissent personne ou arrivent dans la région</p>
+        </div>
+        <div class="switch" id="ract-form-newcomer" onclick="this.classList.toggle('on')"></div>
+      </div>
       <div class="form-label" style="margin-top:10px;">Prix</div>
       <select class="form-input" id="ract-form-price-type" onchange="document.getElementById('ract-form-price').style.display = this.value === 'paid' ? 'block' : 'none'">
         <option value="">Non précisé</option>
@@ -2985,6 +2997,7 @@
         <div class="detail-row" id="ract-meeting-point" style="display:none;"></div>
         <div class="detail-row" id="ract-organizer"></div>
         <div class="detail-row" id="ract-mode"></div>
+        <div class="detail-row" id="ract-newcomer" style="display:none;">🌱 Ouverte aux nouveaux : idéal si tu ne connais encore personne</div>
       </div>
       <div class="rd-card rd-about">
         <div class="rd-card-title">À propos</div>
@@ -3160,6 +3173,7 @@
       <div class="form-hint" style="margin-top:2px;">Distance indépendante de celle utilisée dans Découvrir</div>
       <div class="time-filter-row" style="margin-top:8px;">
         <div class="time-chip" id="activity-transit-chip" onclick="toggleActivityTransitOnly()">🚋 Accessible en tram/bus</div>
+        <div class="time-chip" id="activity-newcomer-chip" onclick="toggleActivityNewcomerOnly()">🌱 Ouverte aux nouveaux</div>
       </div>
       <div class="form-label" id="act-sec-quand" style="margin-top:12px;">Quand ?</div>
       <div class="time-filter-row" id="activity-date-chip-row">
@@ -8386,6 +8400,7 @@ let activityPassionOnly = false;
 let activityPreciseDate = '';      // date précise choisie (prioritaire sur les pilules de période)
 let activityMomentFilter = 'tous'; // 'tous' | 'jour' | 'soir'
 let activityTransitOnly = false;   // uniquement les sorties déclarées accessibles en tram/bus
+let activityNewcomerOnly = false;  // uniquement les sorties ouvertes aux nouveaux
 
 function onActivityFiltersChanged(){
   catalogFilterQuery = normalizeText(document.getElementById('activity-search-input').value);
@@ -8393,7 +8408,7 @@ function onActivityFiltersChanged(){
   activityCityFilter = normalizeText(document.getElementById('activity-city-filter').value);
   activityPassionOnly = document.getElementById('activity-passion-chip').classList.contains('active');
   const active = catalogFilterQuery || catalogFilterCategory !== 'tous' || activityCityFilter || activityPassionOnly
-    || activityDateFilter !== 'toutes' || activityPreciseDate || activityMomentFilter !== 'tous' || activityTransitOnly;
+    || activityDateFilter !== 'toutes' || activityPreciseDate || activityMomentFilter !== 'tous' || activityTransitOnly || activityNewcomerOnly;
   document.getElementById('activity-filters-active').style.display = active ? 'block' : 'none';
   updateActivityFilterPills();
   renderCatalogFullList();
@@ -8430,6 +8445,12 @@ function setActivityMomentChip(el, value){
   document.querySelectorAll('#activity-moment-chip-row .time-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   activityMomentFilter = value;
+  onActivityFiltersChanged();
+}
+
+function toggleActivityNewcomerOnly(){
+  activityNewcomerOnly = !activityNewcomerOnly;
+  document.getElementById('activity-newcomer-chip').classList.toggle('active', activityNewcomerOnly);
   onActivityFiltersChanged();
 }
 
@@ -8516,6 +8537,8 @@ function resetActivityFilters(){
   const dateInput = document.getElementById('activity-precise-date');
   if(dateInput) dateInput.value = '';
   document.getElementById('activity-transit-chip').classList.remove('active');
+  activityNewcomerOnly = false;
+  document.getElementById('activity-newcomer-chip').classList.remove('active');
   document.querySelectorAll('#activity-date-chip-row .time-chip').forEach((c,i) => c.classList.toggle('active', i === 0));
   document.querySelectorAll('#activity-moment-chip-row .time-chip').forEach((c,i) => c.classList.toggle('active', i === 0));
   document.getElementById('activity-filters-active').style.display = 'none';
@@ -8609,6 +8632,8 @@ async function geocodeLocation(query){
 function openCreateActivityReal(){
   const transitSwitch = document.getElementById('ract-form-transit');
   if(transitSwitch) transitSwitch.classList.remove('on');
+  const newcomerSwitch = document.getElementById('ract-form-newcomer');
+  if(newcomerSwitch) newcomerSwitch.classList.remove('on');
   const priceTypeReset = document.getElementById('ract-form-price-type');
   if(priceTypeReset) priceTypeReset.value = '';
   const priceReset = document.getElementById('ract-form-price');
@@ -8807,6 +8832,8 @@ async function submitRealActivity(){
   const mode = document.getElementById('ract-form-mode-love').classList.contains('love-on') ? 'love' : 'friend';
   const transitEl = document.getElementById('ract-form-transit');
   const transitAccessible = !!(transitEl && transitEl.classList.contains('on'));
+  const newcomerEl = document.getElementById('ract-form-newcomer');
+  const newcomerFriendly = !!(newcomerEl && newcomerEl.classList.contains('on'));
   const priceTypeEl = document.getElementById('ract-form-price-type');
   const priceType = priceTypeEl ? priceTypeEl.value : '';
   const priceRaw = document.getElementById('ract-form-price') ? document.getElementById('ract-form-price').value : '';
@@ -8878,6 +8905,7 @@ async function submitRealActivity(){
       moderation_status: moderation.status,
       moderation_reason: moderation.reason,
       ...(transitAccessible ? { transit_accessible: true } : {}),
+      ...(newcomerFriendly ? { newcomer_friendly: true } : {}),
       ...(priceType === 'free' ? { is_free: true } : {}),
       ...(priceType === 'paid' ? { is_free: false, price_eur: priceEur } : {}),
       ...(recurrence ? { recurrence } : {})
@@ -9067,7 +9095,8 @@ async function buildActivityCardHtml(a){
     organizerName, organizerId: a.organizer_profile_id, emoji,
     bg: cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)',
     maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode, meetingPoint: a.meeting_point,
-    recurrence: a.recurrence || null
+    recurrence: a.recurrence || null,
+    newcomerFriendly: a.newcomer_friendly === true
   });
 
   const dateLabel = a.activity_date
@@ -9112,6 +9141,7 @@ async function buildActivityCardHtml(a){
   else if(a.is_free === false) badges.push(`<span class="ac-badge paid">${a.price_eur != null ? String(a.price_eur).replace('.', ',') + ' €' : '€'}</span>`);
   if(a.transit_accessible) badges.push(`<span class="ac-badge">🚋 Tram/bus</span>`);
   if(a.recurrence) badges.push(`<span class="ac-badge">${recurrenceLabel(a.recurrence)}</span>`);
+  if(a.newcomer_friendly) badges.push(`<span class="ac-badge newbie">🌱 Nouveaux bienvenus</span>`);
   if(a.hasCarpool) badges.push(`<span class="ac-badge">🚗 Covoiturage</span>`);
   if(a.matchesPassion) badges.push(`<span class="ac-badge">❤️ Passion</span>`);
   if(isFull) badges.push(`<span class="ac-badge full">Complet</span>`);
@@ -9140,7 +9170,7 @@ async function fetchActiveUpcomingActivities(){
   // Colonnes ajoutées (transports, prix) : lues si elles existent, sinon on
   // retombe sur la requête d'origine — jamais de page cassée pour autant.
   let rawData = null, error = null;
-  for(const extra of [', transit_accessible, is_free, price_eur, recurrence', ', transit_accessible, is_free, price_eur', '']){
+  for(const extra of [', transit_accessible, is_free, price_eur, recurrence, newcomer_friendly', ', transit_accessible, is_free, price_eur, recurrence', ', transit_accessible, is_free, price_eur', '']){
     ({ data: rawData, error } = await supabaseClient
       .from('activities').select(baseCols + extra)
       .order('created_at', { ascending: false }));
@@ -9956,6 +9986,7 @@ async function renderMemberOutingsList(){
       else if(!matchesActivityDatePeriod(a.activity_date, activityDateFilter)) return false;
       if(activityMomentFilter !== 'tous' && getActivityMoment(a.activity_time) !== activityMomentFilter) return false;
       if(transitIds && !transitIds.has(a.id)) return false;
+      if(activityNewcomerOnly && !a.newcomer_friendly) return false;
       return true;
     }).map(a => ({ ...a, distanceKm: getActivityDistanceKm(a) }))
       .filter(a => a.distanceKm == null || a.distanceKm <= activityRadius)
@@ -11148,6 +11179,8 @@ async function openActivityDetail(activityId){
     meetingEl.style.display = 'none';
   }
   document.getElementById('ract-organizer').textContent = `🙋 Organisée par ${a.organizerName}`;
+  const newcomerRow = document.getElementById('ract-newcomer');
+  if(newcomerRow) newcomerRow.style.display = a.newcomerFriendly ? '' : 'none';
   if(a.organizerId){
     getOrganizerCount(a.organizerId).then(n => {
       if(n >= ORGANIZER_BADGE_MIN && currentActivityDetail === a){
