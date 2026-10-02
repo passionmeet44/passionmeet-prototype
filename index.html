@@ -2013,6 +2013,33 @@
   #screen-chat .chat-body > .bubble-row.me + .bubble-row.them,
   #screen-chat .chat-body > .bubble-row.them + .bubble-row.me{ margin-top:14px; }
 </style>
+
+<style id="pm-design-5">
+  /* Profil : à propos, tuiles chiffrées, listes courtes, icônes dessinées */
+  .pf-about-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .pf-edit{ font-size:13px; font-weight:700; color:var(--orange-deep); cursor:pointer; }
+  .pf-about .profile-bio-text:empty{ display:none; }
+  .pf-tiles{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; margin-top:16px; }
+  .pf-tile{ background:#fff; border-radius:18px; padding:12px 4px 10px; text-align:center; box-shadow:var(--pm-shadow); cursor:pointer; transition:transform .12s ease; }
+  .pf-tile:active{ transform:scale(0.96); }
+  .pf-tile-ico{ width:36px; height:36px; border-radius:12px; margin:0 auto 7px; display:flex; align-items:center; justify-content:center; background:#F1E9F5; color:#3E1F44; }
+  .pf-tile-ico.orange{ background:#FDEBDD; color:var(--orange-deep); }
+  .pf-tile-num{ font-family:var(--font-display); font-size:18px; font-weight:800; color:var(--plum); line-height:1.05; }
+  .pf-tile-label{ font-size:10.5px; color:var(--pm-muted); margin-top:3px; font-weight:600; }
+  #screen-profile .pm-icon{ color:#3E1F44; }
+  #screen-profile .pm-icon.orange{ color:var(--orange-deep); }
+  #screen-profile .pm-icon svg{ display:block; }
+  .pf-bottom{ display:flex; flex-direction:column; align-items:center; gap:16px; margin:28px 0 44px; }
+  .pf-logout{ font-size:14.5px; font-weight:700; color:var(--plum); cursor:pointer; padding:10px 22px; border-radius:999px; background:#fff; box-shadow:var(--pm-shadow); }
+  .pf-delete{ font-size:12.5px; color:#C0392B; cursor:pointer; opacity:0.85; }
+  body.dark-mode .pf-tile, body.dark-mode .pf-logout{ background:#231A29 !important; }
+  body.dark-mode .pf-tile-ico{ background:#2E2335; color:#F3EAF6; }
+  body.dark-mode .pf-tile-ico.orange{ background:rgba(229,114,42,0.18); color:#F7A86E; }
+  body.dark-mode #screen-profile .pm-icon{ color:#F3EAF6; }
+  body.dark-mode #screen-profile .pm-icon.orange{ color:#F7A86E; background:rgba(229,114,42,0.18); }
+  body.dark-mode .pf-delete{ color:#F29A93; }
+  body.dark-mode .profile-bio-text{ color:#E2D4E8 !important; }
+</style>
 </head>
 <body>
 
@@ -2509,72 +2536,54 @@
     </div>
     </div>
 
-    <div class="profile-card">
-      <div class="profile-card-title">💬 Bio</div>
-      <p id="profile-bio" class="profile-bio-text">Maman de deux enfants, toujours partante pour une rando ou un bon resto entre amis.</p>
+    <div class="profile-card pf-about">
+      <div class="pf-about-head">
+        <div class="profile-card-title" style="margin:0;">À propos de moi</div>
+        <div class="pf-edit" onclick="openEditProfile()">Modifier</div>
+      </div>
+      <p id="profile-bio" class="profile-bio-text"></p>
+      <div class="pills" id="profile-interests" style="margin-top:10px;"></div>
     </div>
 
-    <div class="profile-card">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div class="profile-card-title" style="margin-bottom:0;">❤️ Centres d'intérêt</div>
-        <div class="report-link" style="cursor:pointer; font-size:12px;" onclick="openInterestsEditor()">✏️ Modifier</div>
-      </div>
-      <div class="pills" id="profile-interests" style="margin-top:10px;">
-      <div class="pill sel">🥾 Randonnée</div>
-      <div class="pill sel">🍳 Cuisine</div>
+    <div class="pf-tiles">
+      <div class="pf-tile" onclick="openProfileList('mine')"><div class="pf-tile-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></div><div class="pf-tile-num" id="pf-count-outings">–</div><div class="pf-tile-label">Mes sorties</div></div>
+      <div class="pf-tile" onclick="openProfileList('favorites')"><div class="pf-tile-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></div><div class="pf-tile-num" id="pf-count-favs">–</div><div class="pf-tile-label">Favoris</div></div>
+      <div class="pf-tile" onclick="openProfileList('carpools')"><div class="pf-tile-ico orange"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15l1.6-4.6A2 2 0 0 1 7.5 9h9a2 2 0 0 1 1.9 1.4L20 15v3a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1h-9v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 15h16"/><circle cx="7.5" cy="15" r=".6" fill="currentColor"/><circle cx="16.5" cy="15" r=".6" fill="currentColor"/></svg></div><div class="pf-tile-num" id="pf-count-carpools">–</div><div class="pf-tile-label">Covoiturages</div></div>
+      <div class="pf-tile" onclick="openReliabilityStats()"><div class="pf-tile-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-8"/></svg></div><div class="pf-tile-num" id="pf-count-reliability">–</div><div class="pf-tile-label">Fiabilité</div></div>
     </div>
-    </div>
+    <div id="profile-upcoming" style="display:none;"></div>
 
     <div class="pm-section-title">Mon profil</div>
     <div class="pm-list">
-      <div class="pm-row" onclick="openEditProfile()"><div class="pm-icon">✏️</div><div class="pm-label">Modifier mon profil</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openPhotoManager()"><div class="pm-icon orange">📸</div><div class="pm-label">Mes photos</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openInterestsEditor()"><div class="pm-icon">❤️</div><div class="pm-label">Mes passions et goûts</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openDiscoverFilters()"><div class="pm-icon orange">📍</div><div class="pm-label">Ma zone et mon rayon<div class="pm-sub" id="profile-prefs"></div></div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openMyProfilePreview()"><div class="pm-icon">👀</div><div class="pm-label">Voir mon profil comme les autres</div><div class="pm-chevron">›</div></div>
-    </div>
-
-    <div class="pm-section-title">Mon activité</div>
-    <div class="pm-list">
-      <div class="pm-block"><div class="pm-block-title">📅 Mes sorties à venir</div><div id="profile-upcoming"></div></div>
-      <div class="pm-row" onclick="openProfileList('organized')"><div class="pm-icon orange">⭐</div><div class="pm-label">Mes sorties organisées</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openProfileList('favorites')"><div class="pm-icon">🤍</div><div class="pm-label">Mes favoris</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openProfileList('carpools')"><div class="pm-icon orange">🚗</div><div class="pm-label">Mes covoiturages</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openReliabilityStats()"><div class="pm-icon">📊</div><div class="pm-label">Mes statistiques de fiabilité</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openPhotoManager()"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div><div class="pm-label">Mes photos</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openInterestsEditor()"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></div><div class="pm-label">Mes passions et goûts</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openDiscoverFilters()"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></div><div class="pm-label">Ma zone et mon rayon<div class="pm-sub" id="profile-prefs"></div></div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openMyProfilePreview()"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="3"/></svg></div><div class="pm-label">Voir mon profil comme les autres</div><div class="pm-chevron">›</div></div>
     </div>
 
     <div class="pm-section-title">Sécurité</div>
     <div class="pm-list">
-      <div class="pm-row" onclick="openProfileList('blocked')"><div class="pm-icon">🚫</div><div class="pm-label">Profils bloqués</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openMyReports()"><div class="pm-icon orange">🚩</div><div class="pm-label">Mes signalements</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openMyLocationShare()"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><path d="M9.5 10l1.8 1.8 3.2-3.3"/></svg></div><div class="pm-label">Prévenir un proche<div class="pm-sub">Partage de position pendant une sortie</div></div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openProfileList('blocked')"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg></div><div class="pm-label">Profils bloqués</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openMyReports()"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg></div><div class="pm-label">Mes signalements</div><div class="pm-chevron">›</div></div>
       <div id="admin-access-link" style="display:none;">
-        <div class="pm-row" onclick="openAdminReports()"><div class="pm-icon">🛠️</div><div class="pm-label">Signalements à traiter (admin)</div><div class="pm-chevron">›</div></div>
+        <div class="pm-row" onclick="openAdminReports()"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l3 3 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.3-.7-.7-2.3z"/></svg></div><div class="pm-label">Signalements à traiter (admin)</div><div class="pm-chevron">›</div></div>
       </div>
-      <div class="pm-row soon"><div class="pm-icon">🪪</div><div class="pm-label">Vérification d'identité</div><span class="pm-soon">Bientôt</span></div>
-      <div class="pm-row" onclick="openMyLocationShare()"><div class="pm-icon orange">📍</div><div class="pm-label">Partage de position avec un proche</div><div class="pm-chevron">›</div></div>
     </div>
 
-    <div class="pm-section-title">PassionMeet+</div>
+    <div class="pm-section-title">Réglages</div>
     <div class="pm-list">
-      <div class="pm-row" onclick="premiumReturnScreen='profile'; showScreen('premium')"><div class="pm-icon orange">🍊</div><div class="pm-label">PassionMeet+<div class="pm-sub">Bonus facultatifs : voir qui t'a liké, likes illimités</div></div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="premiumReturnScreen='profile'; showScreen('premium')"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg></div><div class="pm-label">PassionMeet+<div class="pm-sub">Voir qui t'a liké, likes illimités</div></div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" style="cursor:default;"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></div><div class="pm-label">Mode sombre</div><div class="switch" id="switch-dark-mode" onclick="toggleDarkMode()"></div></div>
+      <div class="pm-row" style="cursor:default;"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg></div><div class="pm-label">Mettre mon profil en pause<div class="pm-sub">Invisible temporairement</div></div><div class="switch" id="switch-pause-profile" onclick="toggleProfilePause()"></div></div>
+      <a class="pm-row" href="mailto:contact.passionmeet@gmail.com" style="text-decoration:none;"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.8 6.8L12 13l8.2-6.2"/></svg></div><div class="pm-label">Nous contacter<div class="pm-sub">contact.passionmeet@gmail.com</div></div><div class="pm-chevron">›</div></a>
+      <div class="pm-row" onclick="openLegal('cgu','profile')"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 12.5h6M9.5 16.5h6"/></svg></div><div class="pm-label">Conditions générales d'utilisation</div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" onclick="openLegal('confidentialite','profile')"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><div class="pm-label">Politique de confidentialité</div><div class="pm-chevron">›</div></div>
     </div>
 
-    <div class="pm-section-title">Paramètres</div>
-    <div class="pm-list">
-      <div class="pm-row" style="cursor:default;"><div class="pm-icon">🌙</div><div class="pm-label">Mode sombre<div class="pm-sub">Affichage plus confortable en soirée</div></div><div class="switch" id="switch-dark-mode" onclick="toggleDarkMode()"></div></div>
-      <div class="pm-row" style="cursor:default;"><div class="pm-icon orange">⏸️</div><div class="pm-label">Mettre mon profil en pause<div class="pm-sub">Invisible temporairement, conversations accessibles</div></div><div class="switch" id="switch-pause-profile" onclick="toggleProfilePause()"></div></div>
-      <div class="pm-row" onclick="openLegal('cgu','profile')"><div class="pm-icon">📄</div><div class="pm-label">Conditions générales d'utilisation</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="openLegal('confidentialite','profile')"><div class="pm-icon orange">🔒</div><div class="pm-label">Politique de confidentialité</div><div class="pm-chevron">›</div></div>
-      <div class="pm-row" onclick="logOut()"><div class="pm-icon">🚪</div><div class="pm-label">Se déconnecter</div><div class="pm-chevron">›</div></div>
-    </div>
-
-    <div class="pm-section-title">Aide</div>
-    <div class="pm-list">
-      <a class="pm-row" href="mailto:contact.passionmeet@gmail.com" style="text-decoration:none;"><div class="pm-icon orange">✉️</div><div class="pm-label">Nous contacter<div class="pm-sub">contact.passionmeet@gmail.com</div></div><div class="pm-chevron">›</div></a>
-    </div>
-
-    <div class="pm-list" style="margin-top:22px; margin-bottom:34px;">
-      <div class="pm-row danger" onclick="deleteMyAccount()"><div class="pm-icon" style="background:#FCE4DC;">🗑️</div><div class="pm-label">Supprimer mon compte</div></div>
+    <div class="pf-bottom">
+      <div class="pf-logout" onclick="logOut()">Se déconnecter</div>
+      <div class="pf-delete" onclick="deleteMyAccount()">Supprimer mon compte</div>
     </div>
   </div>
 
@@ -5656,6 +5665,7 @@ function computeProfileCompletion(){
 function renderProfileScreen(){
   const cityLine = document.getElementById('profile-city-line');
   if(cityLine) cityLine.textContent = myProfile.city ? `📍 ${myProfile.city}` : '';
+  updateProfileTiles();
   const relBadgeRow = document.querySelector('#screen-profile .profile-badge-row');
   if(relBadgeRow && myProfile.supabaseId){
     fetchReliabilityMap([myProfile.supabaseId]).then(m => {
@@ -11278,8 +11288,40 @@ async function loadRealMessages(conversationId){
 // déjà — c'est ce qui fait disparaître l'effet flouté "Nouveau match".
 let matchProfileDetailReturn = 'matches';
 
+// Chiffres des 4 tuiles du Profil (uniquement des données réelles).
+async function updateProfileTiles(){
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  const me = myProfile.supabaseId;
+  const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  try{
+    const today = localIsoDate(new Date());
+    const { data } = await supabaseClient
+      .from('activity_participants').select('activities(activity_date, moderation_status, venue_activity_id)').eq('profile_id', me);
+    const n = (data || []).filter(r => r.activities
+      && (r.activities.moderation_status || 'active') === 'active'
+      && !r.activities.venue_activity_id
+      && r.activities.activity_date && r.activities.activity_date >= today).length;
+    set('pf-count-outings', n);
+  } catch(e){ set('pf-count-outings', '0'); }
+  try{
+    favoriteActivityIdsPromise = null;
+    const favs = await ensureFavoriteActivityIds();
+    set('pf-count-favs', favs.size);
+  } catch(e){ set('pf-count-favs', '0'); }
+  try{
+    const { count: c1 } = await supabaseClient.from('carpool_offers').select('id', { count:'exact', head:true }).eq('driver_profile_id', me);
+    const { count: c2 } = await supabaseClient.from('carpool_bookings').select('id', { count:'exact', head:true }).eq('passenger_profile_id', me);
+    set('pf-count-carpools', (c1 || 0) + (c2 || 0));
+  } catch(e){ set('pf-count-carpools', '0'); }
+  try{
+    const m = await fetchReliabilityMap([me]);
+    const st = m[me];
+    set('pf-count-reliability', st && st.total ? Math.round(st.present / st.total * 100) + ' %' : '—');
+  } catch(e){ set('pf-count-reliability', '—'); }
+}
+
 async function openProfileList(kind){
-  const titles = { favorites:'🤍 Mes favoris', organized:'⭐ Mes sorties organisées', blocked:'🚫 Profils bloqués', carpools:'🚗 Mes covoiturages' };
+  const titles = { mine:'📅 Mes sorties', favorites:'🤍 Mes favoris', organized:'⭐ Mes sorties organisées', blocked:'🚫 Profils bloqués', carpools:'🚗 Mes covoiturages' };
   document.getElementById('profile-list-title').textContent = titles[kind] || '';
   const body = document.getElementById('profile-list-body');
   body.innerHTML = emptyMsgState('⏳', 'Chargement…', false);
@@ -11306,6 +11348,20 @@ async function openProfileList(kind){
           .is('venue_activity_id', null).is('recurrence', null);
         if(!pastErr) toMarkItems = past || [];
       } catch(e){}
+    } else if(kind === 'mine'){
+      const { data: parts } = await supabaseClient.from('activity_participants').select('activity_id').eq('profile_id', myProfile.supabaseId);
+      const myIds = new Set((parts || []).map(r => r.activity_id));
+      items = all.filter(a => myIds.has(a.id));
+      try{
+        const today = new Date(); today.setHours(0,0,0,0);
+        const since = new Date(today); since.setDate(since.getDate() - 7);
+        const { data: past, error: pastErr } = await supabaseClient.from('activities')
+          .select('id, title, description, category, activity_date, activity_time, location, organizer_profile_id, max_participants, photo_url, mode, moderation_status, latitude, longitude, meeting_point')
+          .eq('organizer_profile_id', myProfile.supabaseId)
+          .lt('activity_date', localIsoDate(today)).gte('activity_date', localIsoDate(since))
+          .is('venue_activity_id', null).is('recurrence', null);
+        if(!pastErr) toMarkItems = past || [];
+      } catch(e){}
     } else if(kind === 'carpools'){
       const me = myProfile.supabaseId;
       const { data: myOffers } = await supabaseClient.from('carpool_offers').select('activity_id').eq('driver_profile_id', me);
@@ -11317,6 +11373,10 @@ async function openProfileList(kind){
         (bookedOffers || []).forEach(o => ids.add(o.activity_id));
       }
       items = all.filter(a => ids.has(a.id)).map(a => ({ ...a, hasCarpool: true }));
+    }
+    if(!items.length && !toMarkItems.length && kind === 'mine'){
+      body.innerHTML = emptyMsgState('📅', "Aucune sortie prévue… tu ne vas quand même pas rester à presser des oranges tout seul ? 🍊", false);
+      return;
     }
     if(!items.length && kind === 'carpools'){
       body.innerHTML = emptyMsgState('🚗', "Aucun covoiturage pour l'instant… propose ou réserve un trajet depuis la fiche d'une sortie 🍊", false);
