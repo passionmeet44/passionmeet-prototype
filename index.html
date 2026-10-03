@@ -2271,6 +2271,62 @@
   .ac-badge.newbie{ background:#E9F6EC; color:#2E7D4F; }
   body.dark-mode .ac-badge.newbie{ background:rgba(78,154,110,0.20); color:#93D6AE; }
 </style>
+
+<style id="pm-activity-types">
+  .dg-emoji{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:54px; padding-bottom:30px;
+    filter:drop-shadow(0 4px 10px rgba(0,0,0,0.25)); }
+  .dg-card.big .dg-emoji{ font-size:70px; }
+  .dg-card:has(.dg-emoji){ background:linear-gradient(135deg,#8B5A8C,#3E1F44); }
+  /* Sur les tuiles colorées, les étiquettes de prix restent claires et lisibles, même en mode sombre */
+  body.dark-mode .venue-tile-price.free{ background:rgba(255,255,255,0.94) !important; color:#2E7D4F !important; }
+  body.dark-mode .venue-tile-price.paid{ background:rgba(255,255,255,0.94) !important; color:var(--orange-deep) !important; }
+</style>
+
+<style id="pm-members">
+  /* Accueil : deux grandes tuiles égales */
+  .hi-duo{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .hi-big{ position:relative; border-radius:22px; padding:16px 14px 15px; cursor:pointer; color:#fff; min-height:150px;
+    display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; box-shadow:var(--pm-shadow); transition:transform .15s ease; }
+  .hi-big:active{ transform:scale(0.97); }
+  .hi-big.love{ background:linear-gradient(150deg, #9B4F96 0%, #6B2F6E 55%, #4A1F50 100%); }
+  .hi-big.friend{ background:linear-gradient(150deg, #F2924B 0%, #E5722A 55%, #C25A1C 100%); }
+  .hi-big-ico{ position:absolute; top:14px; left:14px; width:46px; height:46px; border-radius:15px; background:rgba(255,255,255,0.2);
+    display:flex; align-items:center; justify-content:center; font-size:24px; }
+  .hi-big h4{ font-family:var(--font-display); font-size:17px; font-weight:800; line-height:1.15; color:#fff; }
+  .hi-big p{ font-size:12px; line-height:1.3; color:rgba(255,255,255,0.88); margin-top:3px; }
+  .hi-row.two{ grid-template-columns:1fr 1fr !important; }
+
+  /* Découvrir : plus de bouton ni de filtre Amitié */
+  .swipe-btn.friend, #swipe-mode-filter-row, #screen-swipe .stamp.friend{ display:none !important; }
+  .fl-card:has(.fl-seg){ display:none !important; }
+
+  /* Membres */
+  #screen-members{ padding-left:20px !important; padding-right:20px !important; box-sizing:border-box; }
+  #screen-members .msg-header{ padding-left:0 !important; padding-right:0 !important; }
+  .mb-info{ font-size:12.5px; color:var(--pm-muted); margin:6px 0 14px; }
+  .mb-link{ color:var(--orange-deep); font-weight:700; cursor:pointer; }
+  .mb-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; padding-bottom:110px; }
+  .mb-card{ background:#fff; border-radius:20px; overflow:hidden; box-shadow:var(--pm-shadow); cursor:pointer; transition:transform .12s ease; }
+  .mb-card:active{ transform:scale(0.97); }
+  .mb-photo{ aspect-ratio:1/1; background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:var(--font-display); font-size:44px; font-weight:800; }
+  .mb-body{ padding:10px 12px 12px; }
+  .mb-name{ font-family:var(--font-display); font-size:15px; font-weight:800; color:var(--plum); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mb-meta{ font-size:11.5px; color:var(--pm-muted); margin-top:2px; }
+  .mb-shared{ display:inline-block; margin-top:6px; font-size:11px; font-weight:700; color:#fff; padding:3px 8px; border-radius:999px;
+    background:linear-gradient(135deg, var(--orange), var(--orange-deep)); }
+  .pk-row{ display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid #F1ECF3; }
+  .pk-row:first-of-type{ border-top:none; }
+  .pk-avatar{ width:42px; height:42px; border-radius:50%; flex-shrink:0; background-size:cover; background-position:center;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-family:var(--font-display); }
+  .pk-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .pk-text b{ font-size:14px; color:var(--plum); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pk-text span{ font-size:12px; color:var(--pm-muted); }
+  .inv-section-title{ font-family:var(--font-display); font-size:15px; font-weight:800; color:var(--plum); margin:6px 0 10px; }
+  .fi-list + .inv-section-title{ margin-top:22px; }
+  body.dark-mode .mb-card{ background:#231A29; }
+  body.dark-mode .pk-row{ border-top-color:#3B3042; }
+</style>
 </head>
 <body>
 
@@ -2572,20 +2628,19 @@
     <!-- STEP 1 : QUOI -->
     <div class="home-step" id="home-step-1">
       <div class="home-intents">
-        <div class="hi-featured" onclick="setSwipeModeFilter('Rencontre'); showScreen('swipe')">
-          <div class="hi-icon">💜</div>
-          <div class="hi-text">
+        <div class="hi-duo">
+          <div class="hi-big love" onclick="openLoveDiscovery()">
+            <div class="hi-big-ico">💜</div>
             <h4>Faire une rencontre</h4>
-            <p>Découvre les profils près de chez toi</p>
+            <p>Découvre des célibataires près de chez toi</p>
           </div>
-          <span class="hi-go">›</span>
-        </div>
-        <div class="hi-row">
-          <div class="hi-tile" onclick="setSwipeModeFilter('Amitié'); showScreen('swipe')">
-            <div class="hi-icon">🤝</div>
+          <div class="hi-big friend" onclick="openMembers()">
+            <div class="hi-big-ico">🤝</div>
             <h4>Nouveaux amis</h4>
-            <p>Profils en mode Amitié</p>
+            <p>Des membres qui veulent sortir</p>
           </div>
+        </div>
+        <div class="hi-row two">
           <div class="hi-tile" onclick="openCreateActivityReal()">
             <div class="hi-icon orange">✨</div>
             <h4>Créer une activité</h4>
@@ -2703,7 +2758,7 @@
     </div>
     <div class="swipe-header">
       <h1>Découvrir des profils</h1>
-      <p>Glissez pour choisir : ✕ passer · 🤝 amitié · 💜 rencontre</p>
+      <p>Glisse à droite pour 💜 ou à gauche pour passer</p>
       
     </div>
     <div class="radius-slider-row">
@@ -2866,6 +2921,25 @@
     <div id="invitations-list"></div>
   </div>
 
+  <!-- MEMBRES (amitié) -->
+  <div class="screen" id="screen-members">
+    <div class="msg-header" style="display:flex; align-items:center; gap:12px;">
+      <div style="cursor:pointer; font-size:22px; color:var(--plum);" onclick="showScreen('home')">←</div>
+      <h1 style="margin:0;">Nouveaux amis</h1>
+    </div>
+    <div class="cp-meta" style="font-size:13px; line-height:1.5; margin-bottom:4px;">Des membres près de chez toi qui veulent sortir et se faire des amis. Invite-les à discuter ou à une sortie.</div>
+    <div class="mb-info" id="members-info"></div>
+    <div class="mb-grid" id="members-grid"></div>
+  </div>
+
+  <div class="tag-comment-overlay" id="pick-sheet-overlay" onclick="if(event.target===this) closePickSheet()">
+    <div class="lp-card" style="max-height:78vh; overflow-y:auto;">
+      <div id="pick-sheet-title" style="font-family:var(--font-display); font-size:18px; font-weight:800; color:var(--plum); margin-bottom:10px;"></div>
+      <div id="pick-sheet-body"></div>
+      <div style="text-align:center; margin-top:14px; font-size:13px; font-weight:700; color:#9584A0; cursor:pointer;" onclick="closePickSheet()">Fermer</div>
+    </div>
+  </div>
+
   <!-- LISTES DU PROFIL : favoris, sorties organisées, profils bloqués -->
   <div class="screen" id="screen-profile-list" style="position:relative;">
     <div class="msg-header" style="display:flex; align-items:center; gap:12px;">
@@ -3014,6 +3088,7 @@
         <button class="rd-action" onclick="shareCurrentActivity()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>Partager</button>
       </div>
       <button class="rd-action rd-safety" id="ract-safety-btn" style="display:none; width:100%; margin-top:10px;" onclick="openLocationShareSheet()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>Prévenir un proche</button>
+      <button class="rd-action" id="ract-invite-btn" style="display:none; width:100%; margin-top:10px;" onclick="openInviteMembersToActivity()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19.5v-1a5.5 5.5 0 0 1 11 0v1"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18 14.2a5.5 5.5 0 0 1 2.5 4.6v.7"/></svg>Inviter des membres</button>
       <div id="ract-carpool-section" class="cp-section rd-card"></div>
       <div class="report-link" id="ract-report-link" onclick="openActivityReportModal()">🚩 Signaler cette activité</div>
     </div>
@@ -3033,8 +3108,8 @@
           <div><strong>Glissez à gauche</strong><div style="font-size:12.5px; color:#6B5872;">Pour passer au profil suivant</div></div>
         </div>
         <div style="display:flex; align-items:center; gap:14px;">
-          <span style="font-size:30px;">⬆️🤝</span>
-          <div><strong>Glissez vers le haut</strong><div style="font-size:12.5px; color:#6B5872;">Pour proposer une Amitié</div></div>
+          <span style="font-size:30px;">🤝</span>
+          <div><strong>Envie de nouveaux amis ?</strong><div style="font-size:12.5px; color:#6B5872;">Passe par « Nouveaux amis » sur l'accueil : tu y invites des membres à discuter ou à sortir</div></div>
         </div>
       </div>
       <div class="tag-comment-actions">
@@ -6235,7 +6310,7 @@ async function renderWeeklyDigest(){
         const cat = catalogCategoryInfo(x.a.category);
         return `
         <div class="dg-card ${i === 0 ? 'big' : ''}" onclick="openVenueDetail('${x.a.id}')">
-          ${photo ? `<div class="dg-photo" style="background-image:url('${photo}');"></div>` : ''}
+          ${photo ? `<div class="dg-photo" style="background-image:url('${photo}');"></div>` : `<div class="dg-emoji">${activityVisual(x.a, x.venue ? x.venue.name : '').emoji}</div>`}
           <div class="dg-shade"></div>
           <div class="dg-cat">${cat && cat.label ? cat.label : ''}</div>
           ${x.matches ? '<div class="dg-pass">❤️ Ta passion</div>' : ''}
@@ -6787,7 +6862,7 @@ function loadStoredActivityRadius(){
   if(valueEl) valueEl.textContent = km + ' km';
 }
 
-let swipeModeFilter = 'tous';
+let swipeModeFilter = 'Rencontre'; // Découvrir est réservé à la Rencontre
 let prioritizeSharedPassions = false;
 
 function countActiveDiscoverFilters(){
@@ -7298,10 +7373,77 @@ async function setHomeAvatar(){
 }
 
 // Photo d'une opportunité : vraie photo confirmée, sinon photo de catégorie.
+// ---------- Visuel d'une activité selon son TYPE réel ----------
+// Reconnaissance par le nom de l'activité (l'ordre compte : « bar à jeux »
+// est reconnu comme jeux avant d'être reconnu comme bar). Plus jamais de
+// photo de catégorie hors sujet (ex. yoga pour une piscine) : sans vraie
+// photo, l'activité reçoit l'illustration de son propre type.
+// « photo » pourra être renseigné type par type avec des photos libres
+// de droits vérifiées.
+const ACTIVITY_TYPES = [
+  { re:/piscine|natation|aqua|nage|baignade/i, emoji:'🏊', photo:null },
+  { re:/kart/i, emoji:'🏎️', photo:null },
+  { re:/bowling/i, emoji:'🎳', photo:null },
+  { re:/escape/i, emoji:'🔐', photo:null },
+  { re:/laser|paintball|airsoft/i, emoji:'🎯', photo:null },
+  { re:/accrobranche|parcours aventure|tyrolienne|filet/i, emoji:'🌲', photo:null },
+  { re:/paddle|kayak|cano[eë]|aviron|pirogue/i, emoji:'🛶', photo:null },
+  { re:/escalade|grimpe|\bbloc\b/i, emoji:'🧗', photo:null },
+  { re:/trampoline/i, emoji:'🤸', photo:null },
+  { re:/billard/i, emoji:'🎱', photo:null },
+  { re:/golf/i, emoji:'⛳', photo:null },
+  { re:/patin|glace|roller/i, emoji:'⛸️', photo:null },
+  { re:/jeux? de soci|ludoth|bar [àa] jeux|jeux de plateau/i, emoji:'🎲', photo:null },
+  { re:/quiz|blind.?test/i, emoji:'❓', photo:null },
+  { re:/karaok/i, emoji:'🎤', photo:null },
+  { re:/cin[ée]ma|film|projection/i, emoji:'🎬', photo:null },
+  { re:/th[ée][aâ]tre|spectacle|impro|humour|stand.?up/i, emoji:'🎭', photo:null },
+  { re:/concert|live|salle de musique|festival/i, emoji:'🎸', photo:null },
+  { re:/mus[ée]e|expo|galerie/i, emoji:'🖼️', photo:null },
+  { re:/poterie|c[ée]ramique|modelage/i, emoji:'🏺', photo:null },
+  { re:/peinture|dessin|aquarelle|atelier cr[ée]atif/i, emoji:'🎨', photo:null },
+  { re:/couture|tricot|broderie/i, emoji:'🧵', photo:null },
+  { re:/photo/i, emoji:'📷', photo:null },
+  { re:/p[âa]tisserie|cuisine|chef|culinaire/i, emoji:'👩‍🍳', photo:null },
+  { re:/vin|oenolog|œnolog|d[ée]gustation|cave/i, emoji:'🍷', photo:null },
+  { re:/bi[èe]re|brasserie|houblon/i, emoji:'🍺', photo:null },
+  { re:/restaurant|brunch|bistrot|cr[êe]perie|table/i, emoji:'🍽️', photo:null },
+  { re:/caf[ée]|salon de th[ée]/i, emoji:'☕', photo:null },
+  { re:/cocktail|\bbar\b|pub|guinguette|club|discoth/i, emoji:'🍸', photo:null },
+  { re:/yoga|m[ée]ditation|sophrologie|pilates/i, emoji:'🧘', photo:null },
+  { re:/danse|salsa|zumba|tango|swing/i, emoji:'💃', photo:null },
+  { re:/fitness|muscu|crossfit|salle de sport|boxe/i, emoji:'🏋️', photo:null },
+  { re:/tennis|padel|badminton|squash|ping/i, emoji:'🎾', photo:null },
+  { re:/foot|five|basket|volley|hand/i, emoji:'⚽', photo:null },
+  { re:/p[ée]tanque|boules/i, emoji:'⚪', photo:null },
+  { re:/randonn|marche|balade|sentier/i, emoji:'🥾', photo:null },
+  { re:/v[ée]lo|cyclo|vtt/i, emoji:'🚴', photo:null },
+  { re:/[ée]quitation|cheval|poney/i, emoji:'🐴', photo:null },
+  { re:/surf|voile|planche|kite|plong[ée]e/i, emoji:'🏄', photo:null },
+  { re:/spa|sauna|hammam|massage|thermes/i, emoji:'💆', photo:null },
+  { re:/parachut|saut|chute libre|ulm|parapente/i, emoji:'🪂', photo:null },
+  { re:/zoo|ferme|animaux|aquarium/i, emoji:'🦒', photo:null },
+  { re:/march[ée]|brocante|vide.?grenier/i, emoji:'🧺', photo:null }
+];
+function activityTypeFor(name){
+  const n = String(name || '');
+  return ACTIVITY_TYPES.find(t => t.re.test(n)) || null;
+}
+// Photo et illustration d'une activité du catalogue, par ordre de fiabilité :
+// photo propre de l'activité > vraie photo vérifiée de l'établissement >
+// photo libre de droits de son type > aucune photo (illustration du type).
+function activityVisual(act, venueName){
+  const confirmed = (typeof getConfirmedRealPhoto === 'function') ? getConfirmedRealPhoto(act.activity_name, venueName || '') : null;
+  const type = activityTypeFor(act.activity_name);
+  const cat = catalogCategoryInfo(act.category);
+  return {
+    photo: act.photo_url || (confirmed && confirmed.url) || (type && type.photo) || null,
+    emoji: (type && type.emoji) || (cat && cat.emoji) || '✨'
+  };
+}
+
 function digestPhotoFor(a, venue){
-  const confirmed = (typeof getConfirmedRealPhoto === 'function') ? getConfirmedRealPhoto(a.activity_name, venue ? venue.name : '') : null;
-  const cat = catalogCategoryInfo(a.category);
-  return a.photo_url || (confirmed && confirmed.url) || (cat && cat.photoUrl) || null;
+  return activityVisual(a, venue ? venue.name : '').photo;
 }
 
 function renderSwipeStack(){
@@ -7415,7 +7557,7 @@ function onPointerUp(){
 
   if(dx > 110){ flyOut(card, 'love'); }
   else if(dx < -110){ flyOut(card, 'pass'); }
-  else if(dy < -110 && Math.abs(dx) < 80){ flyOut(card, 'friend'); }
+  // (glisser vers le haut ne fait plus rien : l'amitié passe par la page Membres)
   else { card.style.transform = 'translate(0,0) rotate(0deg)'; }
 
   dragState = null;
@@ -7603,9 +7745,274 @@ async function checkAndCreateMatch(otherProfileId, mode){
 let friendInviteConfirmed = false;
 let friendInviteTarget = null;
 
-function openFriendInvite(card){
-  const p = filteredProfiles[swipeIndex];
-  if(!p || !p.isRealProfile || !p.supabaseId) return;
+// =====================================================================
+// AMOUR / AMITIÉ SÉPARÉS
+//  - Découvrir (swipe) : uniquement le mode Rencontre 💜
+//  - Membres (« Nouveaux amis ») : uniquement le mode Amitié 🤝, en grille,
+//    avec invitation à discuter (acceptation obligatoire) et à une sortie.
+// =====================================================================
+let membersCache = [];
+let currentMemberProfileId = null;
+
+function openLoveDiscovery(){
+  if(!(myProfile.modes || []).includes('love')){
+    showToast("Active le mode Rencontre dans ton profil pour découvrir des célibataires 💜", '💜');
+    openEditProfile();
+    return;
+  }
+  setSwipeModeFilter('Rencontre');
+  showScreen('swipe');
+}
+
+async function fetchFriendMembers(){
+  if(!supabaseClient || !myProfile.supabaseId) return [];
+  const blockedIds = await getBlockedProfileIds();
+  const cols = 'id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, gender, is_single_parent, is_newcomer, has_kids';
+  const build = c => {
+    let q = supabaseClient.from('profiles').select(c)
+      .neq('id', myProfile.supabaseId).is('deleted_at', null).ilike('relationship_mode', '%friend%');
+    if(blockedIds.length) q = q.not('id', 'in', `(${blockedIds.join(',')})`);
+    return q;
+  };
+  let { data, error } = await build(cols + ', sub_passions');
+  if(error) ({ data, error } = await build(cols));
+  if(error) throw error;
+  const myInterests = myProfile.interests || [];
+  const mySubs = myProfile.subPassions || [];
+  return (data || [])
+    .filter(r => r.onboarding_completed !== false && r.first_name)
+    .map(r => {
+      const m = mapSupabaseRowToSwipeCard(r, null);
+      m.distanceKm = getProfileDistance(m);
+      m.isNewcomer = r.is_newcomer === true; m.hasKids = r.has_kids === true;
+      const sharedCats = (m.tags || []).filter(t => myInterests.some(i => i.toLowerCase().includes(String(t).toLowerCase()))).length;
+      const sharedSubs = (m.subPassions || []).filter(t => mySubs.includes(t)).length;
+      m.shared = sharedCats + sharedSubs;
+      return m;
+    })
+    .filter(m => m.distanceKm == null || m.distanceKm <= currentRadius)
+    .sort((a, b) => (b.shared - a.shared) || ((a.distanceKm || 0) - (b.distanceKm || 0)));
+}
+
+async function openMembers(){
+  if(!(myProfile.modes || []).includes('friend')){
+    showToast("Active le mode Amitié dans ton profil pour rencontrer des membres 🤝", '🤝');
+    openEditProfile();
+    return;
+  }
+  showScreen('members');
+  const grid = document.getElementById('members-grid');
+  const info = document.getElementById('members-info');
+  grid.innerHTML = emptyMsgState('⏳', 'Chargement des membres…', false);
+  info.textContent = '';
+  try{
+    membersCache = await fetchFriendMembers();
+  } catch(e){
+    console.warn('[Membres] Chargement impossible :', e.message);
+    grid.innerHTML = emptyMsgState('⚠️', 'Impossible de charger les membres pour le moment.', false);
+    return;
+  }
+  info.innerHTML = `${membersCache.length} membre${membersCache.length > 1 ? 's' : ''} dans un rayon de ${currentRadius} km · <span class="mb-link" onclick="openDiscoverFilters()">Modifier</span>`;
+  if(!membersCache.length){
+    grid.innerHTML = emptyMsgState('🤝', "Pas encore de membre en mode Amitié dans ta zone… crée une sortie, ils viendront 🍊", false);
+    return;
+  }
+  grid.innerHTML = membersCache.map(m => `
+    <div class="mb-card" onclick="openMemberProfile('${m.supabaseId}')">
+      <div class="mb-photo" id="mbp-${m.supabaseId}" style="background-color:${avatarColorFor(m.name)};"><span>${escapeHtml(m.initial)}</span></div>
+      <div class="mb-body">
+        <div class="mb-name">${escapeHtml(m.name)}${m.age ? ', ' + m.age : ''}</div>
+        <div class="mb-meta">📍 ${m.distanceKm != null ? m.distanceKm.toFixed(1).replace('.', ',') + ' km' : escapeHtml(m.area || '')}</div>
+        ${m.shared ? `<div class="mb-shared">❤️ ${m.shared} en commun</div>` : ''}
+      </div>
+    </div>`).join('');
+  membersCache.forEach(m => {
+    getMainPhotoForProfile(m.supabaseId).then(url => {
+      const el = document.getElementById('mbp-' + m.supabaseId);
+      if(url && el){ el.style.backgroundImage = `url('${url}')`; el.innerHTML = ''; }
+    }).catch(() => {});
+  });
+}
+
+async function openMemberProfile(profileId){
+  const m = membersCache.find(x => x.supabaseId === profileId);
+  if(!m) return;
+  currentMemberProfileId = profileId;
+  const me = myProfile.supabaseId;
+  const photoUrls = [];
+  try{
+    const { data: rows } = await supabaseClient.from('profile_photos').select('storage_path').eq('user_id', profileId).order('position', { ascending: true });
+    for(const r of (rows || [])){ const u = await getSignedPhotoUrl(r.storage_path); if(u) photoUrls.push(u); }
+  } catch(e){}
+  // Lien déjà existant ? (amis, invitation envoyée ou reçue)
+  let matchId = null, sentPending = false, receivedPending = false;
+  try{
+    const [a, b] = [me, profileId].sort();
+    const { data: mt } = await supabaseClient.from('matches').select('id').eq('profile_a_id', a).eq('profile_b_id', b).limit(1);
+    if(mt && mt.length) matchId = mt[0].id;
+    const { data: reqs } = await supabaseClient.from('friend_requests').select('from_profile_id, status')
+      .or(`and(from_profile_id.eq.${me},to_profile_id.eq.${profileId}),and(from_profile_id.eq.${profileId},to_profile_id.eq.${me})`);
+    (reqs || []).forEach(r => { if(r.status === 'pending'){ if(r.from_profile_id === me) sentPending = true; else receivedPending = true; } });
+  } catch(e){}
+  let organizerCount = 0, relStat = null;
+  try{ organizerCount = await getOrganizerCount(profileId); } catch(e){}
+  try{ relStat = (await fetchReliabilityMap([profileId]))[profileId]; } catch(e){}
+  let mainBtn;
+  if(matchId) mainBtn = `<button class="btn-primary" style="flex:1; margin:0;" onclick="openMatchChat('${matchId}', 'members')">Écrire un message</button>`;
+  else if(receivedPending) mainBtn = `<button class="btn-primary" style="flex:1; margin:0;" onclick="openInvitationsScreen()">Voir son invitation</button>`;
+  else if(sentPending) mainBtn = `<button class="rd-action" style="flex:1; margin:0;" disabled>Invitation envoyée ✓</button>`;
+  else mainBtn = `<button class="btn-primary" style="flex:1; margin:0;" onclick="openFriendInviteFor(membersCache.find(x => x.supabaseId === '${profileId}'))">Inviter à discuter</button>`;
+  const mySubs = myProfile.subPassions || [];
+  renderProfileDetail({
+    photos: photoUrls,
+    name: m.name, age: m.age, city: m.area && m.area !== 'Zone non précisée' ? m.area : '',
+    chips: ['🤝 Mode Amitié', ...(m.distanceKm != null ? [`📍 ${m.distanceKm.toFixed(1).replace('.', ',')} km`] : [])],
+    badges: profileDetailBadges({ reliable: isReliable(relStat), organizer: organizerCount >= ORGANIZER_BADGE_MIN,
+      newcomer: m.isNewcomer, singleParent: m.isSingleParent, hasKids: m.hasKids, canCarpool: false }),
+    bio: m.bio,
+    passions: Array.isArray(m.tags) ? m.tags : [],
+    subs: m.subPassions || [],
+    sharedSubs: new Set((m.subPassions || []).filter(t => mySubs.includes(t))),
+    footerHtml: `<div style="display:flex; gap:10px;"><button class="rd-action" style="flex:1; margin:0;" onclick="openInviteToOuting('${profileId}')">Inviter à une sortie</button>${mainBtn}</div>`
+  });
+  matchProfileDetailReturn = 'members';
+  showScreen('match-profile-detail');
+}
+
+// ---------- Inviter à une sortie ----------
+async function myUpcomingOutings(){
+  const all = await fetchActiveUpcomingActivities();
+  const { data: parts } = await supabaseClient.from('activity_participants').select('activity_id').eq('profile_id', myProfile.supabaseId);
+  const mine = new Set((parts || []).map(r => r.activity_id));
+  return all.filter(a => mine.has(a.id) && a.activity_date);
+}
+
+function openPickSheet(title, html){
+  document.getElementById('pick-sheet-title').textContent = title;
+  document.getElementById('pick-sheet-body').innerHTML = html;
+  document.getElementById('pick-sheet-overlay').classList.add('show');
+}
+function closePickSheet(){ document.getElementById('pick-sheet-overlay').classList.remove('show'); }
+
+async function openInviteToOuting(profileId){
+  const m = membersCache.find(x => x.supabaseId === profileId);
+  const name = m ? m.name : 'ce membre';
+  let outings = [];
+  try{ outings = await myUpcomingOutings(); } catch(e){}
+  if(!outings.length){
+    openPickSheet(`Inviter ${name} à une sortie`, `<div class="cp-meta" style="font-size:13px; line-height:1.5;">Tu n'as pas encore de sortie à venir. Crée-en une, puis invite ${escapeHtml(name)} 🍊</div>
+      <button class="btn-primary" style="width:100%; margin-top:14px;" onclick="closePickSheet(); openCreateActivityReal()">Créer une sortie</button>`);
+    return;
+  }
+  openPickSheet(`Inviter ${name} à une sortie`, outings.map(a => {
+    const d = new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' });
+    return `<div class="pk-row"><div class="pk-text"><b>${escapeHtml(a.title)}</b><span>📅 ${d}${a.activity_time ? ' · ' + String(a.activity_time).slice(0,5) : ''}</span></div>
+      <button class="cp-btn" onclick="sendOutingInvite('${a.id}', '${profileId}', this)">Inviter</button></div>`;
+  }).join(''));
+}
+
+async function sendOutingInvite(activityId, profileId, btn){
+  try{
+    const { error } = await supabaseClient.from('activity_invitations').insert({
+      activity_id: activityId, from_profile_id: myProfile.supabaseId, to_profile_id: profileId
+    });
+    if(error && error.code !== '23505') throw error;
+    if(btn){ btn.textContent = error ? 'Déjà invité' : 'Invité ✓'; btn.disabled = true; btn.classList.add('light'); }
+    if(!error) showToast('Invitation envoyée 🍊', '✅');
+  } catch(e){
+    console.warn('[Invitation sortie] Envoi impossible :', e.message);
+    showToast("L'invitation n'a pas pu partir, réessaie.", '⚠️');
+  }
+}
+
+// Depuis la fiche d'une sortie : inviter des membres
+async function openInviteMembersToActivity(){
+  const a = currentActivityDetail;
+  if(!a) return;
+  openPickSheet('Inviter des membres', emptyMsgState('⏳', 'Chargement des membres…', false));
+  try{
+    const [members, { data: parts }] = await Promise.all([
+      fetchFriendMembers(),
+      supabaseClient.from('activity_participants').select('profile_id').eq('activity_id', a.id)
+    ]);
+    membersCache = members;
+    const already = new Set((parts || []).map(r => r.profile_id));
+    const list = members.filter(m => !already.has(m.supabaseId));
+    document.getElementById('pick-sheet-body').innerHTML = list.length
+      ? `<div class="cp-meta" style="margin-bottom:8px;">Membres en mode Amitié près de chez toi, les plus proches de tes passions en premier.</div>`
+        + list.map(m => `<div class="pk-row">
+            <div class="pk-avatar" id="pka-${m.supabaseId}" style="background-color:${avatarColorFor(m.name)};">${escapeHtml(m.initial)}</div>
+            <div class="pk-text"><b>${escapeHtml(m.name)}${m.age ? ', ' + m.age : ''}</b><span>${m.shared ? `❤️ ${m.shared} en commun · ` : ''}${m.distanceKm != null ? m.distanceKm.toFixed(1).replace('.', ',') + ' km' : ''}</span></div>
+            <button class="cp-btn" onclick="sendOutingInvite('${a.id}', '${m.supabaseId}', this)">Inviter</button>
+          </div>`).join('')
+      : emptyMsgState('🤝', "Aucun autre membre en mode Amitié dans ta zone pour l'instant.", false);
+    list.forEach(m => getMainPhotoForProfile(m.supabaseId).then(url => {
+      const el = document.getElementById('pka-' + m.supabaseId);
+      if(url && el){ el.style.backgroundImage = `url('${url}')`; el.textContent = ''; }
+    }).catch(() => {}));
+  } catch(e){
+    document.getElementById('pick-sheet-body').innerHTML = emptyMsgState('⚠️', 'Impossible de charger les membres pour le moment.', false);
+  }
+}
+
+// ---------- Invitations à des sorties reçues ----------
+async function fetchPendingOutingInvites(){
+  if(!supabaseClient || !myProfile.supabaseId) return [];
+  try{
+    const { data, error } = await supabaseClient.from('activity_invitations')
+      .select('id, activity_id, from_profile_id, created_at').eq('to_profile_id', myProfile.supabaseId).eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    if(error) throw error;
+    const blocked = new Set(await getBlockedProfileIds());
+    return (data || []).filter(r => !blocked.has(r.from_profile_id));
+  } catch(e){ return []; }
+}
+
+async function renderOutingInvitationsHtml(){
+  const rows = await fetchPendingOutingInvites();
+  const cards = (await Promise.all(rows.map(async r => {
+    const { data: a } = await supabaseClient.from('activities').select('id, title, activity_date, activity_time, location, moderation_status').eq('id', r.activity_id).maybeSingle();
+    if(!a || (a.moderation_status || 'active') !== 'active') return '';
+    const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', r.from_profile_id).maybeSingle();
+    const d = a.activity_date ? new Date(a.activity_date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' }) : 'Date à définir';
+    return `<div class="fi-card">
+        <div class="fi-photo" style="background:linear-gradient(135deg, var(--orange), var(--orange-deep));">📅</div>
+        <div class="fi-body">
+          <div class="fi-name">${escapeHtml(a.title)}</div>
+          <div class="fi-msg">${d}${a.activity_time ? ' · ' + String(a.activity_time).slice(0,5) : ''}${a.location ? ' · 📍 ' + escapeHtml(a.location) : ''}</div>
+          <div class="fi-msg">Invité(e) par ${escapeHtml(p && p.first_name ? p.first_name : 'un membre')}</div>
+          <div class="fi-actions">
+            <button class="fi-accept" onclick="respondOutingInvite('${r.id}', true, '${a.id}')">Je participe</button>
+            <button class="fi-decline" onclick="respondOutingInvite('${r.id}', false)">Non merci</button>
+          </div>
+        </div>
+      </div>`;
+  }))).filter(Boolean);
+  return cards;
+}
+
+async function respondOutingInvite(invitationId, accept, activityId){
+  try{
+    const { error } = await supabaseClient.rpc('respond_activity_invitation', { p_invitation_id: invitationId, p_accept: accept });
+    if(error) throw error;
+    refreshUnreadBadges();
+    if(accept){
+      showToast("C'est noté, tu participes 🎉", '✅');
+      if(activityId) setTimeout(() => openActivityDetail(activityId), 300);
+    } else {
+      showToast('Invitation déclinée', '👋');
+      renderFriendInvitations();
+      renderInvitesEntry();
+    }
+  } catch(e){
+    console.warn('[Invitation sortie] Réponse impossible :', e.message);
+    showToast((e.message || '').includes('ACTIVITY_FULL') ? 'Cette sortie est complète' : "Impossible pour le moment, réessaie.", '⚠️');
+  }
+}
+
+function openFriendInvite(card){ openFriendInviteFor(filteredProfiles[swipeIndex]); }
+function openFriendInviteFor(p){
+  if(!p || !p.supabaseId) return;
   friendInviteTarget = p;
   const name = p.name || 'Cette personne';
   document.getElementById('fi-sheet-title').textContent = `🤝 Inviter ${name} à discuter`;
@@ -7652,9 +8059,9 @@ async function sendFriendInvite(){
     showToast("L'invitation n'a pas pu partir, réessaie.", '⚠️');
     return;
   }
+  const invitedId = p.supabaseId;
   closeFriendInvite();
-  const card = document.querySelector('.swipe-card.top');
-  if(card){ friendInviteConfirmed = true; flyOut(card, 'friend'); }
+  if(currentMemberProfileId === invitedId) openMemberProfile(invitedId);
 }
 
 // Ligne « Invitations à discuter » en haut des conversations privées.
@@ -7667,19 +8074,26 @@ async function renderInvitesEntry(){
     if(error) throw error;
     const blocked = new Set(await getBlockedProfileIds());
     const ids = (data || []).map(r => r.from_profile_id).filter(id => !blocked.has(id));
-    if(!ids.length){ box.innerHTML = ''; return; }
+    const outingInvites = await fetchPendingOutingInvites();
+    if(!ids.length && !outingInvites.length){ box.innerHTML = ''; return; }
     let firstName = '';
     try{
       const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', ids[0]).maybeSingle();
       firstName = p && p.first_name ? p.first_name : '';
     } catch(e){}
-    const who = firstName
-      ? (ids.length > 1 ? `${escapeHtml(firstName)} et ${ids.length - 1} autre${ids.length > 2 ? 's' : ''} aimeraient faire ta connaissance` : `${escapeHtml(firstName)} aimerait faire ta connaissance`)
-      : `${ids.length} personne${ids.length > 1 ? 's' : ''} aimerai${ids.length > 1 ? 'ent' : 't'} faire ta connaissance`;
+    let who = '';
+    if(ids.length){
+      who = firstName
+        ? (ids.length > 1 ? `${escapeHtml(firstName)} et ${ids.length - 1} autre${ids.length > 2 ? 's' : ''} aimeraient faire ta connaissance` : `${escapeHtml(firstName)} aimerait faire ta connaissance`)
+        : `${ids.length} personne${ids.length > 1 ? 's' : ''} aimerai${ids.length > 1 ? 'ent' : 't'} faire ta connaissance`;
+    }
+    if(outingInvites.length){
+      who += (who ? ' · ' : '') + `${outingInvites.length} invitation${outingInvites.length > 1 ? 's' : ''} à des sorties`;
+    }
     box.innerHTML = `<div class="inv-entry" onclick="openInvitationsScreen()">
         <div class="inv-entry-ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.8 6.8L12 13l8.2-6.2"/></svg></div>
-        <div class="inv-entry-text"><b>Invitations à discuter</b><span>${who}</span></div>
-        <span class="alert-pill invite"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></svg>${ids.length > 9 ? '9+' : ids.length}</span>
+        <div class="inv-entry-text"><b>Invitations</b><span>${who}</span></div>
+        <span class="alert-pill invite" data-total="1"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></svg>${(ids.length + outingInvites.length) > 9 ? '9+' : (ids.length + outingInvites.length)}</span>
       </div>`;
   } catch(e){ box.innerHTML = ''; }
 }
@@ -7691,12 +8105,18 @@ function openInvitationsScreen(){
 
 async function countPendingFriendInvites(){
   if(!supabaseClient || !myProfile.supabaseId) return 0;
+  let total = 0;
   try{
     const { count, error } = await supabaseClient.from('friend_requests')
       .select('id', { count:'exact', head:true }).eq('to_profile_id', myProfile.supabaseId).eq('status', 'pending');
-    if(error) throw error;
-    return count || 0;
-  } catch(e){ return 0; }
+    if(!error) total += count || 0;
+  } catch(e){}
+  try{
+    const { count, error } = await supabaseClient.from('activity_invitations')
+      .select('id', { count:'exact', head:true }).eq('to_profile_id', myProfile.supabaseId).eq('status', 'pending');
+    if(!error) total += count || 0;
+  } catch(e){}
+  return total;
 }
 
 async function renderFriendInvitations(){
@@ -7729,9 +8149,11 @@ async function renderFriendInvitations(){
           </div>
         </div>`;
     }))).filter(Boolean);
-    box.innerHTML = cards.length
-      ? `<div class="fi-list">${cards.join('')}</div>`
-      : emptyMsgState('📩', "Aucune invitation en attente pour l'instant 🍊", false);
+    const outingCards = await renderOutingInvitationsHtml();
+    const sections = [];
+    if(cards.length) sections.push(`<div class="inv-section-title">Pour discuter</div><div class="fi-list">${cards.join('')}</div>`);
+    if(outingCards.length) sections.push(`<div class="inv-section-title">Pour des sorties</div><div class="fi-list">${outingCards.join('')}</div>`);
+    box.innerHTML = sections.length ? sections.join('') : emptyMsgState('📩', "Aucune invitation en attente pour l'instant 🍊", false);
   } catch(e){
     console.warn('[Amitié] Invitations indisponibles :', e.message);
     box.innerHTML = '';
@@ -9459,14 +9881,16 @@ function reservationBadge(status){
 }
 
 function buildVenueCardHtml(act, venue, distanceKm){
-  const cat = catalogCategoryInfo(act.category);
+  let cat = catalogCategoryInfo(act.category);
+  const actVisual = activityVisual(act, venue.name);
+  cat = Object.assign({}, cat, { emoji: actVisual.emoji });
   const resa = reservationBadge(act.reservation_status);
   const distLabel = distanceKm != null ? `📍 ${distanceKm < 1 ? Math.round(distanceKm*1000)+' m' : distanceKm.toFixed(1).replace('.', ',')+' km'}` : null;
   // Priorité réelle : photo de l'activité (champ DB, absent des données
   // actuelles) > photo réelle confirmée avec licence claire (table vérifiée
   // manuellement) > photo de catégorie > emoji si même cette photo échoue.
   const confirmedPhoto = getConfirmedRealPhoto(act.activity_name, venue.name);
-  const photoUrl = act.photo_url || (confirmedPhoto && confirmedPhoto.url) || cat.photoUrl;
+  const photoUrl = actVisual.photo;
   const mediaContent = photoUrl
     ? `<img src="${photoUrl}" alt="" loading="lazy" onerror="this.parentElement.style.background='${cat.bgLight}'; this.outerHTML='<span style=&quot;font-size:34px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))&quot;>${cat.emoji}</span>';">`
     : `<span style="font-size:34px; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.25));">${cat.emoji}</span>`;
@@ -9495,7 +9919,9 @@ function buildVenueCardHtml(act, venue, distanceKm){
 // une palette neutre : la couleur ne vient que d'une vraie photo, jamais
 // d'un aplat de couleur choisi arbitrairement par catégorie.
 function buildVenueTileHtml(act, venue, distanceKm){
-  const cat = catalogCategoryInfo(act.category);
+  let cat = catalogCategoryInfo(act.category);
+  const actVisual = activityVisual(act, venue.name);
+  cat = Object.assign({}, cat, { emoji: actVisual.emoji });
   const resa = act.reservation_status === 'ONLINE_BOOKING_VERIFIED' ? '🎫'
     : act.reservation_status === 'EMAIL_RESERVATION' ? '✉️'
     : act.reservation_status === 'PHONE_OR_CONTACT_RESERVATION_CONFIRMED_BY_REVIEWS' ? '📞'
@@ -9505,7 +9931,7 @@ function buildVenueTileHtml(act, venue, distanceKm){
   // actuelles) > photo réelle confirmée avec licence claire (table vérifiée
   // manuellement) > photo de catégorie > emoji si même cette photo échoue.
   const confirmedPhotoTile = getConfirmedRealPhoto(act.activity_name, venue.name);
-  const photoUrl = act.photo_url || (confirmedPhotoTile && confirmedPhotoTile.url) || cat.photoUrl;
+  const photoUrl = actVisual.photo;
   const mediaContent = photoUrl
     ? `<img src="${photoUrl}" alt="" loading="lazy" onerror="this.parentElement.style.background='${cat.bgLight}'; this.outerHTML='<span style=&quot;font-size:26px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.25))&quot;>${cat.emoji}</span>';">`
     : `<span style="font-size:26px; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.25));">${cat.emoji}</span>`;
@@ -9719,11 +10145,13 @@ async function openVenueDetail(activityId){
   const act = activities.find(a => a.id === activityId);
   if(!act) return;
   const venue = venues.find(v => v.id === act.venue_id);
-  const cat = catalogCategoryInfo(act.category);
+  let cat = catalogCategoryInfo(act.category);
+  const actVisual = activityVisual(act, venue ? venue.name : '');
+  cat = Object.assign({}, cat, { emoji: actVisual.emoji });
   const resa = reservationBadge(act.reservation_status);
   const distanceKm = (venue && venue.latitude != null) ? haversineKm(userCoords[0], userCoords[1], venue.latitude, venue.longitude) : null;
   const confirmedPhotoDetail = getConfirmedRealPhoto(act.activity_name, venue ? venue.name : '');
-  const detailPhotoUrl = act.photo_url || (confirmedPhotoDetail && confirmedPhotoDetail.url) || cat.photoUrl;
+  const detailPhotoUrl = actVisual.photo;
   // Attribution requise pour les licences CC BY-SA (crédit + licence) —
   // n'apparaît que lorsqu'une vraie photo confirmée est réellement utilisée,
   // jamais sur le repli catégorie.
@@ -11212,6 +11640,8 @@ async function refreshActivityParticipants(activityId){
     if(groupBtn) groupBtn.style.display = participantIds.includes(myProfile.supabaseId) ? '' : 'none';
     const safetyBtn = document.getElementById('ract-safety-btn');
     if(safetyBtn) safetyBtn.style.display = participantIds.includes(myProfile.supabaseId) ? '' : 'none';
+    const inviteBtn = document.getElementById('ract-invite-btn');
+    if(inviteBtn) inviteBtn.style.display = participantIds.includes(myProfile.supabaseId) ? '' : 'none';
     renderCarpoolSection(activityId, participantIds.includes(myProfile.supabaseId));
     const maxLabel = currentActivityDetail && currentActivityDetail.maxParticipants ? `/${currentActivityDetail.maxParticipants}` : '';
     titleEl.textContent = `👥 ${participantIds.length}${maxLabel} participant${participantIds.length>1?'s':''}`;
