@@ -2363,6 +2363,19 @@
   body.dark-mode .wiz-choice.sel{ background:rgba(229,114,42,0.16); border-color:var(--orange); color:#F7A86E; }
   body.dark-mode .wiz-bar{ background:#3B3042; }
 </style>
+
+<style id="pm-photo-bank">
+  .pb-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; margin:8px 0 6px; max-height:300px; overflow-y:auto; padding:2px; }
+  .pb-item{ position:relative; aspect-ratio:4/3; border-radius:12px; background-size:cover; background-position:center; cursor:pointer;
+    border:3px solid transparent; transition:transform .12s ease, border-color .15s ease; overflow:hidden; }
+  .pb-item:active{ transform:scale(0.96); }
+  .pb-item span{ position:absolute; left:0; right:0; bottom:0; padding:12px 6px 4px; font-size:10.5px; font-weight:700; color:#fff;
+    background:linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pb-item.suggested{ border-color:#F6B94D; }
+  .pb-item.sel{ border-color:var(--orange-deep); box-shadow:0 0 0 3px rgba(229,114,42,0.3); }
+  .pb-item.sel::after{ content:'✓'; position:absolute; top:5px; right:5px; width:22px; height:22px; border-radius:50%; background:var(--orange-deep);
+    color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+</style>
 </head>
 <body>
 
@@ -3038,7 +3051,7 @@
     </div>
     <div style="padding:20px 22px 100px;">
       <div class="form-label">Titre</div>
-      <input class="form-input" id="ract-form-title" type="text" placeholder="Ex : Randonnée au bord de l'Erdre">
+      <input class="form-input" id="ract-form-title" oninput="renderPhotoBank()" type="text" placeholder="Ex : Randonnée au bord de l'Erdre">
 
       <div class="form-label">Description</div>
       <textarea class="form-textarea" id="ract-form-desc" placeholder="Décrivez l'activité, ce qui vous attend…"></textarea>
@@ -3091,6 +3104,9 @@
         <option value="monthly">🔁 Chaque mois</option>
       </select>
       <div class="form-hint">Pour un rendez-vous régulier : la date passe automatiquement à la suivante, avec le même groupe.</div>
+      <div class="form-label" style="margin-top:14px;">Photo de la sortie</div>
+      <div class="form-hint" style="margin-top:-2px;">Choisis une photo, sans rien télécharger. Celle qui correspond à ton titre apparaît en premier.</div>
+      <div class="pb-grid" id="ract-photo-bank"></div>
 
       <div class="form-label">Mode</div>
       <div class="mode-badge-row">
@@ -7564,18 +7580,18 @@ async function setHomeAvatar(){
 // de droits vérifiées.
 const ACTIVITY_TYPES = [
   // Ateliers créatifs AVANT piscine (« aquarelle » contient « aqua ») et poterie
-  { re:/peinture sur c[ée]ramique|atelier cr[ée]atif|art cr[ée]atif|aquarelle|tufting/i, emoji:'🎨', photo:null },
+  { re:/peinture sur c[ée]ramique|atelier cr[ée]atif|art cr[ée]atif|aquarelle|tufting/i, emoji:'🎨', photo:'https://images.unsplash.com/photo-1507010444286-828ea71bfac7?auto=format&fit=crop&w=800&q=70' }, // Unsplash — personne qui peint une scène de bord de mer, licence Unsplash gratuite (hors Unsplash+), vérifiée
   // Pexels 14761078 — nageur dans une ligne d'eau, licence Pexels gratuite, vérifiée
   { re:/piscine|natation|nage|baignade|aquapark|aquabike|aquagym|aquacross/i, emoji:'🏊', photo:'https://images.pexels.com/photos/14761078/pexels-photo-14761078.jpeg?auto=compress&cs=tinysrgb&w=800' },
   { re:/wake|jet.?ski|flyboard|bou[ée]e tract|ski nautique/i, emoji:'🚤', photo:null },
   // Parcs pour enfants AVANT karting (« Parc de jeux / karting enfant »)
-  { re:/kids park|parc de jeux/i, emoji:'🛝', photo:null },
+  { re:/kids park|parc de jeux/i, emoji:'🛝', photo:'https://images.unsplash.com/photo-1751235600651-94bbbeb29567?auto=format&fit=crop&w=800&q=70' }, // Unsplash — parcours d'obstacles en salle avec fosse à mousse, licence Unsplash gratuite (hors Unsplash+), vérifiée
   // Unsplash psCOesRN0J0 — pilote de kart sur circuit, licence Unsplash gratuite, vérifiée
   { re:/kart/i, emoji:'🏎️', photo:'https://images.unsplash.com/photo-1508550794981-ed0e94d56589?auto=format&fit=crop&w=800&q=70' },
   // Unsplash A4rJ8dU76vQ — quilles et pistes de bowling, licence Unsplash gratuite, vérifiée
   { re:/bowling/i, emoji:'🎳', photo:'https://images.unsplash.com/photo-1473441771330-42393d826246?auto=format&fit=crop&w=800&q=70' },
-  { re:/escape/i, emoji:'🔐', photo:null },
-  { re:/laser|paintball|airsoft/i, emoji:'🔫', photo:null },
+  { re:/escape/i, emoji:'🔐', photo:'https://images.unsplash.com/photo-1569002925653-ed18f55d7292?auto=format&fit=crop&w=800&q=70' }, // Unsplash — enseigne lumineuse « Escape Rooms », licence Unsplash gratuite (hors Unsplash+), vérifiée
+  { re:/laser|paintball|airsoft/i, emoji:'🔫', photo:'https://images.unsplash.com/photo-1750548546292-0f9f1db12d50?auto=format&fit=crop&w=800&q=70' }, // Unsplash — joueurs avec des pistolets laser, de nuit, licence Unsplash gratuite (hors Unsplash+), vérifiée
   { re:/fl[ée]chette/i, emoji:'🎯', photo:null },
   { re:/hache/i, emoji:'🪓', photo:null },
   { re:/drop zone/i, emoji:'🎢', photo:null },
@@ -7589,25 +7605,25 @@ const ACTIVITY_TYPES = [
   { re:/paddle|kayak|cano[eë]|aviron|pirogue/i, emoji:'🛶', photo:'https://images.pexels.com/photos/2283103/pexels-photo-2283103.jpeg?auto=compress&cs=tinysrgb&w=800' },
   // Pexels 5383798 — grimpeur sur un mur en salle de bloc, licence Pexels gratuite, vérifiée
   { re:/escalade|grimpe|\bbloc\b/i, emoji:'🧗', photo:'https://images.pexels.com/photos/5383798/pexels-photo-5383798.jpeg?auto=compress&cs=tinysrgb&w=800' },
-  { re:/trampoline/i, emoji:'🤸', photo:null },
+  { re:/trampoline/i, emoji:'🤸', photo:'https://images.unsplash.com/photo-1751235640841-d8d1035a80f0?auto=format&fit=crop&w=800&q=70' }, // Unsplash — trampoline park en salle, licence Unsplash gratuite (hors Unsplash+), vérifiée
   { re:/billard/i, emoji:'🎱', photo:null },
   { re:/golf/i, emoji:'⛳', photo:null },
   { re:/patin|glace|roller/i, emoji:'⛸️', photo:null },
   { re:/arcade/i, emoji:'👾', photo:null },
   { re:/jeu de piste|chasse au tr[ée]sor/i, emoji:'🧭', photo:null },
   { re:/jeux? de soci|ludoth|bar [àa] jeux|jeux de plateau/i, emoji:'🎲', photo:null },
-  { re:/quiz|blind.?test/i, emoji:'❓', photo:null },
-  { re:/karaok/i, emoji:'🎤', photo:null },
+  { re:/quiz|blind.?test/i, emoji:'❓', photo:'https://images.unsplash.com/photo-1485579149621-3123dd979885?auto=format&fit=crop&w=800&q=70' }, // Unsplash — micro vintage sur fond violet, licence Unsplash gratuite (hors Unsplash+), vérifiée
+  { re:/karaok/i, emoji:'🎤', photo:'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=70' }, // Unsplash — micro sur fond de lumières, « Sing your heart out! », licence Unsplash gratuite (hors Unsplash+), vérifiée
   // Boîtes de nuit AVANT bars
-  { re:/bo[iî]te de nuit|club|discoth/i, emoji:'🪩', photo:null },
+  { re:/bo[iî]te de nuit|club|discoth/i, emoji:'🪩', photo:'https://images.unsplash.com/photo-1725268093455-061ff2ed6c08?auto=format&fit=crop&w=800&q=70' }, // Unsplash — amis qui lèvent leur verre, de nuit, licence Unsplash gratuite (hors Unsplash+), vérifiée
   // Pexels 7991319 — fauteuils rouges d'une salle de cinéma, licence Pexels gratuite, vérifiée
   { re:/cin[ée]ma|film|projection/i, emoji:'🎬', photo:'https://images.pexels.com/photos/7991319/pexels-photo-7991319.jpeg?auto=compress&cs=tinysrgb&w=800' },
   { re:/th[ée][aâ]tre|spectacle|impro|humour|stand.?up/i, emoji:'🎭', photo:null },
-  { re:/cours de musique|guitare|piano|ukul/i, emoji:'🎹', photo:null },
+  { re:/cours de musique|guitare|piano|ukul/i, emoji:'🎹', photo:'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=800&q=70' }, // Unsplash — personne qui joue de la guitare, licence Unsplash gratuite (hors Unsplash+), vérifiée
   // Pexels 1763067 — foule de concert et lumières de scène, licence Pexels gratuite, vérifiée
   { re:/concert|salle de musique|festival/i, emoji:'🎸', photo:'https://images.pexels.com/photos/1763067/pexels-photo-1763067.jpeg?auto=compress&cs=tinysrgb&w=800' },
   // Photographie AVANT navires (« Navires : à vous de cadrer ! »)
-  { re:/photo|cadrer/i, emoji:'📷', photo:null },
+  { re:/photo|cadrer/i, emoji:'📷', photo:'https://images.unsplash.com/photo-1510127034890-ba27508e9f1c?auto=format&fit=crop&w=800&q=70' }, // Unsplash — appareil photo argentique et tirages, licence Unsplash gratuite (hors Unsplash+), vérifiée
   { re:/ch[âa]teau/i, emoji:'🏰', photo:null },
   { re:/airbus/i, emoji:'✈️', photo:null },
   { re:/[ée]olien|\beol\b/i, emoji:'🌬️', photo:null },
@@ -7618,22 +7634,23 @@ const ACTIVITY_TYPES = [
   { re:/zoo|ferme|animaux|animalier|safari|aquarium/i, emoji:'🦒', photo:null },
   // Pexels 8063876 — mains sur un tour de potier, licence Pexels gratuite, vérifiée
   { re:/poterie|c[ée]ramique|modelage/i, emoji:'🏺', photo:'https://images.pexels.com/photos/8063876/pexels-photo-8063876.jpeg?auto=compress&cs=tinysrgb&w=800' },
-  { re:/peinture|dessin|atelier cr[ée]atif/i, emoji:'🎨', photo:null },
+  { re:/peinture|dessin|atelier cr[ée]atif/i, emoji:'🎨', photo:'https://images.unsplash.com/photo-1507010444286-828ea71bfac7?auto=format&fit=crop&w=800&q=70' }, // Unsplash — personne qui peint une scène de bord de mer, licence Unsplash gratuite (hors Unsplash+), vérifiée
   { re:/bijou/i, emoji:'💍', photo:null },
   { re:/couture|tricot|broderie/i, emoji:'🧵', photo:null },
   { re:/\bpain\b|boulang/i, emoji:'🥖', photo:null },
   // Bière AVANT vin (« dégustation de bières »)
   { re:/bi[èe]re|brasserie|houblon/i, emoji:'🍺', photo:null },
-  { re:/p[âa]tisserie|chocolat|cuisine|chef|culinaire/i, emoji:'👩‍🍳', photo:null },
-  { re:/\bvin\b|vins|oenolog|œnolog|d[ée]gustation|cave/i, emoji:'🍷', photo:null },
+  { re:/p[âa]tisserie|chocolat|cuisine|chef|culinaire/i, emoji:'👩‍🍳', photo:'https://images.unsplash.com/photo-1683624328172-88fb24625ec1?auto=format&fit=crop&w=800&q=70' }, // Unsplash — groupe d'adultes qui préparent un repas ensemble, licence Unsplash gratuite (hors Unsplash+), vérifiée
+  { re:/\bvin\b|vins|oenolog|œnolog|d[ée]gustation|cave/i, emoji:'🍷', photo:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=70' }, // Unsplash — amis qui trinquent avec du vin, licence Unsplash gratuite (hors Unsplash+), vérifiée
   { re:/restaurant|brunch|bistrot|cr[êe]perie/i, emoji:'🍽️', photo:null },
   { re:/caf[ée]|salon de th[ée]/i, emoji:'☕', photo:null },
-  { re:/cocktail|\bbar\b|pub|guinguette/i, emoji:'🍸', photo:null },
+  { re:/cocktail|\bbar\b|pub|guinguette/i, emoji:'🍸', photo:'https://images.unsplash.com/photo-1725268093455-061ff2ed6c08?auto=format&fit=crop&w=800&q=70' }, // Unsplash — amis qui lèvent leur verre dans un bar, de nuit, licence Unsplash gratuite (hors Unsplash+), vérifiée
   { re:/yoga|m[ée]ditation|sophrologie|pilates/i, emoji:'🧘', photo:null },
   { re:/danse|salsa|zumba|tango|swing/i, emoji:'💃', photo:null },
-  { re:/fitness|muscu|crossfit|salle de sport|boxe/i, emoji:'🏋️', photo:null },
-  { re:/tennis|padel|badminton|squash|ping/i, emoji:'🎾', photo:null },
-  { re:/foot|five|basket|volley|handball/i, emoji:'⚽', photo:null },
+  { re:/fitness|muscu|crossfit|salle de sport|boxe/i, emoji:'🏋️', photo:'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=70' }, // Unsplash — salle de sport et appareils, licence gratuite, vérifiée
+  { re:/squash/i, emoji:'🎾', photo:null },
+  { re:/tennis|padel|badminton|ping/i, emoji:'🎾', photo:'https://images.unsplash.com/photo-1657704358775-ed705c7388d2?auto=format&fit=crop&w=800&q=70' }, // Unsplash — raquette et balle de padel sur le terrain, licence gratuite, vérifiée
+  { re:/foot|five|basket|volley|handball/i, emoji:'⚽', photo:'https://images.unsplash.com/photo-1600077063877-22118d6290eb?auto=format&fit=crop&w=800&q=70' }, // Unsplash — groupe qui joue au football, licence gratuite, vérifiée
   { re:/p[ée]tanque|boules/i, emoji:'⚪', photo:null },
   // Pexels 35731347 — randonneurs face à la mer, licence Pexels gratuite, vérifiée
   { re:/randonn|marche|balade|sentier/i, emoji:'🥾', photo:'https://images.pexels.com/photos/35731347/pexels-photo-35731347/free-photo-of-group-of-hikers-on-grassy-hill-overlooking-calm-sea.jpeg?auto=compress&cs=tinysrgb&w=800' },
@@ -7643,6 +7660,102 @@ const ACTIVITY_TYPES = [
   { re:/activit[ée]s sportives|sport sant[ée]/i, emoji:'🏃', photo:null },
   { re:/march[ée]|brocante|vide.?grenier/i, emoji:'🧺', photo:null },
 ];
+// =====================================================================
+// ILLUSTRATIONS DESSINÉES PAR TYPE D'ACTIVITÉ (plus jamais d'emoji ni de « ? »)
+// Dessins vectoriels originaux : s'affichent sur tous les téléphones, sans
+// question de droits. Utilisées quand l'activité n'a pas de vraie photo.
+// =====================================================================
+const ILLU_ICONS = {
+  mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>',
+  note:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  masks:'<path d="M3 4h9v6a4.5 4.5 0 0 1-9 0z"/><path d="M12 10h9v6a4.5 4.5 0 0 1-9 0z"/><path d="M5.5 7.5h1M8.5 7.5h1M14.5 13.5h1M17.5 13.5h1M6 10.5c.8.8 1.8.8 2.6 0M15 17c.8-.8 1.8-.8 2.6 0"/>',
+  piano:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 5v9M12 5v9M16 5v9M8 14v5M12 14v5M16 14v5"/>',
+  disco:'<circle cx="12" cy="13" r="7"/><path d="M12 3v3M5 13h14M12 6c-3 3-3 11 0 14M12 6c3 3 3 11 0 14"/>',
+  cocktail:'<path d="M4 4h16l-8 9z"/><path d="M12 13v8M8 21h8M15 4l3-2"/>',
+  wine:'<path d="M8 3h8v4a4 4 0 0 1-8 0z"/><path d="M12 11v9M8 21h8"/>',
+  beer:'<path d="M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M16 11h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><path d="M6 8a3 3 0 0 1 5-2 3 3 0 0 1 5 2"/>',
+  utensils:'<path d="M7 3v8a2 2 0 0 0 4 0V3M9 11v10"/><path d="M17 3c-2 0-3 2-3 6s1 4 3 4v8"/>',
+  chef:'<path d="M7 18h10v3H7z"/><path d="M7 18v-4a4 4 0 0 1-1-7.5A4 4 0 0 1 12 4a4 4 0 0 1 6 2.5A4 4 0 0 1 17 14v4"/>',
+  cup:'<path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h2a2 2 0 0 1 0 4h-2M8 3v2M12 3v2"/>',
+  bread:'<path d="M4 11a5 5 0 0 1 4-5h8a5 5 0 0 1 4 5v8H4z"/><path d="M8 11v3M12 10v4M16 11v3"/>',
+  palette:'<path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5S14 15 15 15h2a4 4 0 0 0 4-4c0-4.5-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+  gem:'<path d="M6 4h12l3 5-9 11L3 9z"/><path d="M3 9h18M9 4l-1 5 4 11 4-11-1-5"/>',
+  camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="4"/>',
+  frame:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="8.5" r="1.5"/>',
+  castle:'<path d="M3 21V9h3V6h3v3h2V6h2v3h2V6h3v3h3v12z"/><path d="M10 21v-5a2 2 0 0 1 4 0v5"/>',
+  ship:'<path d="M3 15l2 5h14l2-5z"/><path d="M6 15V9h12v6M9 9V5h6v4"/>',
+  plane:'<path d="M10.5 3.5a1.5 1.5 0 0 1 3 0V9l7 4v2l-7-2v5l2 1.5V21l-3.5-1L8.5 21v-1.5l2-1.5v-5l-7 2v-2l7-4z"/>',
+  turbine:'<path d="M12 12v9M9 21h6M12 12l-1-8h2zM12 12l7 4-1 1.6zM12 12l-7 4 1 1.6z"/><circle cx="12" cy="12" r="1.2"/>',
+  landmark:'<path d="M3 9l9-5 9 5z"/><path d="M5 9v9M9.5 9v9M14.5 9v9M19 9v9M3 21h18M3 18h18"/>',
+  sun:'<circle cx="12" cy="9" r="4"/><path d="M12 2v1.5M5 9H3.5M20.5 9H19M7 4l1 1M17 4l-1 1M2 18c2 2 4 2 6 0s4-2 6 0 4 2 6 0"/>',
+  paw:'<circle cx="7" cy="10" r="2"/><circle cx="17" cy="10" r="2"/><circle cx="10" cy="6" r="2"/><circle cx="14" cy="6" r="2"/><path d="M8 17a4 4 0 0 1 8 0c0 2-2 3-4 3s-4-1-4-3z"/>',
+  tree:'<path d="M12 3l6 8h-3l4 5H5l4-5H6z"/><path d="M12 16v5"/>',
+  maze:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10v10h-6v-6h2"/>',
+  horseshoe:'<path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 7h2M16 7h2M6 11h2M16 11h2"/>',
+  waves:'<path d="M2 9c2 2 4 2 6 0s4-2 6 0 4 2 6 0M2 15c2 2 4 2 6 0s4-2 6 0 4 2 6 0"/>',
+  mountain:'<path d="M3 20l6-10 4 6 2-3 6 7z"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+  axe:'<path d="M14 4l6 6-3 3-6-6zM12 10l-8 8 2 2 8-8"/>',
+  arrowdown:'<path d="M12 3v14M7 12l5 5 5-5M5 21h14"/>',
+  parachute:'<path d="M3 11a9 9 0 0 1 18 0z"/><path d="M3 11l9 9 9-9M12 20v-9"/>',
+  flag:'<path d="M5 21V4h12l-2 4 2 4H5"/>',
+  gamepad:'<path d="M6 8h12a4 4 0 0 1 3.9 4.9l-1 4.3a2.5 2.5 0 0 1-4.3 1.1L14.5 16h-5l-2.1 2.3a2.5 2.5 0 0 1-4.3-1.1l-1-4.3A4 4 0 0 1 6 8z"/><path d="M8 11v3M6.5 12.5h3M16 12h.01M18 13.5h.01"/>',
+  dice:'<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1"/><circle cx="15.5" cy="15.5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="15.5" cy="8.5" r="1"/><circle cx="8.5" cy="15.5" r="1"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4M12 15v2"/>',
+  quiz:'<path d="M4 5h16v11H9l-5 4z"/><path d="M10 9a2 2 0 1 1 3 1.7c-.6.3-1 .8-1 1.3M12 14h.01"/>',
+  compass:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  kids:'<circle cx="12" cy="9" r="6"/><path d="M12 15v6M9.5 8h.01M14.5 8h.01M9.5 11a3 3 0 0 0 5 0"/>',
+  trampoline:'<ellipse cx="12" cy="15" rx="9" ry="3"/><path d="M5 17l-1 4M19 17l1 4M12 11V4M10 6l2-2 2 2"/>',
+  billiard:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+  golf:'<path d="M12 18V3l7 3-7 3"/><ellipse cx="12" cy="19" rx="6" ry="2"/>',
+  skate:'<path d="M6 4h5v9h7a3 3 0 0 1 3 3v1H6z"/><path d="M5 20h16"/>',
+  yoga:'<circle cx="12" cy="5" r="2"/><path d="M4 12l8-3 8 3M12 9v6l-4 5M12 15l4 5"/>',
+  dance:'<circle cx="13" cy="4.5" r="2"/><path d="M8 10l5-3 4 3M13 7l-1 7 4 6M12 14l-5 5"/>',
+  dumbbell:'<path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/>',
+  racket:'<ellipse cx="10" cy="9" rx="6" ry="6"/><path d="M14.5 13.5L20 19M18 21l3-3"/>',
+  ball:'<circle cx="12" cy="12" r="9"/><path d="M12 7l4 3-1.5 5h-5L8 10z"/>',
+  boules:'<circle cx="8" cy="15" r="4"/><circle cx="16" cy="15" r="4"/><circle cx="12" cy="7" r="1.5"/>',
+  bike:'<circle cx="6" cy="16" r="4"/><circle cx="18" cy="16" r="4"/><path d="M6 16l4-8h5l3 8M10 8l2 8"/>',
+  leaf:'<path d="M5 19c0-8 6-14 15-15-1 9-7 15-15 15z"/><path d="M5 19l8-8"/>',
+  pulse:'<path d="M3 12h4l2-5 4 10 2-5h6"/>',
+  basket:'<path d="M4 9h16l-2 11H6z"/><path d="M8 9l4-6 4 6"/>',
+  sparkle:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'
+};
+// Dessin et couleurs selon le type (clé = emoji du type, pour rester lisible)
+const ILLU_FOR = {
+  '🎨':['palette','art'], '🏊':['waves','sport'], '🚤':['waves','thrill'], '🛝':['kids','game'], '🏎️':['flag','thrill'], '🎳':['billiard','game'],
+  '🔐':['lock','game'], '🔫':['target','thrill'], '🎯':['target','game'], '🪓':['axe','thrill'], '🎢':['arrowdown','thrill'], '🪂':['parachute','thrill'],
+  '🏍️':['flag','thrill'], '🌲':['tree','nature'], '🌀':['maze','nature'], '🐴':['horseshoe','nature'], '🛶':['waves','nature'], '🧗':['mountain','sport'],
+  '🤸':['trampoline','game'], '🎱':['billiard','game'], '⛳':['golf','sport'], '⛸️':['skate','sport'], '👾':['gamepad','game'], '🧭':['compass','game'],
+  '🎲':['dice','game'], '❓':['quiz','game'], '🎤':['mic','night'], '🪩':['disco','night'], '🎬':['frame','night'], '🎭':['masks','night'],
+  '🎹':['piano','music'], '🎸':['note','music'], '📷':['camera','art'], '🏰':['castle','visit'], '✈️':['plane','visit'], '🌬️':['turbine','visit'],
+  '🚢':['ship','visit'], '🖼️':['frame','visit'], '🏛️':['landmark','visit'], '🏖️':['sun','nature'], '🦒':['paw','nature'], '🏺':['palette','art'],
+  '💍':['gem','art'], '🧵':['palette','art'], '🥖':['bread','food'], '🍺':['beer','food'], '👩‍🍳':['chef','food'], '🍷':['wine','food'],
+  '🍽️':['utensils','food'], '☕':['cup','food'], '🍸':['cocktail','night'], '🧘':['yoga','sport'], '💃':['dance','music'], '🏋️':['dumbbell','sport'],
+  '🎾':['racket','sport'], '⚽':['ball','sport'], '⚪':['boules','sport'], '🥾':['mountain','nature'], '🚴':['bike','sport'], '🏄':['waves','nature'],
+  '💆':['leaf','sport'], '🏃':['pulse','sport'], '🧺':['basket','food']
+};
+const ILLU_COLORS = {
+  night:['#4B2A7B','#1E1236'], music:['#7A3E9D','#2E1546'], food:['#F2924B','#B4471A'], art:['#E46FA0','#8E3466'],
+  visit:['#3E7CB1','#1D3F66'], game:['#8B5A8C','#3E1F44'], sport:['#2FA39A','#156159'], nature:['#5FA361','#2C5E33'], thrill:['#E5533D','#8E2418']
+};
+const illustrationCache = {};
+function illustrationFor(emoji){
+  const key = emoji || '✨';
+  if(illustrationCache[key]) return illustrationCache[key];
+  const [ico, grp] = ILLU_FOR[key] || ['sparkle', 'game'];
+  const [c1, c2] = ILLU_COLORS[grp] || ILLU_COLORS.game;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
+    <rect width="400" height="300" fill="url(#g)"/>
+    <circle cx="335" cy="45" r="90" fill="#fff" opacity="0.07"/><circle cx="40" cy="270" r="110" fill="#fff" opacity="0.06"/>
+    <circle cx="200" cy="135" r="78" fill="#fff" opacity="0.14"/>
+    <g transform="translate(152 87) scale(4)" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ILLU_ICONS[ico] || ILLU_ICONS.sparkle}</g>
+  </svg>`;
+  illustrationCache[key] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.replace(/\s+/g, ' '));
+  return illustrationCache[key];
+}
+
 function activityTypeFor(name){
   const n = String(name || '');
   return ACTIVITY_TYPES.find(t => t.re.test(n)) || null;
@@ -7650,12 +7763,49 @@ function activityTypeFor(name){
 // Photo et illustration d'une activité du catalogue, par ordre de fiabilité :
 // photo propre de l'activité > vraie photo vérifiée de l'établissement >
 // photo libre de droits de son type > aucune photo (illustration du type).
+// =====================================================================
+// BANQUE DE PHOTOS pour les sorties : l'organisateur choisit une photo
+// libre de droits déjà vérifiée, sans rien télécharger. Celles qui
+// correspondent au titre de la sortie sont proposées en premier.
+// =====================================================================
+const PHOTO_BANK_LABELS = {
+  '🏊':'Piscine', '🏎️':'Karting', '🎳':'Bowling', '🔐':'Escape game', '🔫':'Laser game', '🧗':'Escalade',
+  '🛶':'Kayak', '🏺':'Poterie', '🎬':'Cinéma', '🎸':'Concert', '🥾':'Randonnée', '❓':'Quiz / blind test',
+  '🎤':'Karaoké', '🪩':'Soirée', '📷':'Photo', '🎨':'Peinture', '👩‍🍳':'Cuisine', '🍷':'Vin', '🍸':'Bar',
+  '🤸':'Trampoline', '🛝':'Parc de jeux', '🎹':'Musique', '🎾':'Padel / tennis', '🏋️':'Fitness', '⚽':'Foot'
+};
+let ractSelectedPhoto = null;
+function photoBankItems(){
+  const seen = new Set(), items = [];
+  ACTIVITY_TYPES.forEach(t => {
+    if(t.photo && !seen.has(t.photo)){ seen.add(t.photo); items.push({ url: t.photo, label: PHOTO_BANK_LABELS[t.emoji] || '', emoji: t.emoji }); }
+  });
+  return items;
+}
+function renderPhotoBank(){
+  const box = document.getElementById('ract-photo-bank');
+  if(!box) return;
+  const title = (document.getElementById('ract-form-title') || {}).value || '';
+  const match = activityTypeFor(title);
+  let items = photoBankItems();
+  if(match && match.photo){
+    items = [items.find(i => i.url === match.photo), ...items.filter(i => i.url !== match.photo)].filter(Boolean);
+  }
+  box.innerHTML = items.map(i => `<div class="pb-item ${ractSelectedPhoto === i.url ? 'sel' : ''} ${match && match.photo === i.url ? 'suggested' : ''}"
+      onclick="selectBankPhoto(this, '${i.url}')" style="background-image:url('${i.url.replace('w=800', 'w=300')}');">
+      <span>${escapeHtml(i.label)}</span></div>`).join('');
+}
+function selectBankPhoto(el, url){
+  ractSelectedPhoto = (ractSelectedPhoto === url) ? null : url;
+  renderPhotoBank();
+}
+
 function activityVisual(act, venueName){
   const confirmed = (typeof getConfirmedRealPhoto === 'function') ? getConfirmedRealPhoto(act.activity_name, venueName || '') : null;
   const type = activityTypeFor(act.activity_name);
   const cat = catalogCategoryInfo(act.category);
   return {
-    photo: act.photo_url || (confirmed && confirmed.url) || (type && type.photo) || null,
+    photo: act.photo_url || (confirmed && confirmed.url) || (type && type.photo) || illustrationFor(type ? type.emoji : (cat && cat.emoji)),
     emoji: (type && type.emoji) || (cat && cat.emoji) || '✨'
   };
 }
@@ -9310,6 +9460,8 @@ function openCreateActivityReal(){
   if(priceReset){ priceReset.value = ''; priceReset.style.display = 'none'; }
   const recurrenceReset = document.getElementById('ract-form-recurrence');
   if(recurrenceReset) recurrenceReset.value = '';
+  ractSelectedPhoto = null;
+  renderPhotoBank();
   selectedLocationCoords = null;
   document.getElementById('ract-location-suggestions').style.display = 'none';
   document.getElementById('ract-form-meeting-point').value = '';
@@ -9360,6 +9512,8 @@ async function resolveActivityPhotoUrl(rawValue, activityId){
       return await getSignedPhotoUrl(rawValue);
     }
 
+    // Photo choisie dans la banque de photos (Unsplash / Pexels) : affichée telle quelle.
+    if(/^https:\/\/images\.(unsplash|pexels)\.com\//.test(rawValue)) return rawValue;
     // Ancien format : une URL signée complète, potentiellement expirée. On extrait
     // le chemin réel du fichier (jamais supprimé, juste lu) pour affichage immédiat,
     // puis on migre silencieusement photo_url vers ce chemin permanent — une seule
@@ -9578,7 +9732,8 @@ async function submitRealActivity(){
       ...(newcomerFriendly ? { newcomer_friendly: true } : {}),
       ...(priceType === 'free' ? { is_free: true } : {}),
       ...(priceType === 'paid' ? { is_free: false, price_eur: priceEur } : {}),
-      ...(recurrence ? { recurrence } : {})
+      ...(recurrence ? { recurrence } : {}),
+      ...(!photoUrl && ractSelectedPhoto ? { photo_url: ractSelectedPhoto } : {})
     }).select('id').maybeSingle();
     if(error) throw error;
 
