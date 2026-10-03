@@ -2630,9 +2630,9 @@
       <div class="home-intents">
         <div class="hi-duo">
           <div class="hi-big love" onclick="openLoveDiscovery()">
-            <div class="hi-big-ico">💜</div>
-            <h4>Faire une rencontre</h4>
-            <p>Découvre des célibataires près de chez toi</p>
+            <div class="hi-big-ico">💘</div>
+            <h4>Trouver l'amour</h4>
+            <p>Swipe les célibataires près de chez toi</p>
           </div>
           <div class="hi-big friend" onclick="openMembers()">
             <div class="hi-big-ico">🤝</div>
@@ -2747,17 +2747,8 @@
 
   <!-- SWIPE -->
   <div class="screen" id="screen-swipe">
-    <div class="discover-toggle" style="margin-top:6px;">
-      <div class="discover-toggle-indicator right"></div>
-      <div class="discover-toggle-btn" data-tab="home" onclick="showScreen('activities-list')">
-        <span class="discover-toggle-icon">🧭</span>Activités
-      </div>
-      <div class="discover-toggle-btn active" data-tab="swipe" onclick="showScreen('swipe')">
-        <span class="discover-toggle-icon">💜</span>Rencontres
-      </div>
-    </div>
     <div class="swipe-header">
-      <h1>Découvrir des profils</h1>
+      <h1>Trouver l'amour</h1>
       <p>Glisse à droite pour 💜 ou à gauche pour passer</p>
       
     </div>
@@ -2919,6 +2910,16 @@
     </div>
     <div class="cp-meta" style="font-size:13px; margin:0 0 14px; line-height:1.5;">Ces personnes aimeraient faire ta connaissance. Si tu acceptes, la discussion s'ouvre dans tes messages.</div>
     <div id="invitations-list"></div>
+  </div>
+
+  <div class="tag-comment-overlay" id="mode-switch-overlay" onclick="if(event.target===this) closeModeSwitch()">
+    <div class="lp-card" style="text-align:center;">
+      <div id="ms-emoji" style="font-size:54px; line-height:1; margin:4px 0 10px;"></div>
+      <div id="ms-title" style="font-family:var(--font-display); font-size:20px; font-weight:800; color:var(--plum);"></div>
+      <div id="ms-text" class="cp-meta" style="font-size:14px; line-height:1.5; margin-top:8px;"></div>
+      <button class="btn-primary" id="ms-yes" style="width:100%; margin-top:18px;"></button>
+      <div class="location-skip" id="ms-no" style="text-align:center; margin-top:6px;" onclick="closeModeSwitch()"></div>
+    </div>
   </div>
 
   <!-- MEMBRES (amitié) -->
@@ -7754,12 +7755,46 @@ let friendInviteTarget = null;
 let membersCache = [];
 let currentMemberProfileId = null;
 
-function openLoveDiscovery(){
-  if(!(myProfile.modes || []).includes('love')){
-    showToast("Active le mode Rencontre dans ton profil pour découvrir des célibataires 💜", '💜');
-    openEditProfile();
+const MODE_SWITCH_TEXTS = {
+  love: { emoji:'💘', title:'Oh oh… tu es en mode Amitié 🤝',
+          text:"Envie de passer du côté de l'amour ? Promis, on ne dira rien à tes amis.",
+          yes:"Oui, j'ouvre mon cœur 💘", no:'Non, je reste entre potes' },
+  friend: { emoji:'🤝', title:'Tu cherches aussi des potes ?',
+          text:"Ici, pas de swipe ni de pression : juste des gens sympas pour sortir. Ton cœur reste disponible, promis 💜",
+          yes:"Oui, j'active le mode Amitié", no:'Non merci, je garde le cap 💘' }
+};
+function askModeSwitch(target){
+  const t = MODE_SWITCH_TEXTS[target];
+  document.getElementById('ms-emoji').textContent = t.emoji;
+  document.getElementById('ms-title').textContent = t.title;
+  document.getElementById('ms-text').textContent = t.text;
+  const yes = document.getElementById('ms-yes');
+  yes.textContent = t.yes;
+  yes.onclick = () => enableModeAndGo(target);
+  document.getElementById('ms-no').textContent = t.no;
+  document.getElementById('mode-switch-overlay').classList.add('show');
+}
+function closeModeSwitch(){ document.getElementById('mode-switch-overlay').classList.remove('show'); }
+// Ajoute le mode demandé (sans retirer l'autre), l'enregistre, puis ouvre la page.
+async function enableModeAndGo(target){
+  closeModeSwitch();
+  const previous = [...(myProfile.modes || [])];
+  myProfile.modes = [...new Set([...previous, target])];
+  // saveProfileToSupabase renvoie false en cas d'échec (elle ne lève pas d'erreur)
+  let saved = false;
+  try{ saved = await saveProfileToSupabase(); } catch(e){ saved = false; }
+  if(!saved){
+    myProfile.modes = previous;
+    showToast("Impossible d'activer ce mode pour le moment, réessaie.", '⚠️');
     return;
   }
+  showToast(target === 'love' ? 'Mode Rencontre activé 💘' : 'Mode Amitié activé 🤝', '✅');
+  if(target === 'love'){ setSwipeModeFilter('Rencontre'); showScreen('swipe'); }
+  else openMembers();
+}
+
+function openLoveDiscovery(){
+  if(!(myProfile.modes || []).includes('love')){ askModeSwitch('love'); return; }
   setSwipeModeFilter('Rencontre');
   showScreen('swipe');
 }
@@ -7795,11 +7830,7 @@ async function fetchFriendMembers(){
 }
 
 async function openMembers(){
-  if(!(myProfile.modes || []).includes('friend')){
-    showToast("Active le mode Amitié dans ton profil pour rencontrer des membres 🤝", '🤝');
-    openEditProfile();
-    return;
-  }
+  if(!(myProfile.modes || []).includes('friend')){ askModeSwitch('friend'); return; }
   showScreen('members');
   const grid = document.getElementById('members-grid');
   const info = document.getElementById('members-info');
@@ -11768,7 +11799,7 @@ async function renderMatchesList(){
 
     if(visibleMatches.length === 0){
       list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match… les fruits de la passion mûrissent à leur rythme 🍊<br>Continue à swiper, ça ne saurait tarder !
-        <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
+        <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="openLoveDiscovery()">Trouver l'amour 💘</button>
       </div>`;
       return;
     }
@@ -11826,7 +11857,7 @@ async function renderMatchesList(){
 
     if(matchCards.length === 0){
       list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>💜</span>Pas encore de match… les fruits de la passion mûrissent à leur rythme 🍊<br>Continue à swiper, ça ne saurait tarder !
-        <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>
+        <button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="openLoveDiscovery()">Trouver l'amour 💘</button>
       </div>`;
       return;
     }
@@ -11996,7 +12027,7 @@ function renderMessagesList(){
 
 function emptyMsgState(icon, text, showDiscoverBtn){
   return `<div class="swipe-empty" style="height:auto; padding:60px 20px; flex-direction:column;"><span>${icon}</span>${text}
-    ${showDiscoverBtn ? `<button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="showScreen('swipe')">Découvrir des profils</button>` : ''}
+    ${showDiscoverBtn ? `<button class="btn-primary" style="margin-top:18px; padding:12px 22px;" onclick="openLoveDiscovery()">Trouver l'amour 💘</button>` : ''}
   </div>`;
 }
 
