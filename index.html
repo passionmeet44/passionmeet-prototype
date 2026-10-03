@@ -2376,6 +2376,25 @@
   .pb-item.sel::after{ content:'✓'; position:absolute; top:5px; right:5px; width:22px; height:22px; border-radius:50%; background:var(--orange-deep);
     color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; }
 </style>
+
+<style id="pm-photo-library">
+  .ph-preview{ height:150px; border-radius:16px; border:1.5px dashed #D9CCE0; background:#FBF7FC center/cover no-repeat;
+    display:flex; align-items:center; justify-content:center; color:var(--pm-muted); font-size:13px; font-weight:600; position:relative; }
+  .ph-preview.has-photo{ border:none; box-shadow:var(--pm-shadow); }
+  .ph-remove{ position:absolute; top:8px; right:8px; background:rgba(26,12,30,0.65); color:#fff; font-size:12px; font-weight:700;
+    padding:5px 10px; border-radius:999px; cursor:pointer; }
+  #screen-photo-library{ padding-left:20px !important; padding-right:20px !important; box-sizing:border-box; }
+  #screen-photo-library .msg-header{ padding-left:0 !important; padding-right:0 !important; }
+  .lib-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; padding-bottom:110px; }
+  .lib-item{ cursor:pointer; min-width:0; }
+  .lib-photo{ height:120px; border-radius:16px; background-size:cover; background-position:center; position:relative;
+    box-shadow:var(--pm-shadow); border:3px solid transparent; box-sizing:border-box; transition:transform .12s ease; }
+  .lib-item:active .lib-photo{ transform:scale(0.97); }
+  .lib-item.sel .lib-photo{ border-color:var(--orange-deep); }
+  .lib-badge{ position:absolute; top:7px; left:7px; background:#F6B94D; color:#3E1F44; font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:999px; }
+  .lib-label{ font-size:13px; font-weight:700; color:var(--plum); margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  body.dark-mode .ph-preview{ background-color:#231A29; border-color:#3B3042; }
+</style>
 </head>
 <body>
 
@@ -3014,6 +3033,16 @@
     </div>
   </div>
 
+  <!-- BIBLIOTHÈQUE DE PHOTOS (création de sortie) -->
+  <div class="screen" id="screen-photo-library">
+    <div class="msg-header" style="display:flex; align-items:center; gap:12px;">
+      <div style="cursor:pointer; font-size:22px; color:var(--plum);" onclick="showScreen('create-activity-real')">←</div>
+      <h1 style="margin:0; font-size:23px !important;">Notre bibliothèque</h1>
+    </div>
+    <div class="cp-meta" style="font-size:13px; line-height:1.5; margin-bottom:14px;">Des photos libres de droits, choisies pour chaque activité. Touche celle qui te plaît.</div>
+    <div class="lib-grid" id="photo-library-grid"></div>
+  </div>
+
   <!-- MEMBRES (amitié) -->
   <div class="screen" id="screen-members">
     <div class="msg-header" style="display:flex; align-items:center; gap:12px;">
@@ -3104,9 +3133,6 @@
         <option value="monthly">🔁 Chaque mois</option>
       </select>
       <div class="form-hint">Pour un rendez-vous régulier : la date passe automatiquement à la suivante, avec le même groupe.</div>
-      <div class="form-label" style="margin-top:14px;">Photo de la sortie</div>
-      <div class="form-hint" style="margin-top:-2px;">Choisis une photo, sans rien télécharger. Celle qui correspond à ton titre apparaît en premier.</div>
-      <div class="pb-grid" id="ract-photo-bank"></div>
 
       <div class="form-label">Mode</div>
       <div class="mode-badge-row">
@@ -3114,8 +3140,13 @@
         <div class="mode-badge off" id="ract-form-mode-love" onclick="selectActivityMode('love')">💜 Rencontre</div>
       </div>
 
-      <div class="form-label">Photo (facultative)</div>
-      <input class="form-input" id="ract-form-photo" type="file" accept="image/*">
+      <div class="form-label">Photo de la sortie (facultative)</div>
+      <div class="ph-preview" id="ract-photo-preview"><span>Aucune photo choisie</span></div>
+      <div class="rd-actions" style="margin-top:8px;">
+        <button type="button" class="rd-action" onclick="openPhotoLibrary()">📚 Notre bibliothèque</button>
+        <button type="button" class="rd-action" onclick="document.getElementById('ract-form-photo').click()">📱 Mon téléphone</button>
+      </div>
+      <input id="ract-form-photo" type="file" accept="image/*" style="display:none;" onchange="onRactPhotoPicked(this)">
 
       <div class="form-hint" id="ract-form-error" style="color:#B24B4B; display:none; margin-top:10px;"></div>
 
@@ -7783,7 +7814,7 @@ function photoBankItems(){
   return items;
 }
 function renderPhotoBank(){
-  const box = document.getElementById('ract-photo-bank');
+  const box = document.getElementById('photo-library-grid');
   if(!box) return;
   const title = (document.getElementById('ract-form-title') || {}).value || '';
   const match = activityTypeFor(title);
@@ -7791,13 +7822,48 @@ function renderPhotoBank(){
   if(match && match.photo){
     items = [items.find(i => i.url === match.photo), ...items.filter(i => i.url !== match.photo)].filter(Boolean);
   }
-  box.innerHTML = items.map(i => `<div class="pb-item ${ractSelectedPhoto === i.url ? 'sel' : ''} ${match && match.photo === i.url ? 'suggested' : ''}"
-      onclick="selectBankPhoto(this, '${i.url}')" style="background-image:url('${i.url.replace('w=800', 'w=300')}');">
-      <span>${escapeHtml(i.label)}</span></div>`).join('');
+  box.innerHTML = items.map(i => `<div class="lib-item ${ractSelectedPhoto === i.url ? 'sel' : ''}" onclick="selectBankPhoto('${i.url}')">
+      <div class="lib-photo" style="background-image:url('${i.url.replace('w=800', 'w=400')}');">
+        ${match && match.photo === i.url ? '<span class="lib-badge">Suggérée</span>' : ''}
+      </div>
+      <div class="lib-label">${escapeHtml(i.label)}</div>
+    </div>`).join('');
 }
-function selectBankPhoto(el, url){
-  ractSelectedPhoto = (ractSelectedPhoto === url) ? null : url;
+function openPhotoLibrary(){
+  showScreen('photo-library');
   renderPhotoBank();
+}
+function selectBankPhoto(url){
+  ractSelectedPhoto = url;
+  const input = document.getElementById('ract-form-photo');
+  if(input) input.value = '';          // une seule photo à la fois
+  updateRactPhotoPreview(url);
+  showScreen('create-activity-real');
+}
+function onRactPhotoPicked(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  ractSelectedPhoto = null;            // la photo du téléphone prend la place de celle de la bibliothèque
+  updateRactPhotoPreview(URL.createObjectURL(file));
+}
+function updateRactPhotoPreview(url){
+  const el = document.getElementById('ract-photo-preview');
+  if(!el) return;
+  if(url){
+    el.style.backgroundImage = `url('${url}')`;
+    el.innerHTML = '<span class="ph-remove" onclick="event.stopPropagation(); clearRactPhoto()">Retirer</span>';
+    el.classList.add('has-photo');
+  } else {
+    el.style.backgroundImage = '';
+    el.innerHTML = '<span>Aucune photo choisie</span>';
+    el.classList.remove('has-photo');
+  }
+}
+function clearRactPhoto(){
+  ractSelectedPhoto = null;
+  const input = document.getElementById('ract-form-photo');
+  if(input) input.value = '';
+  updateRactPhotoPreview(null);
 }
 
 function activityVisual(act, venueName){
@@ -9461,7 +9527,7 @@ function openCreateActivityReal(){
   const recurrenceReset = document.getElementById('ract-form-recurrence');
   if(recurrenceReset) recurrenceReset.value = '';
   ractSelectedPhoto = null;
-  renderPhotoBank();
+  updateRactPhotoPreview(null);
   selectedLocationCoords = null;
   document.getElementById('ract-location-suggestions').style.display = 'none';
   document.getElementById('ract-form-meeting-point').value = '';
