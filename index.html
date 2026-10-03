@@ -2327,6 +2327,42 @@
   body.dark-mode .mb-card{ background:#231A29; }
   body.dark-mode .pk-row{ border-top-color:#3B3042; }
 </style>
+
+<style id="pm-wizard">
+  /* Inscription en plusieurs pages */
+  .wiz-screen.active{ display:flex !important; flex-direction:column; height:100vh; height:100dvh; padding:0 !important; overflow:hidden; box-sizing:border-box; }
+  .wiz-top{ display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top, 0px) + 14px) 20px 6px; flex-shrink:0; }
+  .wiz-top.static{ padding:0 0 6px 48px; margin-top:4px; }
+  .wiz-back{ width:38px; height:38px; border-radius:50%; background:#fff; box-shadow:var(--pm-shadow); display:flex; align-items:center;
+    justify-content:center; font-size:18px; color:var(--plum); cursor:pointer; flex-shrink:0; }
+  .wiz-bar{ flex:1; height:6px; border-radius:999px; background:#EADFEE; overflow:hidden; }
+  .wiz-bar-fill{ height:100%; width:0; border-radius:999px; background:linear-gradient(90deg, var(--orange), var(--orange-deep)); transition:width .45s ease; }
+  .wiz-count{ font-size:12px; font-weight:700; color:var(--pm-muted); min-width:38px; text-align:right; }
+  .wiz-steps{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 24px 20px; }
+  .wiz-step{ display:none; }
+  .wiz-step.active{ display:block; animation:wizIn .38s ease both; }
+  .wiz-step.active.in-left{ animation-name:wizInLeft; }
+  @keyframes wizIn{ from{ opacity:0; transform:translateX(28px); } to{ opacity:1; transform:none; } }
+  @keyframes wizInLeft{ from{ opacity:0; transform:translateX(-28px); } to{ opacity:1; transform:none; } }
+  .wiz-emoji{ font-size:46px; line-height:1; margin:10px 0 12px; display:inline-block; }
+  .wiz-step.active .wiz-emoji{ animation:wizPop .55s ease both .08s; }
+  @keyframes wizPop{ from{ transform:scale(.5); opacity:0; } 60%{ transform:scale(1.12); opacity:1; } to{ transform:scale(1); } }
+  .wiz-title{ font-family:var(--font-display); font-size:28px; font-weight:800; color:var(--plum); line-height:1.12; letter-spacing:-0.01em; }
+  .wiz-sub{ font-size:14px; color:var(--pm-muted); margin-top:8px; line-height:1.5; }
+  .wiz-input{ margin-top:24px; font-size:22px !important; font-weight:700; padding:16px 18px !important; border-radius:18px !important; width:100%; box-sizing:border-box; }
+  .wiz-textarea{ margin-top:20px; min-height:130px; width:100%; box-sizing:border-box; font-size:16px !important; border-radius:18px !important; }
+  .wiz-choices{ display:flex; flex-direction:column; gap:10px; margin-top:22px; }
+  .wiz-choice{ padding:15px 18px; border-radius:16px; background:#fff; border:1.5px solid #EADFEE; font-size:15.5px; font-weight:700;
+    color:var(--plum); cursor:pointer; transition:background .15s ease, border-color .15s ease, transform .1s ease; }
+  .wiz-choice:active{ transform:scale(0.98); }
+  .wiz-choice.sel{ border-color:var(--orange); background:#FFF3E8; color:var(--orange-deep); box-shadow:0 0 0 3px rgba(242,146,75,0.15); }
+  .wiz-foot{ flex-shrink:0; padding:12px 24px calc(env(safe-area-inset-bottom, 0px) + 16px); }
+  .wiz-foot .btn-primary{ width:100%; margin:0; }
+  @media (prefers-reduced-motion: reduce){ .wiz-step.active, .wiz-step.active .wiz-emoji{ animation:none; } }
+  body.dark-mode .wiz-back, body.dark-mode .wiz-choice{ background:#231A29; border-color:#3B3042; color:#F3EAF6; }
+  body.dark-mode .wiz-choice.sel{ background:rgba(229,114,42,0.16); border-color:var(--orange); color:#F7A86E; }
+  body.dark-mode .wiz-bar{ background:#3B3042; }
+</style>
 </head>
 <body>
 
@@ -2454,23 +2490,134 @@
     <div class="location-skip" style="color:var(--plum-soft); margin-top:16px;" onclick="showScreen('signup-email')">Retour à la connexion</div>
   </div>
 
-  <div class="screen" id="screen-signup-account" style="position:relative;">
-    <div class="detail-back" onclick="showScreen('login')" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
-    <p class="step-label">Étape 1 sur 5</p>
-    <div class="step-dots"><div class="step-dot on"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div></div>
-    <div class="ob-title">Créer votre profil</div>
-    <div class="ob-sub">Ces informations seront visibles par les autres membres.</div>
+  <div class="screen wiz-screen" id="screen-signup-account" data-wiz-start="1" data-wiz-exit="signupPart1Exit" data-wiz-finish="signupPart1Done">
+    <div class="wiz-top">
+      <div class="wiz-back" onclick="wizBack(this)" aria-label="Retour">←</div>
+      <div class="wiz-bar"><div class="wiz-bar-fill"></div></div>
+      <div class="wiz-count"></div>
+    </div>
+    <div class="wiz-steps">
+      <div class="wiz-step" data-validate="name">
+        <div class="wiz-emoji">👋</div>
+        <div class="wiz-title">Comment tu t'appelles ?</div>
+        <div class="wiz-sub">C'est le prénom que verront les autres membres.</div>
+        <input class="form-input wiz-input" id="signup-name" type="text" placeholder="Ton prénom" autocomplete="given-name">
+      </div>
+      <div class="wiz-step" data-validate="age">
+        <div class="wiz-emoji">🎂</div>
+        <div class="wiz-title">Quel âge as-tu ?</div>
+        <div class="wiz-sub">PassionMeet est réservé aux personnes majeures.</div>
+        <input class="form-input wiz-input" id="signup-age" type="number" inputmode="numeric" min="18" max="99" placeholder="Ton âge">
+      </div>
+      <div class="wiz-step" data-validate="gender">
+        <div class="wiz-emoji">🙂</div>
+        <div class="wiz-title">Tu es…</div>
+        <div class="wiz-sub">Pour te proposer les bons profils. Tu pourras le modifier à tout moment.</div>
+        <div class="wiz-choices" id="signup-gender-pills">
+          <div class="wiz-choice" data-gender="homme" onclick="wizPickSingle(this)">Un homme</div>
+          <div class="wiz-choice" data-gender="femme" onclick="wizPickSingle(this)">Une femme</div>
+          <div class="wiz-choice" data-gender="non_binaire" onclick="wizPickSingle(this)">Non-binaire</div>
+          <div class="wiz-choice" data-gender="autre" onclick="wizPickSingle(this)">Autre</div>
+          <div class="wiz-choice" data-gender="ne_pas_preciser" onclick="wizPickSingle(this)">Je préfère ne pas préciser</div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-foot"><button class="btn-primary wiz-next" onclick="wizNext(this)">Continuer</button></div>
+  </div>
 
-    <div class="form-label">Prénom</div>
-    <input class="form-input" id="signup-name" type="text" placeholder="Votre prénom">
+  <!-- SIGNUP PHOTOS -->
+  <div class="screen" id="screen-signup-photos" style="position:relative;">
+    <div class="detail-back" onclick="showScreen(photosReturnScreen)" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
+    <div class="wiz-top static"><div class="wiz-bar"><div class="wiz-bar-fill" style="width:36%"></div></div><div class="wiz-count">4 / 11</div></div>
+    <div class="wiz-emoji" style="margin-top:4px;">📸</div>
+    <div class="ob-title">Montre-toi sous ton meilleur jour</div>
+    <div class="ob-sub">Plus ton profil est complet, plus tu augmentes tes chances de rencontrer quelqu'un.</div>
 
-    <div class="form-label">Âge</div>
-    <input class="form-input" id="signup-age" type="number" placeholder="Votre âge" min="18" max="99">
+    <div class="photo-grid" id="photo-grid"></div>
+    <div class="form-hint">Appuie sur une case pour ajouter une photo depuis ton téléphone.</div>
+    <input type="file" id="photo-file-input" accept="image/*" style="display:none;" onchange="onPhotoFileSelected(event)">
 
-    <div class="form-label">Bio</div>
-    <textarea class="form-textarea" id="signup-bio" placeholder="Parlez un peu de vous, de ce que vous aimez faire…"></textarea>
-    <div class="form-hint">Quelques mots suffisent, ça aide à briser la glace.</div>
+    <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="confirmPhotosStep()">Continuer</button>
+    <div class="skip-link" onclick="confirmPhotosStep()">Passer cette étape</div>
+  </div>
 
+  <!-- ONBOARDING -->
+  <div class="screen wiz-screen" id="screen-onboarding" data-wiz-start="5" data-wiz-exit="signupPart2Exit" data-wiz-finish="finishSignup" data-wiz-last-label="C'est parti 🍊">
+    <div class="wiz-top">
+      <div class="wiz-back" onclick="wizBack(this)" aria-label="Retour">←</div>
+      <div class="wiz-bar"><div class="wiz-bar-fill"></div></div>
+      <div class="wiz-count"></div>
+    </div>
+    <div class="wiz-steps">
+      <div class="wiz-step" data-validate="modes">
+        <div class="wiz-emoji">✨</div>
+        <div class="wiz-title">Qu'est-ce qui t'amène ici ?</div>
+        <div class="wiz-sub">Tu peux en choisir plusieurs. Ton choix reste visible sur ton profil.</div>
+        <div style="margin-top:18px;">
+    <div class="mode-card on" id="card-friend">
+      <div class="mode-icon friend">🤝</div>
+      <div class="mode-info">
+        <h3>Amitié</h3>
+        <p>Sortir et me faire de nouveaux amis</p>
+      </div>
+      <div class="switch on" id="switch-friend" onclick="toggleMode('friend')"></div>
+    </div>
+
+    <div class="mode-card on" id="card-love">
+      <div class="mode-icon love">💜</div>
+      <div class="mode-info">
+        <h3>Amour</h3>
+        <p>Trouver quelqu'un avec qui partager plus</p>
+      </div>
+      <div class="switch on" id="switch-love" onclick="toggleMode('love')"></div>
+    </div>
+
+    <div class="mode-card" id="card-couple">
+      <div class="mode-icon couple">👫</div>
+      <div class="mode-info">
+        <h3>Sorties en couple</h3>
+        <p>Rencontrer d'autres couples pour sortir ensemble</p>
+      </div>
+      <div class="switch" id="switch-couple" onclick="toggleMode('couple')"></div>
+    </div>
+
+        </div>
+      </div>
+      <div class="wiz-step" data-validate="genderpref" data-skip="noLove">
+        <div class="wiz-emoji">💘</div>
+        <div class="wiz-title">Pour l'amour, tu veux rencontrer…</div>
+        <div class="wiz-sub">Plusieurs choix possibles. Ça ne concerne que la partie Amour.</div>
+        <div class="wiz-choices" id="signup-genderpref-pills">
+          <div class="wiz-choice" data-gender="femme" onclick="wizPickMulti(this)">Des femmes</div>
+          <div class="wiz-choice" data-gender="homme" onclick="wizPickMulti(this)">Des hommes</div>
+          <div class="wiz-choice" data-gender="non_binaire" onclick="wizPickMulti(this)">Des personnes non-binaires</div>
+          <div class="wiz-choice" data-gender="tous" onclick="wizPickMulti(this)">Tout le monde</div>
+        </div>
+      </div>
+      <div class="wiz-step" data-validate="passions" data-enter="passions">
+        <div class="wiz-emoji">🔥</div>
+        <div class="wiz-title">Qu'est-ce qui te fait vibrer ?</div>
+        <div class="wiz-sub">Choisis tout ce qui te parle : on s'en sert pour te proposer les bonnes personnes et les bonnes sorties.</div>
+        <div style="margin-top:16px;">
+    <div class="passion-list" id="passion-list"></div>
+        <div class="add-pill-row">
+      <input type="text" id="custom-pill-input" placeholder="Ajouter une passion (techno, animaux…)">
+      <button class="add-pill-btn" onclick="addCustomPassion()">+</button>
+    </div>
+
+        </div>
+      </div>
+      <div class="wiz-step">
+        <div class="wiz-emoji">🎯</div>
+        <div class="wiz-title">Et plus précisément ?</div>
+        <div class="wiz-sub">Facultatif, mais ça aide à trouver des points communs.</div>
+        <div id="signup-subpassions" style="margin-top:12px;"></div>
+      </div>
+      <div class="wiz-step">
+        <div class="wiz-emoji">🧩</div>
+        <div class="wiz-title">Quelques petits plus</div>
+        <div class="wiz-sub">Coche ce qui te correspond, ou passe directement.</div>
+        <div style="margin-top:14px;">
     <div class="checkbox-row">
       <div>
         <h4>J'ai des enfants</h4>
@@ -2502,90 +2649,20 @@
       <div class="switch" id="switch-can-carpool" onclick="this.classList.toggle('on')"></div>
     </div>
 
-    <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="showScreen('signup-photos')">Continuer</button>
-  </div>
-
-  <!-- SIGNUP PHOTOS -->
-  <div class="screen" id="screen-signup-photos" style="position:relative;">
-    <div class="detail-back" onclick="showScreen(photosReturnScreen)" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
-    <p class="step-label">Étape 2 sur 5</p>
-    <div class="step-dots"><div class="step-dot"></div><div class="step-dot on"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div></div>
-    <div class="ob-title">Mes photos</div>
-    <div class="ob-sub">Plus ton profil est complet, plus tu augmentes tes chances de rencontrer quelqu'un.</div>
-
-    <div class="photo-grid" id="photo-grid"></div>
-    <div class="form-hint">Appuie sur une case pour ajouter une photo depuis ton téléphone.</div>
-    <input type="file" id="photo-file-input" accept="image/*" style="display:none;" onchange="onPhotoFileSelected(event)">
-
-    <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="confirmPhotosStep()">Continuer</button>
-    <div class="skip-link" onclick="confirmPhotosStep()">Passer cette étape</div>
-  </div>
-
-  <!-- ONBOARDING -->
-  <div class="screen" id="screen-onboarding" style="position:relative;">
-    <div class="detail-back" onclick="showScreen('signup-photos')" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
-    <p class="step-label">Étape 3 sur 5</p>
-    <div class="step-dots"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot on"></div><div class="step-dot"></div><div class="step-dot"></div></div>
-    <div class="ob-title">Que recherchez-vous ?</div>
-    <div class="ob-sub">Vous pouvez activer les deux — votre choix reste visible sur votre profil.</div>
-
-    <div class="mode-card on" id="card-friend">
-      <div class="mode-icon friend">🤝</div>
-      <div class="mode-info">
-        <h3>Amitié</h3>
-        <p>Sorties, activités, entraide</p>
+        </div>
       </div>
-      <div class="switch on" id="switch-friend" onclick="toggleMode('friend')"></div>
-    </div>
-
-    <div class="mode-card on" id="card-love">
-      <div class="mode-icon love">💜</div>
-      <div class="mode-info">
-        <h3>Rencontre</h3>
-        <p>Faire une rencontre amoureuse</p>
+      <div class="wiz-step">
+        <div class="wiz-emoji">💬</div>
+        <div class="wiz-title">Présente-toi en quelques mots</div>
+        <div class="wiz-sub">Ce que tu aimes, ce que tu cherches… Quelques mots suffisent pour briser la glace.</div>
+        <textarea class="form-textarea wiz-textarea" id="signup-bio" placeholder="Parle un peu de toi, de ce que tu aimes faire…"></textarea>
+        <div class="location-skip" style="text-align:center; margin-top:10px;" onclick="wizNext(this)">Je le ferai plus tard</div>
       </div>
-      <div class="switch on" id="switch-love" onclick="toggleMode('love')"></div>
-    </div>
-
-    <div class="mode-card" id="card-couple">
-      <div class="mode-icon couple">👫</div>
-      <div class="mode-info">
-        <h3>Sorties en couple</h3>
-        <p>Rencontrer d'autres couples pour sortir ensemble</p>
-      </div>
-      <div class="switch" id="switch-couple" onclick="toggleMode('couple')"></div>
-    </div>
-
-    <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="showScreen('passions')">Continuer</button>
-  </div>
-
-  <!-- PASSIONS -->
-  <div class="screen" id="screen-passions" style="position:relative;">
-    <div class="detail-back" onclick="showScreen('onboarding')" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
-    <p class="step-label">Étape 4 sur 5</p>
-    <div class="step-dots"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot on"></div><div class="step-dot"></div></div>
-    <div class="ob-title">Choisis tes passions</div>
-    <div class="ob-sub">Sélectionne tout ce qui te fait vibrer — plus tu en choisis, mieux on te connecte.</div>
-
-    <div class="passion-list" id="passion-list"></div>
-    <div id="signup-subpassions"></div>
-
-    <div class="add-pill-row">
-      <input type="text" id="custom-pill-input" placeholder="Ajouter une passion (techno, animaux…)">
-      <button class="add-pill-btn" onclick="addCustomPassion()">+</button>
-    </div>
-
-    <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="showScreen('onboarding-prefs')">Continuer</button>
-  </div>
-
-  <!-- ONBOARDING PREFS -->
-  <div class="screen" id="screen-onboarding-prefs" style="position:relative;">
-    <div class="detail-back" onclick="showScreen('passions')" style="position:absolute; top:20px; left:16px; z-index:5;">←</div>
-    <p class="step-label">Étape 5 sur 5</p>
-    <div class="step-dots"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot on"></div></div>
-    <div class="ob-title">Vos préférences de recherche</div>
-    <div class="ob-sub">Vous pourrez les modifier à tout moment depuis votre profil.</div>
-
+      <div class="wiz-step" data-enter="radius">
+        <div class="wiz-emoji">📍</div>
+        <div class="wiz-title">Où veux-tu sortir ?</div>
+        <div class="wiz-sub">Choisis jusqu'où tu es prêt(e) à aller. Tu pourras changer ça quand tu veux.</div>
+        <div style="margin-top:16px;">
     <div class="range-row">
       <div class="range-label">Distance de recherche <span id="prefs-distance-value">20 km</span></div>
       <input type="range" min="1" max="100" value="20" id="prefs-distance" oninput="setRadius(this.value)">
@@ -2601,8 +2678,10 @@
       <span>ans</span>
     </div>
 
-    <button class="btn-primary" style="width:100%; margin-top:34px;" onclick="finishSignup()">Terminer l'inscription</button>
-    <div class="skip-link" onclick="finishSignup()">Garder ces réglages par défaut</div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-foot"><button class="btn-primary wiz-next" onclick="wizNext(this)">Continuer</button></div>
   </div>
 
   <!-- LOCATION PERMISSION -->
@@ -4492,6 +4571,7 @@ function initSettingsUI(){
 }
 
 function showScreen(name){
+  if(name === 'passions' || name === 'onboarding-prefs') name = 'onboarding'; // anciennes pages fusionnées
   if(window.fitChatToViewport) setTimeout(window.fitChatToViewport, 0);
   if(typeof publicViewerMode !== 'undefined' && publicViewerMode && name !== 'location-viewer') return;
   if(name==='onboarding-prefs'){ setTimeout(()=> updateRadiusMap(currentRadius), 300); }
@@ -4506,6 +4586,10 @@ function showScreen(name){
   incoming.classList.add('screen-anim');
   if(name==='passions' && !passionsInitialized){ renderPassionList(); }
   if(name==='signup-photos'){ renderPhotoGrid(); }
+  if(name==='signup-account' || name==='onboarding'){
+    const wsc = document.getElementById('screen-' + name);
+    if(wsc) wizRender(wsc, wizCurrent(wsc), 'next');
+  }
   if(name==='premium'){ renderTierPanel(); updatePremiumStatusDisplay(); }
   const nav = document.getElementById('bottom-nav');
   const topBar = document.getElementById('app-top-bar');
@@ -5935,6 +6019,99 @@ function updateHomeGreeting(){
   el.textContent = firstName ? `Bonjour ${firstName}` : 'Bonjour';
 }
 
+// =====================================================================
+// INSCRIPTION EN PLUSIEURS PAGES : une question par page, barre de
+// progression, transitions animées. Les champs gardent leurs identifiants
+// d'origine : finishSignup() les lit exactement comme avant.
+// =====================================================================
+const WIZ_TOTAL = 11;
+function wizScreen(el){ return el.closest('.wiz-screen'); }
+function wizSteps(sc){ return [...sc.querySelectorAll('.wiz-step')]; }
+function wizCurrent(sc){ return parseInt(sc.dataset.wizIdx || '0', 10); }
+function wizSkip(step){
+  if(step.dataset.skip === 'noLove') return !document.getElementById('switch-love').classList.contains('on');
+  return false;
+}
+function wizRender(sc, idx, dir){
+  const steps = wizSteps(sc);
+  steps.forEach((s, i) => {
+    s.classList.remove('active', 'in-left');
+    if(i === idx){ s.classList.add('active'); if(dir === 'back') s.classList.add('in-left'); }
+  });
+  sc.dataset.wizIdx = idx;
+  const n = parseInt(sc.dataset.wizStart, 10) + idx;
+  sc.querySelector('.wiz-bar-fill').style.width = Math.round(n / WIZ_TOTAL * 100) + '%';
+  sc.querySelector('.wiz-count').textContent = `${n} / ${WIZ_TOTAL}`;
+  sc.querySelector('.wiz-next').textContent = (idx === steps.length - 1 && sc.dataset.wizLastLabel) ? sc.dataset.wizLastLabel : 'Continuer';
+  const step = steps[idx];
+  if(step.dataset.enter === 'passions' && !passionsInitialized) renderPassionList();
+  if(step.dataset.enter === 'radius') setTimeout(() => updateRadiusMap(currentRadius), 350);
+  const body = sc.querySelector('.wiz-steps');
+  if(body) body.scrollTop = 0;
+}
+function wizValidate(step){
+  switch(step.dataset.validate){
+    case 'name':
+      if(document.getElementById('signup-name').value.trim().length < 2){ showToast('Indique ton prénom 🙂', '✏️'); return false; }
+      return true;
+    case 'age': {
+      const a = parseInt(document.getElementById('signup-age').value, 10);
+      if(!(a >= 18 && a <= 99)){ showToast('PassionMeet est réservé aux personnes majeures', '🔞'); return false; }
+      return true;
+    }
+    case 'gender':
+      if(!document.querySelector('#signup-gender-pills .wiz-choice.sel')){ showToast('Choisis une option, même « je préfère ne pas préciser »', '🙂'); return false; }
+      return true;
+    case 'modes':
+      if(!['friend','love','couple'].some(m => document.getElementById('switch-' + m).classList.contains('on'))){ showToast('Choisis au moins une envie', '🤝'); return false; }
+      return true;
+    case 'genderpref':
+      if(!document.querySelector('#signup-genderpref-pills .wiz-choice.sel')){ showToast('Dis-nous qui tu veux rencontrer', '💘'); return false; }
+      return true;
+    case 'passions':
+      if(!document.querySelector('#passion-list .passion-card.sel')){ showToast('Choisis au moins une passion 🍊', '❤️'); return false; }
+      return true;
+  }
+  return true;
+}
+function wizNext(el){
+  const sc = wizScreen(el);
+  const steps = wizSteps(sc);
+  const idx = wizCurrent(sc);
+  if(!wizValidate(steps[idx])) return;
+  let n = idx + 1;
+  while(n < steps.length && wizSkip(steps[n])) n++;
+  if(n >= steps.length){ window[sc.dataset.wizFinish](); return; }
+  wizRender(sc, n, 'next');
+}
+function wizBack(el){
+  const sc = wizScreen(el);
+  const steps = wizSteps(sc);
+  let n = wizCurrent(sc) - 1;
+  while(n >= 0 && wizSkip(steps[n])) n--;
+  if(n < 0){ window[sc.dataset.wizExit](); return; }
+  wizRender(sc, n, 'back');
+}
+function wizPickSingle(el){
+  el.parentElement.querySelectorAll('.wiz-choice').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function wizPickMulti(el){
+  const box = el.parentElement;
+  if(el.dataset.gender === 'tous'){
+    const on = !el.classList.contains('sel');
+    box.querySelectorAll('.wiz-choice').forEach(c => c.classList.remove('sel'));
+    if(on) el.classList.add('sel');
+    return;
+  }
+  const all = box.querySelector('[data-gender="tous"]');
+  if(all) all.classList.remove('sel');
+  el.classList.toggle('sel');
+}
+function signupPart1Exit(){ showScreen('login'); }
+function signupPart1Done(){ photosReturnScreen = 'signup-account'; showScreen('signup-photos'); }
+function signupPart2Exit(){ showScreen('signup-photos'); }
+
 function finishSignup(){
   myProfile.name = document.getElementById('signup-name').value || 'Vous';
   myProfile.age = document.getElementById('signup-age').value || '';
@@ -5949,6 +6126,10 @@ function finishSignup(){
   myProfile.isNewcomer = document.getElementById('switch-newcomer').classList.contains('on');
   myProfile.isSingleParent = document.getElementById('switch-single-parent').classList.contains('on');
   myProfile.canCarpool = document.getElementById('switch-can-carpool').classList.contains('on');
+  const genderEl = document.querySelector('#signup-gender-pills .wiz-choice.sel');
+  myProfile.gender = genderEl ? genderEl.dataset.gender : null;
+  const prefPicked = [...document.querySelectorAll('#signup-genderpref-pills .wiz-choice.sel')].map(c => c.dataset.gender);
+  myProfile.genderPreferences = prefPicked.includes('tous') ? [] : prefPicked; // vide = tout le monde
   myProfile.radiusKm = parseInt(document.getElementById('prefs-distance').value);
   myProfile.ageMin = parseInt(document.getElementById('prefs-age-min').value);
   myProfile.ageMax = parseInt(document.getElementById('prefs-age-max').value);
@@ -7382,49 +7563,85 @@ async function setHomeAvatar(){
 // « photo » pourra être renseigné type par type avec des photos libres
 // de droits vérifiées.
 const ACTIVITY_TYPES = [
-  { re:/piscine|natation|aqua|nage|baignade/i, emoji:'🏊', photo:null },
-  { re:/kart/i, emoji:'🏎️', photo:null },
-  { re:/bowling/i, emoji:'🎳', photo:null },
+  // Ateliers créatifs AVANT piscine (« aquarelle » contient « aqua ») et poterie
+  { re:/peinture sur c[ée]ramique|atelier cr[ée]atif|art cr[ée]atif|aquarelle|tufting/i, emoji:'🎨', photo:null },
+  // Pexels 14761078 — nageur dans une ligne d'eau, licence Pexels gratuite, vérifiée
+  { re:/piscine|natation|nage|baignade|aquapark|aquabike|aquagym|aquacross/i, emoji:'🏊', photo:'https://images.pexels.com/photos/14761078/pexels-photo-14761078.jpeg?auto=compress&cs=tinysrgb&w=800' },
+  { re:/wake|jet.?ski|flyboard|bou[ée]e tract|ski nautique/i, emoji:'🚤', photo:null },
+  // Parcs pour enfants AVANT karting (« Parc de jeux / karting enfant »)
+  { re:/kids park|parc de jeux/i, emoji:'🛝', photo:null },
+  // Unsplash psCOesRN0J0 — pilote de kart sur circuit, licence Unsplash gratuite, vérifiée
+  { re:/kart/i, emoji:'🏎️', photo:'https://images.unsplash.com/photo-1508550794981-ed0e94d56589?auto=format&fit=crop&w=800&q=70' },
+  // Unsplash A4rJ8dU76vQ — quilles et pistes de bowling, licence Unsplash gratuite, vérifiée
+  { re:/bowling/i, emoji:'🎳', photo:'https://images.unsplash.com/photo-1473441771330-42393d826246?auto=format&fit=crop&w=800&q=70' },
   { re:/escape/i, emoji:'🔐', photo:null },
-  { re:/laser|paintball|airsoft/i, emoji:'🎯', photo:null },
-  { re:/accrobranche|parcours aventure|tyrolienne|filet/i, emoji:'🌲', photo:null },
-  { re:/paddle|kayak|cano[eë]|aviron|pirogue/i, emoji:'🛶', photo:null },
-  { re:/escalade|grimpe|\bbloc\b/i, emoji:'🧗', photo:null },
+  { re:/laser|paintball|airsoft/i, emoji:'🔫', photo:null },
+  { re:/fl[ée]chette/i, emoji:'🎯', photo:null },
+  { re:/hache/i, emoji:'🪓', photo:null },
+  { re:/drop zone/i, emoji:'🎢', photo:null },
+  { re:/parachut|chute libre|ulm|parapente/i, emoji:'🪂', photo:null },
+  { re:/moto|quad/i, emoji:'🏍️', photo:null },
+  { re:/accrobranche|parcours aventure|tyrolienne/i, emoji:'🌲', photo:null },
+  { re:/labyrinthe/i, emoji:'🌀', photo:null },
+  // Équitation AVANT randonnée (« Balade à cheval »)
+  { re:/[ée]quitation|cheval|poney/i, emoji:'🐴', photo:null },
+  // Pexels 2283103 — kayak sur une rivière, licence Pexels gratuite, vérifiée
+  { re:/paddle|kayak|cano[eë]|aviron|pirogue/i, emoji:'🛶', photo:'https://images.pexels.com/photos/2283103/pexels-photo-2283103.jpeg?auto=compress&cs=tinysrgb&w=800' },
+  // Pexels 5383798 — grimpeur sur un mur en salle de bloc, licence Pexels gratuite, vérifiée
+  { re:/escalade|grimpe|\bbloc\b/i, emoji:'🧗', photo:'https://images.pexels.com/photos/5383798/pexels-photo-5383798.jpeg?auto=compress&cs=tinysrgb&w=800' },
   { re:/trampoline/i, emoji:'🤸', photo:null },
   { re:/billard/i, emoji:'🎱', photo:null },
   { re:/golf/i, emoji:'⛳', photo:null },
   { re:/patin|glace|roller/i, emoji:'⛸️', photo:null },
+  { re:/arcade/i, emoji:'👾', photo:null },
+  { re:/jeu de piste|chasse au tr[ée]sor/i, emoji:'🧭', photo:null },
   { re:/jeux? de soci|ludoth|bar [àa] jeux|jeux de plateau/i, emoji:'🎲', photo:null },
   { re:/quiz|blind.?test/i, emoji:'❓', photo:null },
   { re:/karaok/i, emoji:'🎤', photo:null },
-  { re:/cin[ée]ma|film|projection/i, emoji:'🎬', photo:null },
+  // Boîtes de nuit AVANT bars
+  { re:/bo[iî]te de nuit|club|discoth/i, emoji:'🪩', photo:null },
+  // Pexels 7991319 — fauteuils rouges d'une salle de cinéma, licence Pexels gratuite, vérifiée
+  { re:/cin[ée]ma|film|projection/i, emoji:'🎬', photo:'https://images.pexels.com/photos/7991319/pexels-photo-7991319.jpeg?auto=compress&cs=tinysrgb&w=800' },
   { re:/th[ée][aâ]tre|spectacle|impro|humour|stand.?up/i, emoji:'🎭', photo:null },
-  { re:/concert|live|salle de musique|festival/i, emoji:'🎸', photo:null },
+  { re:/cours de musique|guitare|piano|ukul/i, emoji:'🎹', photo:null },
+  // Pexels 1763067 — foule de concert et lumières de scène, licence Pexels gratuite, vérifiée
+  { re:/concert|salle de musique|festival/i, emoji:'🎸', photo:'https://images.pexels.com/photos/1763067/pexels-photo-1763067.jpeg?auto=compress&cs=tinysrgb&w=800' },
+  // Photographie AVANT navires (« Navires : à vous de cadrer ! »)
+  { re:/photo|cadrer/i, emoji:'📷', photo:null },
+  { re:/ch[âa]teau/i, emoji:'🏰', photo:null },
+  { re:/airbus/i, emoji:'✈️', photo:null },
+  { re:/[ée]olien|\beol\b/i, emoji:'🌬️', photo:null },
+  { re:/chantiers|port maritime|navire|escal.?atlantic|paquebot/i, emoji:'🚢', photo:null },
   { re:/mus[ée]e|expo|galerie/i, emoji:'🖼️', photo:null },
-  { re:/poterie|c[ée]ramique|modelage/i, emoji:'🏺', photo:null },
-  { re:/peinture|dessin|aquarelle|atelier cr[ée]atif/i, emoji:'🎨', photo:null },
+  { re:/visite|patrimoine|saint-nazaire en|grande travers/i, emoji:'🏛️', photo:null },
+  { re:/plage|mar[ée]e/i, emoji:'🏖️', photo:null },
+  { re:/zoo|ferme|animaux|animalier|safari|aquarium/i, emoji:'🦒', photo:null },
+  // Pexels 8063876 — mains sur un tour de potier, licence Pexels gratuite, vérifiée
+  { re:/poterie|c[ée]ramique|modelage/i, emoji:'🏺', photo:'https://images.pexels.com/photos/8063876/pexels-photo-8063876.jpeg?auto=compress&cs=tinysrgb&w=800' },
+  { re:/peinture|dessin|atelier cr[ée]atif/i, emoji:'🎨', photo:null },
+  { re:/bijou/i, emoji:'💍', photo:null },
   { re:/couture|tricot|broderie/i, emoji:'🧵', photo:null },
-  { re:/photo/i, emoji:'📷', photo:null },
-  { re:/p[âa]tisserie|cuisine|chef|culinaire/i, emoji:'👩‍🍳', photo:null },
-  { re:/vin|oenolog|œnolog|d[ée]gustation|cave/i, emoji:'🍷', photo:null },
+  { re:/\bpain\b|boulang/i, emoji:'🥖', photo:null },
+  // Bière AVANT vin (« dégustation de bières »)
   { re:/bi[èe]re|brasserie|houblon/i, emoji:'🍺', photo:null },
-  { re:/restaurant|brunch|bistrot|cr[êe]perie|table/i, emoji:'🍽️', photo:null },
+  { re:/p[âa]tisserie|chocolat|cuisine|chef|culinaire/i, emoji:'👩‍🍳', photo:null },
+  { re:/\bvin\b|vins|oenolog|œnolog|d[ée]gustation|cave/i, emoji:'🍷', photo:null },
+  { re:/restaurant|brunch|bistrot|cr[êe]perie/i, emoji:'🍽️', photo:null },
   { re:/caf[ée]|salon de th[ée]/i, emoji:'☕', photo:null },
-  { re:/cocktail|\bbar\b|pub|guinguette|club|discoth/i, emoji:'🍸', photo:null },
+  { re:/cocktail|\bbar\b|pub|guinguette/i, emoji:'🍸', photo:null },
   { re:/yoga|m[ée]ditation|sophrologie|pilates/i, emoji:'🧘', photo:null },
   { re:/danse|salsa|zumba|tango|swing/i, emoji:'💃', photo:null },
   { re:/fitness|muscu|crossfit|salle de sport|boxe/i, emoji:'🏋️', photo:null },
   { re:/tennis|padel|badminton|squash|ping/i, emoji:'🎾', photo:null },
-  { re:/foot|five|basket|volley|hand/i, emoji:'⚽', photo:null },
+  { re:/foot|five|basket|volley|handball/i, emoji:'⚽', photo:null },
   { re:/p[ée]tanque|boules/i, emoji:'⚪', photo:null },
-  { re:/randonn|marche|balade|sentier/i, emoji:'🥾', photo:null },
+  // Pexels 35731347 — randonneurs face à la mer, licence Pexels gratuite, vérifiée
+  { re:/randonn|marche|balade|sentier/i, emoji:'🥾', photo:'https://images.pexels.com/photos/35731347/pexels-photo-35731347/free-photo-of-group-of-hikers-on-grassy-hill-overlooking-calm-sea.jpeg?auto=compress&cs=tinysrgb&w=800' },
   { re:/v[ée]lo|cyclo|vtt/i, emoji:'🚴', photo:null },
-  { re:/[ée]quitation|cheval|poney/i, emoji:'🐴', photo:null },
   { re:/surf|voile|planche|kite|plong[ée]e/i, emoji:'🏄', photo:null },
-  { re:/spa|sauna|hammam|massage|thermes/i, emoji:'💆', photo:null },
-  { re:/parachut|saut|chute libre|ulm|parapente/i, emoji:'🪂', photo:null },
-  { re:/zoo|ferme|animaux|aquarium/i, emoji:'🦒', photo:null },
-  { re:/march[ée]|brocante|vide.?grenier/i, emoji:'🧺', photo:null }
+  { re:/spa\b|sauna|hammam|massage|thermes|soin/i, emoji:'💆', photo:null },
+  { re:/activit[ée]s sportives|sport sant[ée]/i, emoji:'🏃', photo:null },
+  { re:/march[ée]|brocante|vide.?grenier/i, emoji:'🧺', photo:null },
 ];
 function activityTypeFor(name){
   const n = String(name || '');
