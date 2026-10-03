@@ -7673,7 +7673,7 @@ const ACTIVITY_TYPES = [
   { re:/bi[èe]re|brasserie|houblon/i, emoji:'🍺', photo:null },
   { re:/p[âa]tisserie|chocolat|cuisine|chef|culinaire/i, emoji:'👩‍🍳', photo:'https://images.unsplash.com/photo-1683624328172-88fb24625ec1?auto=format&fit=crop&w=800&q=70' }, // Unsplash — groupe d'adultes qui préparent un repas ensemble, licence Unsplash gratuite (hors Unsplash+), vérifiée
   { re:/\bvin\b|vins|oenolog|œnolog|d[ée]gustation|cave/i, emoji:'🍷', photo:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=70' }, // Unsplash — amis qui trinquent avec du vin, licence Unsplash gratuite (hors Unsplash+), vérifiée
-  { re:/restaurant|brunch|bistrot|cr[êe]perie/i, emoji:'🍽️', photo:null },
+  { re:/restaurant|brunch|bistrot|cr[êe]perie/i, emoji:'🍽️', photo:'https://images.unsplash.com/photo-1547573854-74d2a71d0826?auto=format&fit=crop&w=800&q=70' }, // Unsplash — table garnie de plats à partager, licence gratuite, vérifiée
   { re:/caf[ée]|salon de th[ée]/i, emoji:'☕', photo:null },
   { re:/cocktail|\bbar\b|pub|guinguette/i, emoji:'🍸', photo:'https://images.unsplash.com/photo-1725268093455-061ff2ed6c08?auto=format&fit=crop&w=800&q=70' }, // Unsplash — amis qui lèvent leur verre dans un bar, de nuit, licence Unsplash gratuite (hors Unsplash+), vérifiée
   { re:/yoga|m[ée]ditation|sophrologie|pilates/i, emoji:'🧘', photo:null },
@@ -7684,7 +7684,9 @@ const ACTIVITY_TYPES = [
   { re:/foot|five|basket|volley|handball/i, emoji:'⚽', photo:'https://images.unsplash.com/photo-1600077063877-22118d6290eb?auto=format&fit=crop&w=800&q=70' }, // Unsplash — groupe qui joue au football, licence gratuite, vérifiée
   { re:/p[ée]tanque|boules/i, emoji:'⚪', photo:null },
   // Pexels 35731347 — randonneurs face à la mer, licence Pexels gratuite, vérifiée
-  { re:/randonn|marche|balade|sentier/i, emoji:'🥾', photo:'https://images.pexels.com/photos/35731347/pexels-photo-35731347/free-photo-of-group-of-hikers-on-grassy-hill-overlooking-calm-sea.jpeg?auto=compress&cs=tinysrgb&w=800' },
+  { re:/course [àa] pied|running|jogging|footing|\btrail\b/i, emoji:'👟', photo:'https://images.unsplash.com/photo-1590333748338-d629e4564ad9?auto=format&fit=crop&w=800&q=70' }, // Unsplash — groupe de coureurs sur une route, licence gratuite, vérifiée
+  { re:/balade|promenade|\bmarche\b|fl[âa]nerie/i, emoji:'🚶', photo:'https://images.unsplash.com/photo-1758599668796-cdd37f4ecb66?auto=format&fit=crop&w=800&q=70' }, // Unsplash — groupe qui marche sur un sentier en forêt, licence gratuite, vérifiée
+  { re:/randonn|sentier|trek/i, emoji:'🥾', photo:'https://images.pexels.com/photos/35731347/pexels-photo-35731347/free-photo-of-group-of-hikers-on-grassy-hill-overlooking-calm-sea.jpeg?auto=compress&cs=tinysrgb&w=800' },
   { re:/v[ée]lo|cyclo|vtt/i, emoji:'🚴', photo:null },
   { re:/surf|voile|planche|kite|plong[ée]e/i, emoji:'🏄', photo:null },
   { re:/spa\b|sauna|hammam|massage|thermes|soin/i, emoji:'💆', photo:null },
@@ -7764,7 +7766,7 @@ const ILLU_FOR = {
   '💍':['gem','art'], '🧵':['palette','art'], '🥖':['bread','food'], '🍺':['beer','food'], '👩‍🍳':['chef','food'], '🍷':['wine','food'],
   '🍽️':['utensils','food'], '☕':['cup','food'], '🍸':['cocktail','night'], '🧘':['yoga','sport'], '💃':['dance','music'], '🏋️':['dumbbell','sport'],
   '🎾':['racket','sport'], '⚽':['ball','sport'], '⚪':['boules','sport'], '🥾':['mountain','nature'], '🚴':['bike','sport'], '🏄':['waves','nature'],
-  '💆':['leaf','sport'], '🏃':['pulse','sport'], '🧺':['basket','food']
+  '💆':['leaf','sport'], '🏃':['pulse','sport'], '🧺':['basket','food'], '👟':['pulse','sport'], '🚶':['mountain','nature']
 };
 const ILLU_COLORS = {
   night:['#4B2A7B','#1E1236'], music:['#7A3E9D','#2E1546'], food:['#F2924B','#B4471A'], art:['#E46FA0','#8E3466'],
@@ -7802,7 +7804,7 @@ function activityTypeFor(name){
 const PHOTO_BANK_LABELS = {
   '🏊':'Piscine', '🏎️':'Karting', '🎳':'Bowling', '🔐':'Escape game', '🔫':'Laser game', '🧗':'Escalade',
   '🛶':'Kayak', '🏺':'Poterie', '🎬':'Cinéma', '🎸':'Concert', '🥾':'Randonnée', '❓':'Quiz / blind test',
-  '🎤':'Karaoké', '🪩':'Soirée', '📷':'Photo', '🎨':'Peinture', '👩‍🍳':'Cuisine', '🍷':'Vin', '🍸':'Bar',
+  '🍽️':'Restaurant', '👟':'Course à pied', '🚶':'Balade', '🎤':'Karaoké', '🪩':'Soirée', '📷':'Photo', '🎨':'Peinture', '👩‍🍳':'Cuisine', '🍷':'Vin', '🍸':'Bar',
   '🤸':'Trampoline', '🛝':'Parc de jeux', '🎹':'Musique', '🎾':'Padel / tennis', '🏋️':'Fitness', '⚽':'Foot'
 };
 let ractSelectedPhoto = null;
@@ -8384,8 +8386,8 @@ async function sendOutingInvite(activityId, profileId, btn){
     if(btn){ btn.textContent = error ? 'Déjà invité' : 'Invité ✓'; btn.disabled = true; btn.classList.add('light'); }
     if(!error) showToast('Invitation envoyée 🍊', '✅');
   } catch(e){
-    console.warn('[Invitation sortie] Envoi impossible :', e.message);
-    showToast("L'invitation n'a pas pu partir, réessaie.", '⚠️');
+    console.warn('[Invitation sortie] Envoi impossible :', e.code, e.message);
+    showToast(explainDbError(e, 'activity_invitations', 'invitations-sorties.sql'), '⚠️');
   }
 }
 
@@ -8474,6 +8476,22 @@ async function respondOutingInvite(invitationId, accept, activityId){
   }
 }
 
+// Message clair quand la base refuse une action (au lieu d'un « réessaie » générique).
+function explainDbError(e, table, sqlFile){
+  const msg = ((e && e.message) || '').toLowerCase();
+  const code = (e && e.code) || '';
+  if(code === '42P01' || code === 'PGRST205' || (msg.includes(table) && (msg.includes('does not exist') || msg.includes('schema cache')))){
+    return `La fonction n'est pas encore activée : exécute ${sqlFile} dans Supabase.`;
+  }
+  if(code === '42501' || msg.includes('row-level security') || msg.includes('violates row')){
+    return "Envoi refusé : l'un de vous a peut-être bloqué l'autre, ou ton profil n'est pas encore complet.";
+  }
+  if(msg.includes('failed to fetch') || msg.includes('network')){
+    return 'Pas de connexion internet, réessaie dans un instant.';
+  }
+  return "L'invitation n'a pas pu partir (" + (code || 'erreur inconnue') + "), réessaie.";
+}
+
 function openFriendInvite(card){ openFriendInviteFor(filteredProfiles[swipeIndex]); }
 function openFriendInviteFor(p){
   if(!p || !p.supabaseId) return;
@@ -8519,8 +8537,8 @@ async function sendFriendInvite(){
     if(error && error.code !== '23505') throw error;
     showToast(error ? `Tu as déjà invité ${p.name}` : `Invitation envoyée à ${p.name} 🤝`, '✅');
   } catch(e){
-    console.warn('[Amitié] Invitation impossible :', e.message);
-    showToast("L'invitation n'a pas pu partir, réessaie.", '⚠️');
+    console.warn('[Amitié] Invitation impossible :', e.code, e.message);
+    showToast(explainDbError(e, 'friend_requests', 'amitie-invitations.sql'), '⚠️');
     return;
   }
   const invitedId = p.supabaseId;
