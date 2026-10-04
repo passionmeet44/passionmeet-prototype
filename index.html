@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#FEF8EE">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PassionMeet">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>PassionMeet — Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -2967,6 +2973,7 @@
     <div class="pm-section-title">Réglages</div>
     <div class="pm-list">
       <div class="pm-row" onclick="premiumReturnScreen='profile'; showScreen('premium')"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg></div><div class="pm-label">PassionMeet+<div class="pm-sub">Voir qui t'a liké, likes illimités</div></div><div class="pm-chevron">›</div></div>
+      <div class="pm-row" style="cursor:default;"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></div><div class="pm-label">Notifications<div class="pm-sub" id="push-status">Messages, invitations, matchs</div></div><div class="switch" id="switch-push" onclick="togglePushNotifications()"></div></div>
       <div class="pm-row" style="cursor:default;"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></div><div class="pm-label">Mode sombre</div><div class="switch" id="switch-dark-mode" onclick="toggleDarkMode()"></div></div>
       <div class="pm-row" style="cursor:default;"><div class="pm-icon orange"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg></div><div class="pm-label">Mettre mon profil en pause<div class="pm-sub">Invisible temporairement</div></div><div class="switch" id="switch-pause-profile" onclick="toggleProfilePause()"></div></div>
       <a class="pm-row" href="mailto:contact.passionmeet@gmail.com" style="text-decoration:none;"><div class="pm-icon"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.8 6.8L12 13l8.2-6.2"/></svg></div><div class="pm-label">Nous contacter<div class="pm-sub">contact.passionmeet@gmail.com</div></div><div class="pm-chevron">›</div></a>
@@ -5669,6 +5676,7 @@ try{
         try{ renderCategoryGrid(); } catch(e){ console.warn('[Auth] renderCategoryGrid a échoué :', e.message); }
         try{ initGeolocationPriority(); } catch(e){ console.warn('[Auth] initGeolocationPriority a échoué :', e.message); }
         try{ openSharedActivityFromUrl(); } catch(e){ console.warn('[Auth] Lien de sortie partagée :', e.message); }
+        try{ openFromNotificationUrl(); } catch(e){ console.warn('[Auth] Lien de notification :', e.message); }
         try{ resumeLocationShareIfAny(); } catch(e){ console.warn('[Auth] Reprise du partage de position :', e.message); }
         window.__PM_AUTH_STEP = 'showScreen(home)';
         console.info('[Auth] 4. Navigation vers l\'accueil');
@@ -6241,6 +6249,7 @@ function renderProfileScreen(){
   const cityLine = document.getElementById('profile-city-line');
   if(cityLine) cityLine.textContent = myProfile.city ? `📍 ${myProfile.city}` : '';
   updateProfileTiles();
+  updatePushSwitch();
   const relBadgeRow = document.querySelector('#screen-profile .profile-badge-row');
   if(relBadgeRow && myProfile.supabaseId){
     fetchReliabilityMap([myProfile.supabaseId]).then(m => {
@@ -8518,6 +8527,112 @@ async function countSuccessfulOrganizedOutings(){
     const { data: recs } = await supabaseClient.from('attendance_records').select('activity_id, profile_id, status').in('activity_id', ids).eq('status', 'present');
     return new Set((recs || []).filter(r => r.profile_id !== myProfile.supabaseId).map(r => r.activity_id)).size;
   } catch(e){ return 0; }
+}
+
+// =====================================================================
+// NOTIFICATIONS (push web). Sur iPhone : seulement quand PassionMeet est
+// ajouté à l'écran d'accueil (iOS 16.4 ou plus), règle d'Apple.
+// =====================================================================
+const VAPID_PUBLIC_KEY = 'BO0fWJ6YOI1Ao-Fu2d2WrG0AzkuRcr54UOLqiunXqW_CdzQg9A3mTtbFukfvha0fQnbWtr_wOAD_tL8HLgcT8Y4';
+function pushSupported(){ return ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window); }
+function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+function urlBase64ToUint8Array(b64){
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+let pmServiceWorker = null;
+async function registerPassionMeetWorker(){
+  if(!('serviceWorker' in navigator)) return null;
+  try{ pmServiceWorker = await navigator.serviceWorker.register('/sw.js'); } catch(e){ pmServiceWorker = null; }
+  return pmServiceWorker;
+}
+window.addEventListener('load', () => { registerPassionMeetWorker(); });
+
+async function currentPushSubscription(){
+  if(!pushSupported()) return null;
+  const reg = pmServiceWorker || await navigator.serviceWorker.getRegistration();
+  return reg ? await reg.pushManager.getSubscription() : null;
+}
+async function updatePushSwitch(){
+  const sw = document.getElementById('switch-push');
+  const st = document.getElementById('push-status');
+  if(!sw || !st) return;
+  if(!pushSupported()){
+    sw.classList.remove('on');
+    st.textContent = isIOS() && !isStandalone() ? "Ajoute d'abord PassionMeet à ton écran d'accueil" : 'Non disponible sur ce navigateur';
+    return;
+  }
+  const sub = await currentPushSubscription();
+  const on = !!sub && Notification.permission === 'granted';
+  sw.classList.toggle('on', on);
+  st.textContent = on ? 'Activées sur cet appareil' : (Notification.permission === 'denied' ? 'Bloquées dans les réglages du téléphone' : 'Messages, invitations, matchs');
+}
+function showInstallGuide(){
+  showCelebration('📲', "Ajoute PassionMeet à ton écran d'accueil",
+    "Sur iPhone, les notifications ne marchent qu'avec l'appli installée : touche le bouton Partager (le carré avec une flèche), puis « Sur l'écran d'accueil ». Ouvre ensuite PassionMeet depuis la nouvelle icône et active les notifications.",
+    "J'ai compris");
+}
+async function togglePushNotifications(){
+  const sw = document.getElementById('switch-push');
+  if(sw && sw.classList.contains('on')){ await disablePushNotifications(); return; }
+  await enablePushNotifications();
+}
+async function enablePushNotifications(){
+  if(!pushSupported()){
+    if(isIOS() && !isStandalone()) showInstallGuide();
+    else showToast("Ton navigateur ne gère pas les notifications", '⚠️');
+    return;
+  }
+  if(!supabaseClient || !myProfile.supabaseId){ showToast('Connecte-toi pour activer les notifications', '⚠️'); return; }
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      showToast("Notifications refusées : tu peux les autoriser dans les réglages du téléphone", '🔕');
+      updatePushSwitch();
+      return;
+    }
+    const reg = pmServiceWorker || await registerPassionMeetWorker() || await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+    const j = sub.toJSON();
+    const { error } = await supabaseClient.from('push_subscriptions').upsert({
+      profile_id: myProfile.supabaseId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth
+    }, { onConflict: 'endpoint' });
+    if(error) throw error;
+    showToast('Notifications activées 🔔', '✅');
+  } catch(e){
+    console.warn('[Notifications] Activation impossible :', e && e.message);
+    showToast("Impossible d'activer les notifications pour le moment", '⚠️');
+  }
+  updatePushSwitch();
+}
+async function disablePushNotifications(){
+  try{
+    const sub = await currentPushSubscription();
+    if(sub){
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      if(supabaseClient) await supabaseClient.from('push_subscriptions').delete().eq('endpoint', endpoint);
+    }
+    showToast('Notifications désactivées sur cet appareil', '🔕');
+  } catch(e){}
+  updatePushSwitch();
+}
+// Ouverture depuis une notification (…?open=messages|matches|invitations)
+let notificationLinkHandled = false;
+function openFromNotificationUrl(){
+  if(notificationLinkHandled) return;
+  const target = new URLSearchParams(location.search).get('open');
+  if(!target) return;
+  notificationLinkHandled = true;
+  try{ history.replaceState(null, '', location.pathname); } catch(e){}
+  setTimeout(() => {
+    if(target === 'invitations') openInvitationsScreen();
+    else if(target === 'matches') showScreen('matches');
+    else showScreen('messages');
+  }, 700);
 }
 
 // Message clair quand la base refuse une action (au lieu d'un « réessaie » générique).
