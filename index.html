@@ -2395,6 +2395,10 @@
   .lib-label{ font-size:13px; font-weight:700; color:var(--plum); margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   body.dark-mode .ph-preview{ background-color:#231A29; border-color:#3B3042; }
 </style>
+
+<style id="pm-featured">
+  .ac-badge.featured{ background:linear-gradient(135deg,#FFD37A,#F6B94D); color:#3E1F44; font-weight:800; }
+</style>
 </head>
 <body>
 
@@ -5318,11 +5322,15 @@ function mapSupabaseProfileToMyProfile(row){
   if(row.min_age != null) myProfile.ageMin = row.min_age;
   if(row.max_age != null) myProfile.ageMax = row.max_age;
   if(row.max_distance != null) myProfile.radiusKm = row.max_distance;
-  isPremiumUser = !!row.is_premium;
   // Même formule exacte que le trigger SQL côté serveur : jamais de logique différente.
+  // (avant : seul « is_premium » comptait, un Premium de 7 jours ne s'arrêtait jamais)
+  isPremiumUser = !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date());
   myProfile.premiumUntil = row.premium_until || null;
   myProfile.isPremiumActive = !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date());
   myProfile.isAdmin = !!row.is_admin;
+  myProfile.organizerTrialGranted = !!row.organizer_trial_granted;
+  myProfile.organizerTrialGrantedAt = row.organizer_trial_granted_at || null;
+  maybeCelebrateOrganizerTrial(row);
 
   // PRIORITÉ 2 — position enregistrée en base : devient la position active
   // tant qu'une position GPS fraîche (PRIORITÉ 1) ne l'a pas remplacée.
@@ -8476,6 +8484,42 @@ async function respondOutingInvite(invitationId, accept, activityId){
   }
 }
 
+// ---------- Récompenses des organisateurs ----------
+const ORGANIZER_FEATURED_MIN = 10;   // sorties organisées pour être « à la une »
+const ORGANIZER_TRIAL_MIN = 3;       // sorties réussies pour les 7 jours offerts
+
+function showCelebration(emoji, title, text, buttonLabel){
+  document.getElementById('ms-emoji').textContent = emoji;
+  document.getElementById('ms-title').textContent = title;
+  document.getElementById('ms-text').textContent = text;
+  const yes = document.getElementById('ms-yes');
+  yes.textContent = buttonLabel || 'Super !';
+  yes.onclick = () => closeModeSwitch();
+  document.getElementById('ms-no').textContent = '';
+  document.getElementById('mode-switch-overlay').classList.add('show');
+}
+
+// Félicitations affichées une seule fois quand l'essai vient d'être offert.
+async function maybeCelebrateOrganizerTrial(row){
+  if(!row || !row.organizer_trial_granted || row.organizer_trial_seen) return;
+  setTimeout(() => showCelebration('🎉', 'Bravo, organisateur !',
+    `Tes ${ORGANIZER_TRIAL_MIN} sorties réussies t'offrent 7 jours de PassionMeet+. Merci de faire vivre la communauté 🍊`,
+    'Merci !'), 1200);
+  try{ await supabaseClient.from('profiles').update({ organizer_trial_seen: true }).eq('id', row.id); } catch(e){}
+}
+
+// Nombre de sorties organisées « réussies » (au moins un présent pointé).
+async function countSuccessfulOrganizedOutings(){
+  if(!supabaseClient || !myProfile.supabaseId) return 0;
+  try{
+    const { data: acts } = await supabaseClient.from('activities').select('id').eq('organizer_profile_id', myProfile.supabaseId).is('venue_activity_id', null);
+    const ids = (acts || []).map(a => a.id);
+    if(!ids.length) return 0;
+    const { data: recs } = await supabaseClient.from('attendance_records').select('activity_id, profile_id, status').in('activity_id', ids).eq('status', 'present');
+    return new Set((recs || []).filter(r => r.profile_id !== myProfile.supabaseId).map(r => r.activity_id)).size;
+  } catch(e){ return 0; }
+}
+
 // Message clair quand la base refuse une action (au lieu d'un « réessaie » générique).
 function explainDbError(e, table, sqlFile){
   const msg = ((e && e.message) || '').toLowerCase();
@@ -10052,6 +10096,7 @@ async function buildActivityCardHtml(a){
   if(a.recurrence) badges.push(`<span class="ac-badge">${recurrenceLabel(a.recurrence)}</span>`);
   if(a.newcomer_friendly) badges.push(`<span class="ac-badge newbie">🌱 Nouveaux bienvenus</span>`);
   if(a.hasCarpool) badges.push(`<span class="ac-badge">🚗 Covoiturage</span>`);
+  if(a.isFeatured) badges.unshift(`<span class="ac-badge featured">⭐ Organisateur à la une</span>`);
   if(a.matchesPassion) badges.push(`<span class="ac-badge">❤️ Passion</span>`);
   if(isFull) badges.push(`<span class="ac-badge full">Complet</span>`);
 
@@ -10916,6 +10961,12 @@ async function renderMemberOutingsList(){
     }
     const carpoolIds = await fetchActivitiesWithCarpool();
     filtered.forEach(a => { a.hasCarpool = carpoolIds.has(a.id); });
+    // Organisateurs très actifs : leurs sorties remontent en tête, avec une étiquette.
+    const orgIds = [...new Set(filtered.map(a => a.organizer_profile_id).filter(Boolean))];
+    const featuredOrgs = new Set();
+    await Promise.all(orgIds.map(async id => { if((await getOrganizerCount(id)) >= ORGANIZER_FEATURED_MIN) featuredOrgs.add(id); }));
+    filtered.forEach(a => { a.isFeatured = featuredOrgs.has(a.organizer_profile_id); });
+    filtered.sort((x, y) => (y.isFeatured ? 1 : 0) - (x.isFeatured ? 1 : 0));
     const cards = await Promise.all(filtered.slice(0, 20).map(a => buildActivityCardHtml(a)));
     box.innerHTML = title + cards.join('');
   } catch(e){
@@ -11791,6 +11842,22 @@ async function markAttendance(activityId, profileId, status){
   refreshActivityParticipants(activityId);
 }
 
+async function organizerRewardsCardHtml(){
+  const ok = await countSuccessfulOrganizedOutings();
+  const organized = await getOrganizerCount(myProfile.supabaseId);
+  const trialLine = myProfile.organizerTrialGranted
+    ? `🎁 7 jours de PassionMeet+ obtenus${myProfile.organizerTrialGrantedAt ? ' le ' + new Date(myProfile.organizerTrialGrantedAt).toLocaleDateString('fr-FR') : ''}`
+    : `🎁 ${Math.min(ok, ORGANIZER_TRIAL_MIN)} / ${ORGANIZER_TRIAL_MIN} sorties réussies pour gagner 7 jours de PassionMeet+`;
+  const featuredLine = organized >= ORGANIZER_FEATURED_MIN
+    ? '⭐ Tes sorties sont mises en avant : tu es organisateur à la une !'
+    : `⭐ ${organized} / ${ORGANIZER_FEATURED_MIN} sorties organisées pour être mis en avant`;
+  return `<div class="rd-card" style="margin-top:12px;">
+      <div class="rd-card-title">Récompenses d'organisateur</div>
+      <div class="cp-meta" style="font-size:13px; line-height:1.6;">${trialLine}<br>${featuredLine}</div>
+      <div class="cp-meta" style="margin-top:6px;">Une sortie « réussie » compte au moins un participant pointé présent. L'essai PassionMeet+ n'est offert qu'une fois.</div>
+    </div>`;
+}
+
 async function openReliabilityStats(){
   document.getElementById('profile-list-title').textContent = '📊 Ma fiabilité';
   const body = document.getElementById('profile-list-body');
@@ -11800,7 +11867,8 @@ async function openReliabilityStats(){
   const m = await fetchReliabilityMap([me]);
   const st = m[me] || { total: 0, present: 0 };
   if(!st.total){
-    body.innerHTML = emptyMsgState('📊', "Pas encore de sortie pointée… participe à des sorties : ton taux de présence apparaîtra ici 🍊", false);
+    body.innerHTML = emptyMsgState('📊', "Pas encore de sortie pointée… participe à des sorties : ton taux de présence apparaîtra ici 🍊", false)
+      + await organizerRewardsCardHtml();
     return;
   }
   const rate = Math.round(st.present / st.total * 100);
@@ -11813,6 +11881,7 @@ async function openReliabilityStats(){
         ? '<span class="reliable-tag" style="font-size:13px; padding:5px 12px;">Fiable ✓</span>'
         : `<span class="cp-meta">${missing ? `Encore ${missing} sortie${missing > 1 ? 's' : ''} pointée${missing > 1 ? 's' : ''} pour le badge Fiable ✓` : 'Vise 80 % de présence pour obtenir le badge Fiable ✓'}</span>`}</div>
     </div>
+    ${await organizerRewardsCardHtml()}
     <div class="cp-meta" style="margin-top:12px; line-height:1.5;">Après chaque sortie, l'organisateur indique qui était présent. Le badge Fiable ✓ s'obtient à partir de ${RELIABLE_MIN_OUTINGS} sorties pointées et 80 % de présence. Se désinscrire avant la sortie ne compte jamais comme une absence.</div>`;
 }
 
