@@ -2405,6 +2405,11 @@
 <style id="pm-featured">
   .ac-badge.featured{ background:linear-gradient(135deg,#FFD37A,#F6B94D); color:#3E1F44; font-weight:800; }
 </style>
+
+<style id="pm-ideas">
+  .rd-action.interest-on{ background:#FFF6DB !important; border-color:#F6B94D !important; color:#8A5A00 !important; }
+  body.dark-mode .rd-action.interest-on{ background:rgba(246,185,77,0.16) !important; color:#F6B94D !important; }
+</style>
 </head>
 <body>
 
@@ -3211,6 +3216,7 @@
         <div class="detail-row" id="ract-mode"></div>
         <div class="detail-row" id="ract-newcomer" style="display:none;">🌱 Ouverte aux nouveaux : idéal si tu ne connais encore personne</div>
       </div>
+      <a class="rd-action" id="ract-booking" target="_blank" rel="noopener" style="display:none; width:100%; margin-top:12px; text-decoration:none; box-sizing:border-box;">🎟️ Réserver chez le pro</a>
       <div class="rd-card rd-about">
         <div class="rd-card-title">À propos</div>
         <div class="detail-desc" id="ract-desc"></div>
@@ -3321,7 +3327,7 @@
          dans le modal, pour rester visibles une fois celui-ci refermé. -->
     <div id="activity-full-list-section" class="hidden">
       <div id="member-outings-list" style="padding:0 20px;"></div>
-      <div class="match-section-title" style="padding:14px 20px 4px;">🏛️ Lieux à découvrir <span style="font-weight:500; font-size:11px; color:#9584A0;">— lieux permanents, à réserver</span></div>
+      <div class="match-section-title" style="padding:14px 20px 4px;">💡 Idées de sorties PassionMeet <span style="font-weight:500; font-size:11px; color:#9584A0;">— lieux permanents, à réserver</span></div>
       <div id="activity-results-summary" style="padding:0 20px; font-size:12.5px; color:var(--plum-soft); font-weight:600;"></div>
       <div id="activity-suggestions-section" style="padding:0 20px;"></div>
       <div id="activities-real-list" style="padding:0 20px;"></div>
@@ -8686,6 +8692,81 @@ function openFromNotificationUrl(){
   }, 700);
 }
 
+// =====================================================================
+// IDÉES DE SORTIES (catalogue) : on ne « rejoint » plus un lieu sans date.
+// On organise une vraie sortie datée depuis le lieu, ou on dit « Ça me tente ».
+// =====================================================================
+let ractBasedOnVenue = null;   // lieu du catalogue à l'origine de la sortie
+let ractBookingUrl = null;     // lien de réservation chez le pro, transmis à la sortie
+let lastVenueDetail = null;
+
+async function renderVenueIdeaActions(act, venue){
+  lastVenueDetail = { act, venue };
+  const box = document.getElementById('venue-detail-participation');
+  if(!box) return;
+  let n = 0, mine = false;
+  try{
+    const { data } = await supabaseClient.rpc('venue_interest_counts', { p_ids: [act.id] });
+    n = (data && data[0] && data[0].n) || 0;
+  } catch(e){}
+  try{
+    const { data } = await supabaseClient.from('venue_interests').select('id')
+      .eq('venue_activity_id', act.id).eq('profile_id', myProfile.supabaseId).maybeSingle();
+    mine = !!data;
+  } catch(e){}
+  box.innerHTML = `
+    <div class="form-hint" style="margin:12px 0 8px;">${n ? `💛 ${n} membre${n > 1 ? 's sont tentés' : ' est tenté'} par cette sortie` : '💛 Sois le premier à être tenté !'}</div>
+    <button class="btn-primary" style="width:100%; margin:0;" onclick="organizeFromVenue('${act.id}')">📅 Organiser une sortie ici</button>
+    <button class="rd-action ${mine ? 'interest-on' : ''}" style="width:100%; margin-top:8px;" onclick="toggleVenueInterest('${act.id}', ${mine})">${mine ? '💛 Ça me tente ✓' : '💛 Ça me tente'}</button>
+    <div class="form-hint" style="margin-top:8px;">Les membres tentés sont prévenus dès qu'une sortie est organisée ici.</div>`;
+}
+
+async function toggleVenueInterest(actId, isOn){
+  if(!supabaseClient || !myProfile.supabaseId) return;
+  try{
+    if(isOn){
+      const { error } = await supabaseClient.from('venue_interests').delete().eq('venue_activity_id', actId).eq('profile_id', myProfile.supabaseId);
+      if(error) throw error;
+    } else {
+      const { error } = await supabaseClient.from('venue_interests').insert({ venue_activity_id: actId, profile_id: myProfile.supabaseId });
+      if(error && error.code !== '23505') throw error;
+      showToast("C'est noté ! Tu seras prévenu(e) dès qu'une sortie est organisée ici", '💛');
+    }
+  } catch(e){
+    console.warn('[Ça me tente] Impossible :', e.message);
+    showToast('Action impossible pour le moment, réessaie', '⚠️');
+  }
+  if(lastVenueDetail && lastVenueDetail.act.id === actId) renderVenueIdeaActions(lastVenueDetail.act, lastVenueDetail.venue);
+}
+
+// Ouvre « Créer une sortie » déjà rempli à partir du lieu : il ne reste que la date.
+async function organizeFromVenue(actId){
+  const { venues, activities } = await fetchVenuesCatalog();
+  const act = activities.find(a => a.id === actId);
+  if(!act) return;
+  const venue = venues.find(v => v.id === act.venue_id) || null;
+  closeVenueDetail();
+  openCreateActivityReal();
+  const set = (id, v) => { const el = document.getElementById(id); if(el && v != null) el.value = v; };
+  set('ract-form-title', act.activity_name + (venue ? ' — ' + venue.name : ''));
+  const cat = document.getElementById('ract-form-category');
+  if(cat && [...cat.options].some(o => o.value === act.category)) cat.value = act.category;
+  if(venue){
+    set('ract-form-location', venue.name + (venue.city ? ', ' + venue.city : ''));
+    if(venue.latitude != null && venue.longitude != null) selectedLocationCoords = { lat: venue.latitude, lng: venue.longitude };
+  }
+  const vis = activityVisual(act, venue ? venue.name : '');
+  if(vis.photo && /^https:\/\/images\.(unsplash|pexels)\.com\//.test(vis.photo)){
+    ractSelectedPhoto = vis.photo;
+    updateRactPhotoPreview(vis.photo);
+  }
+  ractBasedOnVenue = act.id;
+  ractBookingUrl = act.booking_url || (venue && venue.official_website) || null;
+  showToast('Tout est pré-rempli : choisis juste la date 📅', '✨');
+  const date = document.getElementById('ract-form-date');
+  if(date) setTimeout(() => date.scrollIntoView({ behavior: 'smooth', block: 'center' }), 400);
+}
+
 // Message clair quand la base refuse une action (au lieu d'un « réessaie » générique).
 function explainDbError(e, table, sqlFile){
   const msg = ((e && e.message) || '').toLowerCase();
@@ -9756,6 +9837,8 @@ function openCreateActivityReal(){
   if(recurrenceReset) recurrenceReset.value = '';
   ractSelectedPhoto = null;
   updateRactPhotoPreview(null);
+  ractBasedOnVenue = null;
+  ractBookingUrl = null;
   selectedLocationCoords = null;
   document.getElementById('ract-location-suggestions').style.display = 'none';
   document.getElementById('ract-form-meeting-point').value = '';
@@ -10027,7 +10110,9 @@ async function submitRealActivity(){
       ...(priceType === 'free' ? { is_free: true } : {}),
       ...(priceType === 'paid' ? { is_free: false, price_eur: priceEur } : {}),
       ...(recurrence ? { recurrence } : {}),
-      ...(!photoUrl && ractSelectedPhoto ? { photo_url: ractSelectedPhoto } : {})
+      ...(!photoUrl && ractSelectedPhoto ? { photo_url: ractSelectedPhoto } : {}),
+      ...(ractBasedOnVenue ? { based_on_venue_activity_id: ractBasedOnVenue } : {}),
+      ...(ractBookingUrl ? { booking_url: ractBookingUrl } : {})
     }).select('id').maybeSingle();
     if(error) throw error;
 
@@ -10215,7 +10300,8 @@ async function buildActivityCardHtml(a){
     bg: cat ? cat.bg : 'linear-gradient(135deg,#8B5A8C,#3D1F45)',
     maxParticipants: a.max_participants, photoUrl: resolvedPhotoUrl, mode: a.mode, meetingPoint: a.meeting_point,
     recurrence: a.recurrence || null,
-    newcomerFriendly: a.newcomer_friendly === true
+    newcomerFriendly: a.newcomer_friendly === true,
+    bookingUrl: a.booking_url || null
   });
 
   const dateLabel = a.activity_date
@@ -10290,7 +10376,7 @@ async function fetchActiveUpcomingActivities(){
   // Colonnes ajoutées (transports, prix) : lues si elles existent, sinon on
   // retombe sur la requête d'origine — jamais de page cassée pour autant.
   let rawData = null, error = null;
-  for(const extra of [', transit_accessible, is_free, price_eur, recurrence, newcomer_friendly', ', transit_accessible, is_free, price_eur, recurrence', ', transit_accessible, is_free, price_eur', '']){
+  for(const extra of [', transit_accessible, is_free, price_eur, recurrence, newcomer_friendly, booking_url', ', transit_accessible, is_free, price_eur, recurrence, newcomer_friendly', ', transit_accessible, is_free, price_eur, recurrence', ', transit_accessible, is_free, price_eur', '']){
     ({ data: rawData, error } = await supabaseClient
       .from('activities').select(baseCols + extra)
       .order('created_at', { ascending: false }));
@@ -10893,41 +10979,8 @@ async function openVenueDetail(activityId){
   `;
   document.getElementById('venue-detail-overlay').classList.add('show');
 
-  // Charge le vrai statut de participation (nombre de PassionMeet ayant
-  // rejoint, et si l'utilisateur connecté en fait partie) après affichage,
-  // pour ne jamais bloquer l'ouverture de la fiche sur cette requête.
-  try{
-    const { data: shadow } = await supabaseClient
-      .from('activities').select('id, max_participants').eq('venue_activity_id', act.id).maybeSingle();
-    const box = document.getElementById('venue-detail-participation');
-    if(!box) return;
-    if(!shadow){
-      box.innerHTML = `
-        <div class="form-hint" style="margin:10px 0 6px;">👥 Personne n'a encore rejoint — sois le premier !</div>
-        <button class="btn-primary" style="width:100%; margin-top:2px;" onclick="joinVenueActivity('${act.id}')">Rejoindre l'activité →</button>
-      `;
-      return;
-    }
-    const { count } = await supabaseClient
-      .from('activity_participants').select('id', { count:'exact', head:true }).eq('activity_id', shadow.id);
-    const { data: mine } = await supabaseClient
-      .from('activity_participants').select('id').eq('activity_id', shadow.id).eq('profile_id', myProfile.supabaseId).maybeSingle();
-    const maxLabel = shadow.max_participants ? `/${shadow.max_participants}` : '';
-    const isFull = shadow.max_participants != null && (count||0) >= shadow.max_participants && !mine;
-
-    box.innerHTML = `
-      <div class="form-hint" style="margin:10px 0 6px;">👥 ${count||0}${maxLabel} PassionMeet ${count>1?'ont':'a'} rejoint cette activité</div>
-      ${mine
-        ? `<div style="display:flex; align-items:center; gap:6px; color:#3E9C5C; font-weight:700; font-size:13px; margin-bottom:8px;">✓ Vous participez</div>
-           <button class="btn-secondary" style="width:100%;" onclick="leaveVenueActivity('${act.id}','${shadow.id}')">Quitter l'activité</button>`
-        : isFull
-          ? `<button class="btn-secondary" style="width:100%;" disabled>Complet</button>`
-          : `<button class="btn-primary" style="width:100%; margin-top:2px;" onclick="joinVenueActivity('${act.id}')">Rejoindre l'activité →</button>`
-      }
-    `;
-  } catch(e){
-    console.warn('[Participation] Statut indisponible :', e.message);
-  }
+  // Idée de sortie : organiser une sortie datée ici, ou dire « Ça me tente ».
+  renderVenueIdeaActions(act, venue);
 }
 function closeVenueDetail(){
   document.getElementById('venue-detail-overlay').classList.remove('show');
@@ -12331,6 +12384,11 @@ async function openActivityDetail(activityId){
   document.getElementById('ract-organizer').textContent = `🙋 Organisée par ${a.organizerName}`;
   const newcomerRow = document.getElementById('ract-newcomer');
   if(newcomerRow) newcomerRow.style.display = a.newcomerFriendly ? '' : 'none';
+  const bookingBtn = document.getElementById('ract-booking');
+  if(bookingBtn){
+    if(a.bookingUrl && /^https?:\/\//.test(a.bookingUrl)){ bookingBtn.href = a.bookingUrl; bookingBtn.style.display = 'flex'; }
+    else { bookingBtn.style.display = 'none'; bookingBtn.removeAttribute('href'); }
+  }
   if(a.organizerId){
     getOrganizerCount(a.organizerId).then(n => {
       if(n >= ORGANIZER_BADGE_MIN && currentActivityDetail === a){
