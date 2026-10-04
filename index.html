@@ -5677,6 +5677,7 @@ try{
         try{ initGeolocationPriority(); } catch(e){ console.warn('[Auth] initGeolocationPriority a échoué :', e.message); }
         try{ openSharedActivityFromUrl(); } catch(e){ console.warn('[Auth] Lien de sortie partagée :', e.message); }
         try{ openFromNotificationUrl(); } catch(e){ console.warn('[Auth] Lien de notification :', e.message); }
+        setTimeout(() => { try{ maybeAskForNotifications(0); } catch(e){} }, 2500);
         try{ resumeLocationShareIfAny(); } catch(e){ console.warn('[Auth] Reprise du partage de position :', e.message); }
         window.__PM_AUTH_STEP = 'showScreen(home)';
         console.info('[Auth] 4. Navigation vers l\'accueil');
@@ -8224,6 +8225,7 @@ function askModeSwitch(target){
   yes.textContent = t.yes;
   yes.onclick = () => enableModeAndGo(target);
   document.getElementById('ms-no').textContent = t.no;
+  document.getElementById('ms-no').onclick = () => closeModeSwitch();
   document.getElementById('mode-switch-overlay').classList.add('show');
 }
 function closeModeSwitch(){ document.getElementById('mode-switch-overlay').classList.remove('show'); }
@@ -8505,6 +8507,7 @@ function showCelebration(emoji, title, text, buttonLabel){
   yes.textContent = buttonLabel || 'Super !';
   yes.onclick = () => closeModeSwitch();
   document.getElementById('ms-no').textContent = '';
+  document.getElementById('ms-no').onclick = () => closeModeSwitch();
   document.getElementById('mode-switch-overlay').classList.add('show');
 }
 
@@ -8579,7 +8582,7 @@ async function togglePushNotifications(){
   if(sw && sw.classList.contains('on')){ await disablePushNotifications(); return; }
   await enablePushNotifications();
 }
-async function enablePushNotifications(){
+async function enablePushNotifications(silent){
   if(!pushSupported()){
     if(isIOS() && !isStandalone()) showInstallGuide();
     else showToast("Ton navigateur ne gère pas les notifications", '⚠️');
@@ -8601,10 +8604,10 @@ async function enablePushNotifications(){
       profile_id: myProfile.supabaseId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth
     }, { onConflict: 'endpoint' });
     if(error) throw error;
-    showToast('Notifications activées 🔔', '✅');
+    if(!silent) showToast('Notifications activées 🔔', '✅');
   } catch(e){
     console.warn('[Notifications] Activation impossible :', e && e.message);
-    showToast("Impossible d'activer les notifications pour le moment", '⚠️');
+    if(!silent) showToast("Impossible d'activer les notifications pour le moment", '⚠️');
   }
   updatePushSwitch();
 }
@@ -8620,6 +8623,54 @@ async function disablePushNotifications(){
   } catch(e){}
   updatePushSwitch();
 }
+// ---------- Proposer les notifications dès l'entrée dans l'appli ----------
+const PUSH_SNOOZE_DAYS = 3;
+function snoozePushPrompt(days){
+  try{ localStorage.setItem('pm_push_snooze', String(Date.now() + days * 86400000)); } catch(e){}
+}
+function pushPromptSnoozed(){
+  try{ return Date.now() < parseInt(localStorage.getItem('pm_push_snooze') || '0', 10); } catch(e){ return false; }
+}
+function showChoice(emoji, title, text, yesLabel, onYes, noLabel, onNo){
+  document.getElementById('ms-emoji').textContent = emoji;
+  document.getElementById('ms-title').textContent = title;
+  document.getElementById('ms-text').textContent = text;
+  const yes = document.getElementById('ms-yes');
+  yes.textContent = yesLabel;
+  yes.onclick = () => { closeModeSwitch(); onYes && onYes(); };
+  const no = document.getElementById('ms-no');
+  no.textContent = noLabel;
+  no.onclick = () => { closeModeSwitch(); onNo && onNo(); };
+  document.getElementById('mode-switch-overlay').classList.add('show');
+}
+async function maybeAskForNotifications(attempt){
+  if(!myProfile.supabaseId) return;
+  // Une autre fenêtre est ouverte (félicitations…) : on attend qu'elle se ferme.
+  const overlay = document.getElementById('mode-switch-overlay');
+  if(overlay && overlay.classList.contains('show')){
+    if((attempt || 0) < 5) setTimeout(() => maybeAskForNotifications((attempt || 0) + 1), 4000);
+    return;
+  }
+  if(pushSupported()){
+    if(Notification.permission === 'granted'){
+      // Déjà accepté (nouvel appareil, réinstallation…) : réabonnement silencieux.
+      enablePushNotifications(true);
+      return;
+    }
+    if(Notification.permission === 'denied' || pushPromptSnoozed()) return;
+    showChoice('🔔', 'Ne rate aucun message',
+      "Active les notifications pour savoir quand quelqu'un t'écrit, t'invite à une sortie ou quand tu as un match. Tu pourras les couper à tout moment dans ton profil.",
+      'Oui, activer', () => enablePushNotifications(false),
+      'Plus tard', () => snoozePushPrompt(PUSH_SNOOZE_DAYS));
+  } else if(isIOS() && !isStandalone()){
+    if(pushPromptSnoozed()) return;
+    showChoice('📲', 'Installe PassionMeet sur ton iPhone',
+      "Pour recevoir les notifications, ajoute l'appli à ton écran d'accueil : touche le bouton Partager (le carré avec une flèche), puis « Sur l'écran d'accueil ». Ouvre ensuite PassionMeet depuis la nouvelle icône.",
+      "J'ai compris", () => snoozePushPrompt(7),
+      'Plus tard', () => snoozePushPrompt(PUSH_SNOOZE_DAYS));
+  }
+}
+
 // Ouverture depuis une notification (…?open=messages|matches|invitations)
 let notificationLinkHandled = false;
 function openFromNotificationUrl(){
