@@ -1,4 +1,4 @@
-// PassionMeet — service des notifications (à placer à la racine du site, à côté d'index.html)
+// PassionMeet — service des notifications (v2 : icône Android corrigée) (à placer à la racine du site, à côté d'index.html)
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
@@ -9,7 +9,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, {
     body: data.body || '',
     icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    badge: '/badge-96.png',   // Android : silhouette blanche sur fond transparent (sinon carré blanc)
     data: { url: data.url || '/' },
     tag: data.url || 'passionmeet',
     renotify: true
