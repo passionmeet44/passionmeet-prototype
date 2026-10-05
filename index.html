@@ -8145,56 +8145,20 @@ async function recordSwipeAction(toProfileId, action){
 // Vérifie si l'autre profil a déjà envoyé la même intention en retour, et si oui,
 // crée le match dans Supabase (une seule fois, grâce à la contrainte d'unicité).
 async function checkAndCreateMatch(otherProfileId, mode){
+  // Le match est créé UNIQUEMENT par le serveur (déclencheur sur les likes),
+  // quand les deux personnes se sont likées. L'appli se contente de constater
+  // s'il existe : impossible de fabriquer un faux match depuis l'appli.
   if(!supabaseClient || !myProfile.supabaseId || !otherProfileId) return { matched: false, matchId: null };
   try{
     const [profileAId, profileBId] = [myProfile.supabaseId, otherProfileId].sort();
-
-    // Règle définitive : une seule relation par duo, quel que soit le mode. Si une
-    // relation existe déjà entre ces deux personnes, on ne crée jamais de doublon —
-    // le mode déjà établi (Amitié conservée par défaut en cas de conflit) reste tel quel.
-    const { data: existingMatch, error: existingErr } = await supabaseClient
+    const { data: existingMatch, error } = await supabaseClient
       .from('matches').select('id, mode')
       .eq('profile_a_id', profileAId).eq('profile_b_id', profileBId)
       .maybeSingle();
-    if(existingErr) throw existingErr;
-    if(existingMatch){
-      return { matched: true, matchId: existingMatch.id };
-    }
-
-    const { data: reciprocal, error: checkError } = await supabaseClient
-      .from('swipe_actions')
-      .select('id')
-      .eq('from_profile_id', otherProfileId)
-      .eq('to_profile_id', myProfile.supabaseId)
-      .eq('action', mode)
-      .maybeSingle();
-    if(checkError) throw checkError;
-    if(!reciprocal){
-      console.info('[Match] Pas encore de réciprocité pour', mode);
-      return { matched: false, matchId: null };
-    }
-
-    // Réciprocité confirmée, et aucune relation existante : on crée le match.
-    // La personne qui déclenche la création voit le popup immédiatement, donc
-    // son côté est marqué "vu" dès la création — l'autre personne, elle,
-    // découvrira ce match flouté dans sa liste tant qu'elle ne l'aura pas ouvert.
-    const iAmProfileA = (myProfile.supabaseId === profileAId);
-    const { data: matchRow, error: insertError } = await supabaseClient
-      .from('matches')
-      .upsert({
-        profile_a_id: profileAId,
-        profile_b_id: profileBId,
-        mode: mode,
-        seen_by_a: iAmProfileA,
-        seen_by_b: !iAmProfileA
-      }, { onConflict: 'profile_a_id,profile_b_id,mode' })
-      .select('id')
-      .maybeSingle();
-    if(insertError) throw insertError;
-    console.info('[Match] Match créé :', profileAId, profileBId, mode);
-    return { matched: true, matchId: matchRow ? matchRow.id : null };
+    if(error) throw error;
+    return existingMatch ? { matched: true, matchId: existingMatch.id } : { matched: false, matchId: null };
   } catch(e){
-    console.warn('[Match] Vérification/création impossible :', e.message);
+    console.warn('[Match] Vérification impossible :', e.message);
     return { matched: false, matchId: null };
   }
 }
@@ -13728,7 +13692,7 @@ const tiers = {
   },
   plus: {
     price: "9,99€", period:"par mois",
-    cta: {label:"Passer à PassionMeet+", class:"plus", disabled:false},
+    cta: {label:"Bientôt disponible 🔜", class:"plus", disabled:false},
     features:[
       {icon:"👀", title:"Voir qui vous a liké", desc:"Découvrez immédiatement les profils intéressés, sans attendre le match.", locked:false},
       {icon:"➕", title:"Créer plusieurs activités à la fois", desc:"Aucune limite du nombre d'activités actives en simultané.", locked:false},
