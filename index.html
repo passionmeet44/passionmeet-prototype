@@ -2336,7 +2336,9 @@
 
 <style id="pm-wizard">
   /* Inscription en plusieurs pages */
-  .wiz-screen.active{ display:flex !important; flex-direction:column; height:100vh; height:100dvh; padding:0 !important; overflow:hidden; box-sizing:border-box; }
+  .wiz-screen.active{ display:flex !important; flex-direction:column; position:fixed !important; top:0; left:0; right:0; height:100%;
+    max-width:480px; margin:0 auto; z-index:60; background:var(--cream); padding:0 !important; overflow:hidden; box-sizing:border-box; }
+  .wiz-steps{ min-height:0; }
   .wiz-top{ display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top, 0px) + 14px) 20px 6px; flex-shrink:0; }
   .wiz-top.static{ padding:0 0 6px 48px; margin-top:4px; }
   .wiz-back{ width:38px; height:38px; border-radius:50%; background:#fff; box-shadow:var(--pm-shadow); display:flex; align-items:center;
@@ -2411,6 +2413,34 @@
   .rd-action.interest-btn.interest-on{ background:linear-gradient(135deg,#8B5A8C,#6B2F6E) !important; border-color:#6B2F6E !important; color:#fff !important; }
   body.dark-mode .rd-action.interest-btn{ background:#231A29 !important; border-color:#9B6A9C !important; color:#E2C7E8 !important; }
   body.dark-mode .rd-action.interest-btn.interest-on{ background:linear-gradient(135deg,#8B5A8C,#6B2F6E) !important; color:#fff !important; }
+</style>
+
+<style id="pm-members-v2">
+  /* Filtres ouverts depuis « Nouveaux amis » : seule la distance compte */
+  #screen-discover-filters.friend-context .fl-card:not(:first-child){ display:none !important; }
+  /* Page « Nouveaux amis » */
+  #screen-members{ padding:0 !important; }
+  .mb-hero{ margin:calc(env(safe-area-inset-top, 0px) + 12px) 16px 16px; padding:16px 18px 18px; border-radius:24px; color:#fff;
+    background:radial-gradient(120% 100% at 100% 0%, rgba(255,211,122,0.45) 0%, rgba(255,211,122,0) 55%), linear-gradient(150deg, #F2924B 0%, #E5722A 55%, #C25A1C 100%);
+    box-shadow:0 12px 28px rgba(229,114,42,0.28); }
+  .mb-hero-top{ display:flex; justify-content:space-between; align-items:center; }
+  .mb-back{ width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.22); display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; }
+  .mb-filter{ display:inline-flex; align-items:center; gap:6px; background:#fff; color:#C25A1C; font-size:12.5px; font-weight:800; padding:7px 12px; border-radius:999px; cursor:pointer; }
+  .mb-filter svg circle{ fill:#fff; }
+  .mb-hero h1{ font-family:var(--font-display); font-size:28px; font-weight:800; color:#fff; margin:14px 0 4px; letter-spacing:-0.01em; }
+  .mb-hero p{ font-size:13.5px; line-height:1.45; color:rgba(255,255,255,0.92); margin:0; }
+  #screen-members .mb-info{ display:inline-block; margin-top:12px; font-size:12px; font-weight:700; color:#fff; background:rgba(255,255,255,0.2); padding:5px 11px; border-radius:999px; }
+  .mb-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; padding:0 16px 110px; }
+  .mb-card{ border-radius:20px; overflow:hidden; box-shadow:var(--pm-shadow); cursor:pointer; transition:transform .12s ease; background:none !important; }
+  .mb-card:active{ transform:scale(0.97); }
+  .mb-photo{ position:relative; aspect-ratio:3/4; background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center; }
+  .mb-initial{ font-family:var(--font-display); font-size:52px; font-weight:800; color:rgba(255,255,255,0.9); margin-bottom:40px; }
+  .mb-overlay{ position:absolute; left:0; right:0; bottom:0; padding:28px 12px 11px; background:linear-gradient(to top, rgba(26,12,30,0.85), rgba(26,12,30,0)); }
+  .mb-name{ font-family:var(--font-display); font-size:17px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mb-name span{ font-weight:600; margin-left:6px; opacity:0.9; }
+  .mb-meta{ font-size:11.5px; color:rgba(255,255,255,0.88); margin-top:2px; }
+  .mb-shared{ position:absolute; top:9px; left:9px; margin:0 !important; font-size:10.5px; font-weight:800; color:#fff; padding:4px 8px; border-radius:999px;
+    background:linear-gradient(135deg, var(--orange), var(--orange-deep)); box-shadow:0 2px 6px rgba(0,0,0,0.2); }
 </style>
 </head>
 <body>
@@ -3063,12 +3093,15 @@
 
   <!-- MEMBRES (amitié) -->
   <div class="screen" id="screen-members">
-    <div class="msg-header" style="display:flex; align-items:center; gap:12px;">
-      <div style="cursor:pointer; font-size:22px; color:var(--plum);" onclick="showScreen('home')">←</div>
-      <h1 style="margin:0;">Nouveaux amis</h1>
+    <div class="mb-hero">
+      <div class="mb-hero-top">
+        <div class="mb-back" onclick="showScreen('home')" aria-label="Retour">←</div>
+        <div class="mb-filter" onclick="openDiscoverFilters()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.7" fill="#fff"/><circle cx="15" cy="17" r="2.7" fill="#fff"/></svg>Distance</div>
+      </div>
+      <h1>Nouveaux amis</h1>
+      <p>Des membres près de chez toi qui veulent sortir. Invite-les à discuter ou à une sortie.</p>
+      <div class="mb-info" id="members-info"></div>
     </div>
-    <div class="cp-meta" style="font-size:13px; line-height:1.5; margin-bottom:4px;">Des membres près de chez toi qui veulent sortir et se faire des amis. Invite-les à discuter ou à une sortie.</div>
-    <div class="mb-info" id="members-info"></div>
     <div class="mb-grid" id="members-grid"></div>
   </div>
 
@@ -3441,7 +3474,7 @@
   <!-- DISCOVER FILTERS -->
   <div class="screen" id="screen-discover-filters" style="position:relative;">
     <div class="fl-head">
-      <div class="fl-back" onclick="showScreen('swipe')" aria-label="Retour">←</div>
+      <div class="fl-back" onclick="closeDiscoverFilters()" aria-label="Retour">←</div>
       <h1>Filtres</h1>
       <div class="fl-reset" onclick="resetDiscoverFilters()">Réinitialiser</div>
     </div>
@@ -4675,7 +4708,7 @@ function showScreen(name){
     document.getElementById('nav-profile').classList.toggle('active', name==='profile');
     if(name==='swipe' && !swipeInitialized){ initSwipe(); }
     if(name==='swipe'){ updateDiscoverFiltersBadge(); }
-    if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); }
+    if(name==='home'){ goHomeStep(1); renderWeeklyDigest(); updateHomeGreeting(); setTimeout(() => { try{ maybeAskForNotifications(0); } catch(e){} }, 2500); }
     if(name==='activities-list'){ renderVenueRecommendations(); }
     if(name==='matches'){ renderMatchesList(); }
     if(name==='messages'){ renderMessagesList(); }
@@ -7149,7 +7182,16 @@ function updateDiscoverFiltersBadge(){
   el.textContent = n > 0 ? ` (${n})` : '';
 }
 
+let discoverFiltersReturn = 'swipe';
+function closeDiscoverFilters(){
+  if(discoverFiltersReturn === 'members') openMembers();
+  else showScreen(discoverFiltersReturn || 'swipe');
+}
 function openDiscoverFilters(){
+  const from = document.querySelector('.screen.active');
+  const fromName = from ? from.id.replace('screen-', '') : 'swipe';
+  if(fromName !== 'discover-filters') discoverFiltersReturn = fromName;
+  document.getElementById('screen-discover-filters').classList.toggle('friend-context', discoverFiltersReturn === 'members');
   document.getElementById('df-radius-input').value = currentRadius;
   document.getElementById('df-radius-value').textContent = currentRadius + ' km';
   document.getElementById('df-age-min').value = myProfile.ageMin || 18;
@@ -7222,7 +7264,7 @@ function resetDiscoverFilters(){
 
 function applyDiscoverFiltersAndClose(){
   saveDiscoverAgeRange();
-  showScreen('swipe');
+  closeDiscoverFilters();
 }
 
 function setSwipeModeFilter(m){
@@ -8269,24 +8311,30 @@ async function openMembers(){
     grid.innerHTML = emptyMsgState('⚠️', 'Impossible de charger les membres pour le moment.', false);
     return;
   }
-  info.innerHTML = `${membersCache.length} membre${membersCache.length > 1 ? 's' : ''} dans un rayon de ${currentRadius} km · <span class="mb-link" onclick="openDiscoverFilters()">Modifier</span>`;
+  info.textContent = `${membersCache.length} membre${membersCache.length > 1 ? 's' : ''} dans un rayon de ${currentRadius} km`;
   if(!membersCache.length){
     grid.innerHTML = emptyMsgState('🤝', "Pas encore de membre en mode Amitié dans ta zone… crée une sortie, ils viendront 🍊", false);
     return;
   }
   grid.innerHTML = membersCache.map(m => `
     <div class="mb-card" onclick="openMemberProfile('${m.supabaseId}')">
-      <div class="mb-photo" id="mbp-${m.supabaseId}" style="background-color:${avatarColorFor(m.name)};"><span>${escapeHtml(m.initial)}</span></div>
-      <div class="mb-body">
-        <div class="mb-name">${escapeHtml(m.name)}${m.age ? ', ' + m.age : ''}</div>
-        <div class="mb-meta">📍 ${m.distanceKm != null ? m.distanceKm.toFixed(1).replace('.', ',') + ' km' : escapeHtml(m.area || '')}</div>
+      <div class="mb-photo" id="mbp-${m.supabaseId}" style="background-color:${avatarColorFor(m.name)};">
+        <span class="mb-initial">${escapeHtml(m.initial)}</span>
         ${m.shared ? `<div class="mb-shared">❤️ ${m.shared} en commun</div>` : ''}
+        <div class="mb-overlay">
+          <div class="mb-name">${escapeHtml(m.name)}${m.age ? `<span>${m.age}</span>` : ''}</div>
+          <div class="mb-meta">📍 ${m.distanceKm != null ? m.distanceKm.toFixed(1).replace('.', ',') + ' km' : escapeHtml(m.area || '')}</div>
+        </div>
       </div>
     </div>`).join('');
   membersCache.forEach(m => {
     getMainPhotoForProfile(m.supabaseId).then(url => {
       const el = document.getElementById('mbp-' + m.supabaseId);
-      if(url && el){ el.style.backgroundImage = `url('${url}')`; el.innerHTML = ''; }
+      if(url && el){
+        el.style.backgroundImage = `url('${url}')`;
+        const ini = el.querySelector('.mb-initial');
+        if(ini) ini.remove();
+      }
     }).catch(() => {});
   });
 }
@@ -8616,13 +8664,14 @@ function showChoice(emoji, title, text, yesLabel, onYes, noLabel, onNo){
   document.getElementById('mode-switch-overlay').classList.add('show');
 }
 async function maybeAskForNotifications(attempt){
-  if(!myProfile.supabaseId) return;
+  if(!myProfile.supabaseId || window.__pmPushAsked) return;
   // Une autre fenêtre est ouverte (félicitations…) : on attend qu'elle se ferme.
   const overlay = document.getElementById('mode-switch-overlay');
   if(overlay && overlay.classList.contains('show')){
     if((attempt || 0) < 5) setTimeout(() => maybeAskForNotifications((attempt || 0) + 1), 4000);
     return;
   }
+  window.__pmPushAsked = true;   // une seule proposition par session
   if(pushSupported()){
     if(Notification.permission === 'granted'){
       // Déjà accepté (nouvel appareil, réinstallation…) : réabonnement silencieux.
@@ -9441,7 +9490,7 @@ async function fetchUnseenMatchesCount(){
     const myId = myProfile.supabaseId;
     const { data, error } = await supabaseClient
       .from('matches')
-      .select('id, profile_a_id, profile_b_id, seen_by_a, seen_by_b')
+      .select('id, profile_a_id, profile_b_id, seen_by_a, seen_by_b').neq('mode', 'friend')
       .or(`profile_a_id.eq.${myId},profile_b_id.eq.${myId}`);
     if(error) throw error;
     const unseen = (data || []).filter(m => (m.profile_a_id === myId ? !m.seen_by_a : !m.seen_by_b));
@@ -12498,6 +12547,7 @@ async function renderMatchesList(){
     const { data, error } = await supabaseClient
       .from('matches')
       .select('id, profile_a_id, profile_b_id, mode, created_at, seen_by_a, seen_by_b')
+      .neq('mode', 'friend') // les amis sont dans Messages et « Nouveaux amis »
       .or(`profile_a_id.eq.${myId},profile_b_id.eq.${myId}`)
       .order('created_at', { ascending: false });
     if(error) throw error;
@@ -13478,9 +13528,12 @@ function setChatHeaderAvatar(url, name, isGroup){
   let raf = null, lastH = 0;
   function fit(){
     raf = null;
-    const chat = document.getElementById('screen-chat');
+    // Écrans calés sur la zone visible : discussion et pages d'inscription
+    document.querySelectorAll('#screen-chat, .wiz-screen').forEach(el => {
+      if(!el.classList.contains('active')){ el.style.height = ''; el.style.top = ''; }
+    });
+    const chat = document.querySelector('#screen-chat.active, .wiz-screen.active');
     if(!chat) return;
-    if(!chat.classList.contains('active')){ chat.style.height = ''; chat.style.top = ''; return; }
     if(vv && vv.scale && vv.scale > 1.01) return; // zoom manuel en cours : on ne touche à rien
     const h = vv ? vv.height : window.innerHeight;
     chat.style.height = h + 'px';
