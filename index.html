@@ -2429,7 +2429,17 @@
   .mb-filter svg circle{ fill:#fff; }
   .mb-hero h1{ font-family:var(--font-display); font-size:28px; font-weight:800; color:#fff; margin:14px 0 4px; letter-spacing:-0.01em; }
   .mb-hero p{ font-size:13.5px; line-height:1.45; color:rgba(255,255,255,0.92); margin:0; }
-  #screen-members .mb-info{ display:inline-block; margin-top:12px; font-size:12px; font-weight:700; color:#fff; background:rgba(255,255,255,0.2); padding:5px 11px; border-radius:999px; }
+  #screen-members .mb-info{ margin:0; font-size:11.5px; font-weight:800; color:#fff; background:rgba(255,255,255,0.22); padding:5px 10px; border-radius:999px; white-space:nowrap; }
+  #screen-members .mb-hero{ padding:12px 14px 14px; margin-bottom:14px; border-radius:22px; }
+  #screen-members .mb-hero-top{ gap:10px; }
+  #screen-members .mb-hero h1{ flex:1; font-size:22px; margin:0; }
+  .mb-radius-row{ display:flex; align-items:center; gap:10px; margin-top:12px; font-size:12.5px; font-weight:700; color:#fff; }
+  .mb-radius-row span{ white-space:nowrap; }
+  .mb-radius-row b{ min-width:48px; text-align:right; font-size:13px; }
+  .mb-range{ flex:1; -webkit-appearance:none; appearance:none; height:5px; border-radius:999px; background:rgba(255,255,255,0.35); outline:none; margin:0; }
+  .mb-range::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:22px; height:22px; border-radius:50%; background:#fff;
+    box-shadow:0 2px 8px rgba(0,0,0,0.25); cursor:pointer; }
+  .mb-range::-moz-range-thumb{ width:20px; height:20px; border-radius:50%; background:#fff; border:none; cursor:pointer; }
   .mb-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; padding:0 16px 110px; }
   .mb-card{ border-radius:20px; overflow:hidden; box-shadow:var(--pm-shadow); cursor:pointer; transition:transform .12s ease; background:none !important; }
   .mb-card:active{ transform:scale(0.97); }
@@ -3096,11 +3106,14 @@
     <div class="mb-hero">
       <div class="mb-hero-top">
         <div class="mb-back" onclick="showScreen('home')" aria-label="Retour">←</div>
-        <div class="mb-filter" onclick="openDiscoverFilters()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.7" fill="#fff"/><circle cx="15" cy="17" r="2.7" fill="#fff"/></svg>Distance</div>
+        <h1>Nouveaux amis</h1>
+        <div class="mb-info" id="members-info"></div>
       </div>
-      <h1>Nouveaux amis</h1>
-      <p>Des membres près de chez toi qui veulent sortir. Invite-les à discuter ou à une sortie.</p>
-      <div class="mb-info" id="members-info"></div>
+      <div class="mb-radius-row">
+        <span>📍 Distance</span>
+        <input type="range" class="mb-range" id="members-radius" min="1" max="100" oninput="onMembersRadiusInput(this.value)">
+        <b id="members-radius-value"></b>
+      </div>
     </div>
     <div class="mb-grid" id="members-grid"></div>
   </div>
@@ -8220,6 +8233,8 @@ let friendInviteTarget = null;
 //    avec invitation à discuter (acceptation obligatoire) et à une sortie.
 // =====================================================================
 let membersCache = [];
+let membersAll = [];        // tous les membres Amitié chargés, avant filtre de distance
+let membersRadiusTimer = null;
 let currentMemberProfileId = null;
 
 const MODE_SWITCH_TEXTS = {
@@ -8267,7 +8282,7 @@ function openLoveDiscovery(){
   showScreen('swipe');
 }
 
-async function fetchFriendMembers(){
+async function fetchFriendMembers(applyRadius){
   if(!supabaseClient || !myProfile.supabaseId) return [];
   const blockedIds = await getBlockedProfileIds();
   const cols = 'id, firebase_uid, first_name, age, bio, city, latitude, longitude, passions, relationship_mode, onboarding_completed, gender, is_single_parent, is_newcomer, has_kids';
@@ -8293,7 +8308,7 @@ async function fetchFriendMembers(){
       m.shared = sharedCats + sharedSubs;
       return m;
     })
-    .filter(m => m.distanceKm == null || m.distanceKm <= currentRadius)
+    .filter(m => applyRadius === false || m.distanceKm == null || m.distanceKm <= currentRadius)
     .sort((a, b) => (b.shared - a.shared) || ((a.distanceKm || 0) - (b.distanceKm || 0)));
 }
 
@@ -8305,13 +8320,31 @@ async function openMembers(){
   grid.innerHTML = emptyMsgState('⏳', 'Chargement des membres…', false);
   info.textContent = '';
   try{
-    membersCache = await fetchFriendMembers();
+    membersAll = await fetchFriendMembers(false);
   } catch(e){
     console.warn('[Membres] Chargement impossible :', e.message);
     grid.innerHTML = emptyMsgState('⚠️', 'Impossible de charger les membres pour le moment.', false);
     return;
   }
-  info.textContent = `${membersCache.length} membre${membersCache.length > 1 ? 's' : ''} dans un rayon de ${currentRadius} km`;
+  renderMembersGrid();
+}
+
+function onMembersRadiusInput(v){
+  const km = parseInt(v, 10) || 1;
+  const lb = document.getElementById('members-radius-value');
+  if(lb) lb.textContent = km + ' km';
+  setRadius(km);                     // même réglage que partout ailleurs dans l'appli
+  clearTimeout(membersRadiusTimer);
+  membersRadiusTimer = setTimeout(renderMembersGrid, 120);
+}
+
+function renderMembersGrid(){
+  const grid = document.getElementById('members-grid');
+  const info = document.getElementById('members-info');
+  membersCache = membersAll.filter(m => m.distanceKm == null || m.distanceKm <= currentRadius);
+  const sl = document.getElementById('members-radius'); if(sl) sl.value = currentRadius;
+  const lb = document.getElementById('members-radius-value'); if(lb) lb.textContent = currentRadius + ' km';
+  info.textContent = `${membersCache.length} membre${membersCache.length > 1 ? 's' : ''}`;
   if(!membersCache.length){
     grid.innerHTML = emptyMsgState('🤝', "Pas encore de membre en mode Amitié dans ta zone… crée une sortie, ils viendront 🍊", false);
     return;
