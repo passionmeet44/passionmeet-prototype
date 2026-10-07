@@ -5061,7 +5061,7 @@ function saveEditedProfile(){
 // commun). Stockées à part (profiles.sub_passions), elles n'entrent JAMAIS
 // dans « Pour vous », le matching ou les filtres, qui restent inchangés.
 const SUB_PASSIONS = [
-  { cat:'🌿 Nature & Outdoor', tags:['Randonnée','Balade','Vélo','Plage','Paddle','Jardinage','Pêche','Camping'] },
+  { cat:'🌿 Nature & Outdoor', tags:['Randonnée','Balade','Balade avec son chien','Vélo','Plage','Paddle','Jardinage','Pêche','Camping'] },
   { cat:'🍳 Cuisine & Gastronomie', tags:['Restaurant','Brunch','Dégustation de vin','Cours de cuisine','Pâtisserie','Street food','Bières artisanales'] },
   { cat:'🎵 Musique & Culture', tags:['Concerts','Rock','Jazz','Karaoké','Théâtre','Musées','Lecture','Chant','Salsa','Rock dansé','Danse de salon'] },
   { cat:'🎲 Jeux & Social', tags:['Jeux de société','Belote','Quiz','Escape game','Pétanque','Jeux vidéo','Rencontres entre entrepreneurs'] },
@@ -7766,6 +7766,7 @@ const ACTIVITY_TYPES = [
   { re:/p[ée]tanque|boules/i, emoji:'⚪', photo:null },
   // Pexels 35731347 — randonneurs face à la mer, licence Pexels gratuite, vérifiée
   { re:/course [àa] pied|running|jogging|footing|\btrail\b/i, emoji:'👟', photo:'https://images.unsplash.com/photo-1590333748338-d629e4564ad9?auto=format&fit=crop&w=800&q=70' }, // Unsplash — groupe de coureurs sur une route, licence gratuite, vérifiée
+  { re:/chien|canin|toutou/i, emoji:'🐕', photo:'https://images.unsplash.com/photo-1777302284475-037113500d0c?auto=format&fit=crop&w=800&q=70' }, // Unsplash — couple d'adultes qui promène son chien, licence Unsplash gratuite (hors Unsplash+)
   { re:/balade|promenade|\bmarche\b|fl[âa]nerie/i, emoji:'🚶', photo:'https://images.unsplash.com/photo-1758599668796-cdd37f4ecb66?auto=format&fit=crop&w=800&q=70' }, // Unsplash — groupe qui marche sur un sentier en forêt, licence gratuite, vérifiée
   { re:/randonn|sentier|trek/i, emoji:'🥾', photo:'https://images.pexels.com/photos/35731347/pexels-photo-35731347/free-photo-of-group-of-hikers-on-grassy-hill-overlooking-calm-sea.jpeg?auto=compress&cs=tinysrgb&w=800' },
   { re:/v[ée]lo|cyclo|vtt/i, emoji:'🚴', photo:null },
@@ -7847,7 +7848,7 @@ const ILLU_FOR = {
   '💍':['gem','art'], '🧵':['palette','art'], '🥖':['bread','food'], '🍺':['beer','food'], '👩‍🍳':['chef','food'], '🍷':['wine','food'],
   '🍽️':['utensils','food'], '☕':['cup','food'], '🍸':['cocktail','night'], '🧘':['yoga','sport'], '💃':['dance','music'], '🏋️':['dumbbell','sport'],
   '🎾':['racket','sport'], '⚽':['ball','sport'], '⚪':['boules','sport'], '🥾':['mountain','nature'], '🚴':['bike','sport'], '🏄':['waves','nature'],
-  '💆':['leaf','sport'], '🏃':['pulse','sport'], '🧺':['basket','food'], '👟':['pulse','sport'], '🚶':['mountain','nature']
+  '💆':['leaf','sport'], '🏃':['pulse','sport'], '🧺':['basket','food'], '👟':['pulse','sport'], '🚶':['mountain','nature'], '🐕':['paw','nature']
 };
 const ILLU_COLORS = {
   night:['#4B2A7B','#1E1236'], music:['#7A3E9D','#2E1546'], food:['#F2924B','#B4471A'], art:['#E46FA0','#8E3466'],
@@ -7885,7 +7886,7 @@ function activityTypeFor(name){
 const PHOTO_BANK_LABELS = {
   '🏊':'Piscine', '🏎️':'Karting', '🎳':'Bowling', '🔐':'Escape game', '🔫':'Laser game', '🧗':'Escalade',
   '🛶':'Kayak', '🏺':'Poterie', '🎬':'Cinéma', '🎸':'Concert', '🥾':'Randonnée', '❓':'Quiz / blind test',
-  '🍽️':'Restaurant', '👟':'Course à pied', '🚶':'Balade', '🎤':'Karaoké', '🪩':'Soirée', '📷':'Photo', '🎨':'Peinture', '👩‍🍳':'Cuisine', '🍷':'Vin', '🍸':'Bar',
+  '🍽️':'Restaurant', '👟':'Course à pied', '🚶':'Balade', '🐕':'Balade avec son chien', '🎤':'Karaoké', '🪩':'Soirée', '📷':'Photo', '🎨':'Peinture', '👩‍🍳':'Cuisine', '🍷':'Vin', '🍸':'Bar',
   '🤸':'Trampoline', '🛝':'Parc de jeux', '🎹':'Musique', '🎾':'Padel / tennis', '🏋️':'Fitness', '⚽':'Foot'
 };
 let ractSelectedPhoto = null;
@@ -12476,8 +12477,8 @@ async function refreshActivityParticipants(activityId){
 
     const names = await Promise.all(participantIds.map(async (pid) => {
       try{
-        const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', pid).maybeSingle();
-        return p && p.first_name ? p.first_name : 'Membre';
+        const { data: p } = await supabaseClient.from('profiles').select('first_name, age').eq('id', pid).maybeSingle();
+        return p && p.first_name ? p.first_name + (p.age ? ', ' + p.age : '') : 'Membre';
       } catch(e){ return 'Membre'; }
     }));
     const relMap = await fetchReliabilityMap(participantIds);
@@ -12621,7 +12622,7 @@ async function renderMatchesList(){
       const name = otherProfile.first_name || 'Membre';
       const age = otherProfile.age ? `, ${otherProfile.age} ans` : '';
 
-      currentMatchesData.push({ matchId: m.id, otherId, name, mode: m.mode, photoUrl });
+      currentMatchesData.push({ matchId: m.id, otherId, name, age: otherProfile.age || null, mode: m.mode, photoUrl });
 
       const photoStyle = photoUrl
         ? `background-image:url('${photoUrl}');`
@@ -12856,6 +12857,7 @@ async function renderPrivateConversationsList(){
       const conv = row.conversations;
       const match = currentMatchesData.find(m => m.matchId === conv.match_id);
       let name = match ? match.name : 'Membre';
+      let age = match ? match.age : null;
       let photoUrl = match ? match.photoUrl : null;
       let mode = match ? match.mode : 'friend';
       let otherId = match ? match.otherId : null;
@@ -12869,9 +12871,9 @@ async function renderPrivateConversationsList(){
           if(matchRow){
             mode = matchRow.mode;
             otherId = matchRow.profile_a_id === myProfile.supabaseId ? matchRow.profile_b_id : matchRow.profile_a_id;
-            const { data: p } = await supabaseClient.from('profiles').select('first_name').eq('id', otherId).is('deleted_at', null).maybeSingle();
+            const { data: p } = await supabaseClient.from('profiles').select('first_name, age').eq('id', otherId).is('deleted_at', null).maybeSingle();
             if(!p) deletedProfile = true;
-            else if(p.first_name) name = p.first_name;
+            else { if(p.first_name) name = p.first_name; if(p.age) age = p.age; }
             photoUrl = await getMainPhotoForProfile(otherId);
           }
         } catch(e){}
@@ -12902,7 +12904,7 @@ async function renderPrivateConversationsList(){
         <div class="msg-item" onclick="openMatchChat('${conv.match_id}', 'messages')">
           ${avatarHtml}
           <div class="msg-info">
-            <div class="msg-info-top"><h4>${name}</h4><span class="msg-time">${timeLabel}</span></div>
+            <div class="msg-info-top"><h4>${name}${age ? ', '+age : ''}</h4><span class="msg-time">${timeLabel}</span></div>
             <div class="msg-preview">${preview}</div>
             ${tagHtml}${badgeHtml}
           </div>
