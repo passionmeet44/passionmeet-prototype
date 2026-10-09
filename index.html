@@ -2452,6 +2452,12 @@
   .mb-shared{ position:absolute; top:9px; left:9px; margin:0 !important; font-size:10.5px; font-weight:800; color:#fff; padding:4px 8px; border-radius:999px;
     background:linear-gradient(135deg, var(--orange), var(--orange-deep)); box-shadow:0 2px 6px rgba(0,0,0,0.2); }
 </style>
+<style id="pm-consent">
+  .wiz-consent{ display:flex; gap:10px; align-items:flex-start; margin-top:16px; padding:12px 14px; background:rgba(139,90,140,0.07); border-radius:14px; font-size:13px; line-height:1.45; color:var(--plum); text-align:left; cursor:pointer; }
+  .wiz-consent input{ width:20px; height:20px; flex:0 0 20px; margin:1px 0 0; accent-color:#8B5A8C; }
+  .wiz-consent u{ font-weight:700; }
+  body.dark-mode .wiz-consent{ background:rgba(255,255,255,0.07); color:inherit; }
+</style>
 </head>
 <body>
 
@@ -2533,11 +2539,12 @@
     <div class="legal-top">
       <div class="detail-back" onclick="showScreen(legalReturnScreen)" style="position:absolute; top:20px; left:16px; background:rgba(255,255,255,0.2); color:#fff;">←</div>
       <h2>Informations légales</h2>
-      <p>Document de travail — brouillon en cours de validation juridique</p>
+      <p>Version bêta — en vigueur au 9 octobre 2026</p>
     </div>
     <div class="tier-tabs">
-      <div class="tier-tab" id="tab-legal-cgu" onclick="switchLegal('cgu')">CGU / CGV</div>
+      <div class="tier-tab" id="tab-legal-cgu" onclick="switchLegal('cgu')">CGU</div>
       <div class="tier-tab" id="tab-legal-confidentialite" onclick="switchLegal('confidentialite')">Confidentialité</div>
+      <div class="tier-tab" id="tab-legal-mentions" onclick="switchLegal('mentions')">Mentions</div>
     </div>
     <div class="legal-panel" id="legal-panel"></div>
   </div>
@@ -2597,6 +2604,7 @@
         <div class="wiz-title">Quel âge as-tu ?</div>
         <div class="wiz-sub">PassionMeet est réservé aux personnes majeures.</div>
         <input class="form-input wiz-input" id="signup-age" type="number" inputmode="numeric" min="18" max="99" placeholder="Ton âge">
+        <label class="wiz-consent"><input type="checkbox" id="signup-consent-terms"><span>J'ai 18 ans ou plus et j'accepte les <u onclick="event.preventDefault(); openLegal('cgu','signup-account')">conditions d'utilisation</u> et la <u onclick="event.preventDefault(); openLegal('confidentialite','signup-account')">politique de confidentialité</u>.</span></label>
       </div>
       <div class="wiz-step" data-validate="gender">
         <div class="wiz-emoji">🙂</div>
@@ -2682,6 +2690,7 @@
           <div class="wiz-choice" data-gender="non_binaire" onclick="wizPickMulti(this)">Des personnes non-binaires</div>
           <div class="wiz-choice" data-gender="tous" onclick="wizPickMulti(this)">Tout le monde</div>
         </div>
+        <label class="wiz-consent"><input type="checkbox" id="signup-consent-sensitive"><span>J'accepte que PassionMeet utilise ce choix pour me proposer des profils. C'est une information sensible : elle n'est jamais montrée aux autres membres, et je peux la modifier ou la retirer à tout moment.</span></label>
       </div>
       <div class="wiz-step" data-validate="passions" data-enter="passions">
         <div class="wiz-emoji">🔥</div>
@@ -3081,6 +3090,26 @@
     <div id="invitations-list"></div>
   </div>
 
+  <div class="tag-comment-overlay" id="consent-overlay">
+    <div class="lp-card">
+      <div style="font-size:44px; line-height:1; text-align:center; margin:2px 0 8px;">📜</div>
+      <div style="font-family:var(--font-display); font-size:19px; font-weight:800; color:var(--plum); text-align:center;">Une petite validation</div>
+      <div class="cp-meta" style="font-size:13.5px; line-height:1.5; margin-top:8px; text-align:center;">On a mis à jour nos règles pour la bêta. Il nous faut ton accord pour continuer.</div>
+      <label class="wiz-consent" id="consent-terms-row"><input type="checkbox" id="consent-terms-box"><span>J'ai 18 ans ou plus et j'accepte les <u onclick="event.preventDefault(); document.getElementById('consent-overlay').classList.remove('show'); pmConsentAsked=false; openLegal('cgu','home')">conditions d'utilisation</u> et la <u onclick="event.preventDefault(); document.getElementById('consent-overlay').classList.remove('show'); pmConsentAsked=false; openLegal('confidentialite','home')">politique de confidentialité</u>.</span></label>
+      <label class="wiz-consent" id="consent-sensitive-row"><input type="checkbox" id="consent-sensitive-box"><span>J'accepte que PassionMeet utilise ma préférence « qui je veux rencontrer » pour me proposer des profils (information sensible, jamais montrée aux autres). Sans cette case, elle sera effacée.</span></label>
+      <button class="btn-primary" style="width:100%; margin-top:16px;" onclick="acceptPendingConsent()">Valider</button>
+    </div>
+  </div>
+
+  <div class="tag-comment-overlay" id="suspended-overlay">
+    <div class="lp-card" style="text-align:center;">
+      <div style="font-size:48px; line-height:1; margin:2px 0 10px;">⏸️</div>
+      <div style="font-family:var(--font-display); font-size:19px; font-weight:800; color:var(--plum);">Compte suspendu</div>
+      <div class="cp-meta" style="font-size:13.5px; line-height:1.55; margin-top:8px;">Ton compte a été suspendu suite à un signalement. Si tu penses qu'il s'agit d'une erreur, écris-nous à <b>contact.passionmeet@gmail.com</b>.</div>
+      <button class="btn-primary" style="width:100%; margin-top:16px;" onclick="document.getElementById('suspended-overlay').classList.remove('show'); logOut()">Se déconnecter</button>
+    </div>
+  </div>
+
   <div class="tag-comment-overlay" id="mode-switch-overlay" onclick="if(event.target===this) closeModeSwitch()">
     <div class="lp-card" style="text-align:center;">
       <div id="ms-emoji" style="font-size:54px; line-height:1; margin:4px 0 10px;"></div>
@@ -3246,6 +3275,11 @@
     <div id="admin-reports-list" style="padding:0 20px;"></div>
     <div style="padding:20px 20px 0;"><div class="section-label">Profils signalés</div></div>
     <div id="admin-user-reports-list" style="padding:0 20px;"></div>
+    <div style="padding:20px 20px 0;"><div class="section-label">Sauvegarde</div></div>
+    <div style="padding:0 20px 40px;">
+      <div class="cp-meta" style="font-size:13px; line-height:1.5; margin-bottom:10px;">Télécharge une copie du catalogue (lieux, activités, idées) et des sorties. À faire avant chaque grosse modification et une fois par mois. Garde le fichier en lieu sûr.</div>
+      <button class="btn-primary" style="width:100%;" onclick="adminDownloadBackup()">💾 Sauvegarder les données</button>
+    </div>
   </div>
 
   <!-- ACTIVITY DETAIL (réelle, Supabase) -->
@@ -4876,6 +4910,7 @@ async function renderAdminUserReportsList(){
           ${r.details ? `<div class="card-meta"><span>Précisions : ${escapeHtml(r.details)}</span></div>` : ''}
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
             <button class="btn-primary" style="padding:8px 12px; font-size:12px;" onclick="resolveUserReport('${r.id}','action_taken')">Marquer traité</button>
+            <button class="btn-primary" style="padding:8px 12px; font-size:12px; background:linear-gradient(135deg,#B24B4B,#7A2E2E);" onclick="suspendReportedUser('${r.id}','${r.reported_profile_id}', ${JSON.stringify(String(r.reason || '')).replace(/"/g, '&quot;')})">Suspendre le compte</button>
             <button class="btn-primary" style="padding:8px 12px; font-size:12px; background:linear-gradient(135deg,#B0A0B5,#6B5872);" onclick="resolveUserReport('${r.id}','dismissed')">Classer sans suite</button>
           </div>
         </div></div>
@@ -4885,6 +4920,52 @@ async function renderAdminUserReportsList(){
   } catch(e){
     console.warn('[Admin] Chargement des signalements de profils impossible :', e.message);
     list.innerHTML = `<div class="swipe-empty" style="height:auto; padding:40px 20px; flex-direction:column;"><span>⚠️</span>Impossible de charger les signalements.</div>`;
+  }
+}
+
+async function suspendReportedUser(reportId, profileId, reason){
+  if(!myProfile.isAdmin || !supabaseClient) return;
+  if(!confirm('Suspendre ce compte ? La personne ne sera plus visible et ne pourra plus utiliser l\'app. Tu pourras la réactiver plus tard.')) return;
+  try{
+    const { error } = await supabaseClient.rpc('admin_set_suspension', { p_profile_id: profileId, p_suspend: true, p_reason: reason || 'Signalement' });
+    if(error) throw error;
+    showToast('Compte suspendu', '⏸️');
+    await resolveUserReport(reportId, 'action_taken');
+  } catch(e){
+    console.warn('[Admin] Suspension impossible :', e.message);
+    showToast("La suspension a échoué, réessaie.", "⚠️");
+  }
+}
+
+// Sauvegarde (admin) : tables du catalogue et sorties, lisibles avec les droits
+// de l'administrateur, téléchargées en un fichier JSON daté.
+async function adminDownloadBackup(){
+  if(!myProfile.isAdmin || !supabaseClient) return;
+  showToast('Sauvegarde en cours…', '💾');
+  const tables = ['venues', 'venue_activities', 'activity_suggestions', 'activities', 'activity_participants'];
+  const backup = { app: 'PassionMeet', created_at: new Date().toISOString(), tables: {} };
+  try{
+    for(const t of tables){
+      const rows = [];
+      for(let from = 0; ; from += 1000){
+        const { data, error } = await supabaseClient.from(t).select('*').range(from, from + 999);
+        if(error) throw new Error(t + ' : ' + error.message);
+        rows.push(...(data || []));
+        if(!data || data.length < 1000) break;
+      }
+      backup.tables[t] = rows;
+    }
+    const blob = new Blob([JSON.stringify(backup, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'passionmeet-sauvegarde-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    const total = Object.values(backup.tables).reduce((n, r) => n + r.length, 0);
+    showToast('Sauvegarde téléchargée (' + total + ' lignes)', '✅');
+  } catch(e){
+    console.warn('[Admin] Sauvegarde impossible :', e.message);
+    showToast('Sauvegarde impossible : ' + e.message, '⚠️');
   }
 }
 
@@ -5317,10 +5398,16 @@ try{
 async function loadProfileFromSupabase(firebaseUid){
   if(!supabaseClient) return null;
   try{
-    const { data, error } = await supabaseClient
-      .from('profiles').select('*').eq('firebase_uid', firebaseUid).maybeSingle();
+    // Son propre profil complet passe par une fonction serveur sécurisée.
+    let { data, error } = await supabaseClient.rpc('get_my_profile');
+    if(error && /get_my_profile|PGRST202|42883/i.test((error.message || '') + ' ' + (error.code || ''))){
+      // Fonction pas encore installée : ancienne lecture directe.
+      ({ data, error } = await supabaseClient.from('profiles').select('*').eq('firebase_uid', firebaseUid).maybeSingle());
+      if(error) throw error;
+      return data;
+    }
     if(error) throw error;
-    return data;
+    return Array.isArray(data) ? (data[0] || null) : data;
   } catch(e){
     console.warn('Lecture profil Supabase impossible, fallback local :', e.message);
     return null;
@@ -5336,7 +5423,7 @@ async function ensureSupabaseProfile(user){
       const { data, error } = await supabaseClient
         .from('profiles')
         .insert({ firebase_uid: user.uid, first_name: user.displayName || '' })
-        .select().maybeSingle();
+        .select('id').maybeSingle();
       if(error){
         console.warn('[Profil] Erreur à l\'insertion :', error.message, '(code:', error.code, ')');
         // Code 23505 = violation de contrainte unique sur firebase_uid : le
@@ -5350,13 +5437,55 @@ async function ensureSupabaseProfile(user){
           throw error;
         }
       } else {
-        profile = data;
+        profile = (await loadProfileFromSupabase(user.uid)) || data;
       }
     }
     return profile;
   } catch(e){
     console.warn('[Profil] ensureSupabaseProfile a échoué :', e.message);
     return null;
+  }
+}
+
+// Compte suspendu → écran bloquant. Membre inscrit avant l'ajout des cases de
+// consentement → on lui demande une fois de les valider.
+let pmConsentAsked = false;
+function pmAfterProfileLoaded(row){
+  if(!row) return;
+  if(row.suspended_at){
+    document.getElementById('suspended-overlay').classList.add('show');
+    return;
+  }
+  if(pmConsentAsked || !row.onboarding_completed || !('terms_accepted_at' in row)) return;
+  const needTerms = !row.terms_accepted_at;
+  const needSensitive = !!row.gender_preferences && !row.sensitive_data_consent_at;
+  if(!needTerms && !needSensitive) return;
+  pmConsentAsked = true;
+  document.getElementById('consent-terms-row').style.display = needTerms ? '' : 'none';
+  document.getElementById('consent-sensitive-row').style.display = needSensitive ? '' : 'none';
+  setTimeout(() => document.getElementById('consent-overlay').classList.add('show'), 1200);
+}
+async function acceptPendingConsent(){
+  const termsRow = document.getElementById('consent-terms-row');
+  const sensRow = document.getElementById('consent-sensitive-row');
+  const termsBox = document.getElementById('consent-terms-box');
+  const sensBox = document.getElementById('consent-sensitive-box');
+  if(termsRow.style.display !== 'none' && !termsBox.checked){ showToast("Coche la case des conditions d'utilisation", '☑️'); return; }
+  const update = {};
+  const now = new Date().toISOString();
+  if(termsRow.style.display !== 'none'){ update.terms_accepted_at = now; myProfile.termsAcceptedAt = now; }
+  if(sensRow.style.display !== 'none'){
+    if(sensBox.checked){ update.sensitive_data_consent_at = now; myProfile.sensitiveConsentAt = now; }
+    else { update.gender_preferences = null; myProfile.genderPreferences = []; }
+  }
+  try{
+    const { error } = await supabaseClient.from('profiles').update(update).eq('firebase_uid', currentFirebaseUser.uid);
+    if(error) throw error;
+    document.getElementById('consent-overlay').classList.remove('show');
+    showToast('Merci, c\'est enregistré', '✅');
+  } catch(e){
+    console.warn('[Consentement] Enregistrement impossible :', e.message);
+    showToast("L'enregistrement a échoué, réessaie.", '⚠️');
   }
 }
 
@@ -5389,9 +5518,12 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.premiumUntil = row.premium_until || null;
   myProfile.isPremiumActive = !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date());
   myProfile.isAdmin = !!row.is_admin;
+  myProfile.termsAcceptedAt = row.terms_accepted_at || myProfile.termsAcceptedAt || null;
+  myProfile.sensitiveConsentAt = row.sensitive_data_consent_at || myProfile.sensitiveConsentAt || null;
   myProfile.organizerTrialGranted = !!row.organizer_trial_granted;
   myProfile.organizerTrialGrantedAt = row.organizer_trial_granted_at || null;
   maybeCelebrateOrganizerTrial(row);
+  pmAfterProfileLoaded(row);
 
   // PRIORITÉ 2 — position enregistrée en base : devient la position active
   // tant qu'une position GPS fraîche (PRIORITÉ 1) ne l'a pas remplacée.
@@ -5423,6 +5555,17 @@ async function initGeolocationPriority(){
   }
 }
 
+// Écriture du profil : mise à jour de la ligne existante (créée à la connexion),
+// ou création si elle n'existe pas encore. On ne relit que l'id : les colonnes
+// sensibles (préférence de genre…) ne sont plus lisibles via l'API.
+async function pmWriteProfile(payload){
+  let res = await supabaseClient.from('profiles').update(payload).eq('firebase_uid', payload.firebase_uid).select('id').maybeSingle();
+  if(!res.error && !res.data){
+    res = await supabaseClient.from('profiles').insert(payload).select('id').maybeSingle();
+  }
+  return res;
+}
+
 async function saveProfileToSupabase(){
   if(!supabaseClient || !currentFirebaseUser) return false;
   try{
@@ -5448,23 +5591,23 @@ async function saveProfileToSupabase(){
       onboarding_completed: true,
       updated_at: new Date().toISOString()
     };
+    if(myProfile.termsAcceptedAt) payload.terms_accepted_at = myProfile.termsAcceptedAt;
+    if(myProfile.sensitiveConsentAt) payload.sensitive_data_consent_at = myProfile.sensitiveConsentAt;
     if(Array.isArray(myProfile.subPassions)) payload.sub_passions = myProfile.subPassions;
     payload.can_carpool = myProfile.canCarpool === true;
-    let { data, error } = await supabaseClient
-      .from('profiles').upsert(payload, { onConflict: 'firebase_uid' }).select().maybeSingle();
+    let { data, error } = await pmWriteProfile(payload);
     // Colonne sub_passions pas encore créée : on enregistre tout le reste
     // normalement, sans jamais bloquer la sauvegarde du profil pour autant.
     // Colonne récente pas encore créée (sub_passions, can_carpool) : on la
     // retire et on réessaie — la sauvegarde du profil n'est jamais bloquée.
-    for(let attempt = 0; attempt < 2 && error; attempt++){
+    for(let attempt = 0; attempt < 4 && error; attempt++){
       const msg = error.message || '';
       let removed = false;
-      ['sub_passions', 'can_carpool'].forEach(col => {
+      ['sub_passions', 'can_carpool', 'terms_accepted_at', 'sensitive_data_consent_at'].forEach(col => {
         if(msg.includes(col) && col in payload){ delete payload[col]; removed = true; }
       });
       if(!removed) break;
-      ({ data, error } = await supabaseClient
-        .from('profiles').upsert(payload, { onConflict: 'firebase_uid' }).select().maybeSingle());
+      ({ data, error } = await pmWriteProfile(payload));
     }
     if(error) throw error;
     if(data) myProfile.supabaseId = data.id;
@@ -6175,6 +6318,8 @@ function wizValidate(step){
     case 'age': {
       const a = parseInt(document.getElementById('signup-age').value, 10);
       if(!(a >= 18 && a <= 99)){ showToast('PassionMeet est réservé aux personnes majeures', '🔞'); return false; }
+      if(!document.getElementById('signup-consent-terms').checked){ showToast("Coche la case pour accepter les conditions d'utilisation", '☑️'); return false; }
+      myProfile.termsAcceptedAt = new Date().toISOString();
       return true;
     }
     case 'gender':
@@ -6185,6 +6330,8 @@ function wizValidate(step){
       return true;
     case 'genderpref':
       if(!document.querySelector('#signup-genderpref-pills .wiz-choice.sel')){ showToast('Dis-nous qui tu veux rencontrer', '💘'); return false; }
+      if(!document.getElementById('signup-consent-sensitive').checked){ showToast("Coche la case pour qu'on puisse utiliser ce choix", '☑️'); return false; }
+      myProfile.sensitiveConsentAt = new Date().toISOString();
       return true;
     case 'passions':
       if(!document.querySelector('#passion-list .passion-card.sel')){ showToast('Choisis au moins une passion 🍊', '❤️'); return false; }
@@ -6807,78 +6954,92 @@ let chatReturnScreen = 'messages';
 let legalReturnScreen = 'login';
 let currentLegalTab = 'cgu';
 
+// Éditeur : à compléter avec ton nom complet (obligatoire pour le responsable
+// de traitement, art. 13 RGPD). Tant qu'il contient « [ », un encadré
+// « À compléter » s'affiche.
+const PM_EDITOR_NAME = 'Allan [NOM À COMPLÉTER]';
+const PM_CONTACT_EMAIL = 'contact.passionmeet@gmail.com';
+const PM_LEGAL_DATE = '9 octobre 2026';
+
 const legalContent = {
   cgu: [
-    { title:"Article 1 — Objet et éditeur",
-      p:["Les présentes Conditions Générales d'Utilisation et de Vente (« CGU ») définissent les modalités d'accès et d'utilisation de l'application PassionMeet. Toute utilisation de l'application implique l'acceptation pleine et entière des présentes CGU."],
-      placeholder:"dénomination sociale, forme juridique, SIRET, adresse du siège, hébergeur" },
-    { title:"Article 2 — Description du service",
-      p:["PassionMeet est une application de mise en relation entre particuliers autour de centres d'intérêt et d'activités partagées."],
-      ul:["Création d'un profil et de centres d'intérêt","Mise en relation par système de match","Consultation, création et réservation d'activités","Messagerie entre utilisateurs mis en relation","Offres payantes donnant accès à des fonctionnalités additionnelles"],
-      p2:["PassionMeet agit en qualité d'intermédiaire technique et n'est ni organisateur, ni partie aux activités ou rencontres entre utilisateurs, sauf mention contraire expresse."] },
-    { title:"Article 3 — Conditions d'accès et éligibilité",
-      ul:["Être âgé de 18 ans révolus au minimum","Disposer de la pleine capacité juridique à contracter","Fournir des informations exactes, à jour et complètes","Ne pas avoir été suspendu ou résilié pour manquement antérieur"] },
-    { title:"Article 4 — Inscription et vérification d'identité",
-      p:["L'utilisateur est seul responsable de la confidentialité de ses identifiants. PassionMeet met en œuvre une vérification d'identité (KYC) reposant sur un document officiel, afin de renforcer la sécurité entre utilisateurs. Le refus de s'y soumettre peut entraîner une limitation ou une suspension du compte."] },
-    { title:"Article 5 — Règles de conduite",
-      p:["L'utilisateur s'engage notamment à ne pas :"],
-      ul:["Usurper une identité ou fournir de fausses informations","Publier des contenus illicites, injurieux ou discriminatoires","Harceler ou importuner un autre utilisateur","Solliciter des paiements hors des moyens prévus par l'application","Porter atteinte à la sécurité de l'application"],
-      p2:["Tout manquement peut entraîner avertissement, suspension ou résiliation du compte."] },
-    { title:"Article 6 — Signalement et modération",
-      p:["Les contenus publiés par les utilisateurs ne sont pas modérés a priori de façon systématique. Un outil de signalement permet à tout utilisateur de faire remonter un contenu ou comportement contraire aux CGU ; PassionMeet s'engage à l'examiner dans un délai raisonnable."] },
-    { title:"Article 7 — Rencontres et activités — Avertissement de sécurité",
-      p:["PassionMeet n'exerce aucun contrôle sur le déroulement des rencontres organisées entre utilisateurs. Il est recommandé de :"],
-      ul:["Privilégier un lieu public pour un premier rendez-vous","Informer un proche du lieu et de l'horaire, et utiliser le partage de position","Rester prudent avec ses données personnelles sensibles","Signaler tout comportement suspect, ou contacter les autorités en cas de danger"],
-      p2:["PassionMeet ne pourra être tenu responsable des dommages résultant de rencontres entre utilisateurs, dans les limites autorisées par la loi."] },
-    { title:"Article 8 — Offres payantes, abonnements et facturation",
-      p:["PassionMeet propose un accès gratuit et des offres par abonnement (paliers Plus / Gold)."],
-      ul:["Prix indiqués TTC en euros, affichés avant validation","Reconduction automatique sauf résiliation avant renouvellement","Paiement géré par un prestataire tiers ; PassionMeet ne stocke pas les coordonnées bancaires","Droit de rétractation limité conformément à l'article L221-28 du Code de la consommation dès lors que le service numérique a commencé avec l'accord exprès de l'utilisateur"],
-      placeholder:"tarifs exacts, durées d'engagement, modalités de résiliation par plateforme" },
-    { title:"Article 9 — Propriété intellectuelle",
-      p:["Les éléments de l'application (marque, logo, code, base de données) sont la propriété exclusive de PassionMeet. Les contenus publiés par les utilisateurs restent leur propriété ; leur publication confère à PassionMeet une licence d'utilisation limitée aux besoins du service."] },
-    { title:"Article 10 — Responsabilité et disponibilité",
-      p:["PassionMeet met en œuvre les moyens raisonnables pour assurer la disponibilité du service, sans garantir une disponibilité continue ni l'absence d'erreurs."] },
-    { title:"Article 11 — Durée, suspension et résiliation",
-      p:["L'utilisateur peut supprimer son compte à tout moment. PassionMeet peut suspendre ou résilier un compte en cas de manquement aux CGU."] },
-    { title:"Article 12 — Modification des CGU",
-      p:["PassionMeet peut modifier les CGU à tout moment ; toute modification substantielle sera notifiée avant son entrée en vigueur."] },
-    { title:"Article 13 — Droit applicable et litiges",
-      p:["Les CGU sont soumises au droit français. L'utilisateur consommateur peut recourir gratuitement à un médiateur de la consommation."],
-      placeholder:"coordonnées du médiateur de la consommation désigné" },
-    { title:"Article 14 — Contact",
-      p:["Pour toute question relative aux présentes CGU :"],
-      placeholder:"adresse email/postale du service client" }
+    { title:"1. Objet",
+      p:["Les présentes conditions générales d'utilisation (« CGU ») encadrent l'utilisation de PassionMeet, une application qui permet de rencontrer des personnes près de chez soi autour de passions communes : en amitié, en amour, ou en participant à des sorties.",
+         "PassionMeet est actuellement en <b>version bêta</b> : un test gratuit, ouvert à un nombre limité de personnes, pour améliorer l'application avant son lancement. Utiliser l'application implique d'accepter ces CGU."] },
+    { title:"2. Qui édite PassionMeet",
+      p:[`PassionMeet est un projet personnel, non commercial pendant la bêta, édité par ${PM_EDITOR_NAME}, particulier. Contact : ${PM_CONTACT_EMAIL}. Les informations complètes figurent dans l'onglet « Mentions légales ».`] },
+    { title:"3. Conditions d'accès",
+      ul:["Avoir 18 ans ou plus","Créer un compte avec des informations exactes (prénom, âge, photos qui te représentent)","N'avoir qu'un seul compte","Ne pas avoir été exclu de PassionMeet auparavant"] },
+    { title:"4. Ce que propose l'application",
+      ul:["Un profil avec tes photos, tes passions et ce que tu recherches","Rencontre : un système de « like » ; une conversation s'ouvre seulement si vous vous plaisez tous les deux","Amitié : des invitations entre membres, qui doivent être acceptées avant de pouvoir discuter","Des sorties créées par les membres, avec une discussion de groupe pour les participants","Des idées de sorties dans des lieux réels de Loire-Atlantique, à titre indicatif","Des notifications, si tu les autorises"],
+      p2:["PassionMeet met les membres en relation : il n'organise pas les sorties et n'est pas partie aux rencontres entre membres."] },
+    { title:"5. Gratuité pendant la bêta",
+      p:["Pendant la bêta, toutes les fonctionnalités sont gratuites et aucun paiement n'est demandé. Si des options payantes sont proposées plus tard, elles feront l'objet de conditions spécifiques présentées avant tout achat ; les fonctions essentielles resteront gratuites."] },
+    { title:"6. Règles de conduite",
+      p:["En utilisant PassionMeet, tu t'engages à ne pas :"],
+      ul:["Te faire passer pour quelqu'un d'autre ou utiliser les photos d'une autre personne","Harceler, menacer, insulter ou discriminer qui que ce soit","Publier des contenus sexuels, violents, illégaux ou haineux","Envoyer de la publicité, des arnaques ou demander de l'argent","Utiliser l'application à des fins commerciales sans accord","Collecter les informations d'autres membres ou perturber le fonctionnement de l'application"],
+      p2:["En cas de manquement, PassionMeet peut supprimer un contenu, masquer une sortie, suspendre ou supprimer un compte, sans préavis si la sécurité des membres l'exige."] },
+    { title:"7. Sorties entre membres",
+      p:["L'organisateur d'une sortie est responsable des informations qu'il publie (lieu, date, nombre de places, prix éventuel). Les réservations auprès d'un établissement se font directement avec lui : PassionMeet n'encaisse rien et n'est pas responsable des prestations des établissements.",
+         "Les informations du catalogue (adresses, activités, liens de réservation) sont données à titre indicatif et peuvent avoir changé : vérifie-les auprès de l'établissement."] },
+    { title:"8. Ta sécurité",
+      p:["PassionMeet ne vérifie pas l'identité des membres pendant la bêta et ne contrôle pas le déroulement des rencontres. Pour une première rencontre, nous te recommandons de :"],
+      ul:["Te retrouver dans un lieu public, de préférence en groupe","Prévenir un proche (tu peux utiliser le partage de position de l'application)","Ne jamais envoyer d'argent ni d'informations sensibles","Bloquer et signaler tout comportement qui te met mal à l'aise","Appeler le 17 (ou le 112) en cas de danger"] },
+    { title:"9. Signalement et blocage",
+      p:["Tu peux signaler un profil ou une sortie, et bloquer un membre à tout moment depuis son profil. Les signalements sont examinés par l'équipe de PassionMeet dans les meilleurs délais. Un membre bloqué ne peut plus te voir ni t'écrire."] },
+    { title:"10. Tes contenus",
+      p:["Tu restes propriétaire de tes photos et de tes textes. Tu autorises PassionMeet à les afficher dans l'application, uniquement pour faire fonctionner le service, et tant que ton compte existe. Tu garantis avoir le droit de publier ces contenus."] },
+    { title:"11. Disponibilité et responsabilité",
+      p:["Comme toute version bêta, l'application peut contenir des bugs, être temporairement indisponible ou évoluer sans préavis. PassionMeet fait de son mieux pour la faire fonctionner correctement, mais ne peut pas garantir une disponibilité continue. PassionMeet n'est pas responsable du comportement des membres, ni de ce qui se passe lors des rencontres et sorties, dans les limites prévues par la loi."] },
+    { title:"12. Suppression du compte",
+      p:["Tu peux supprimer ton compte à tout moment depuis Profil › Réglages. PassionMeet peut mettre fin à la bêta ou supprimer un compte qui ne respecte pas ces CGU."] },
+    { title:"13. Modification des CGU",
+      p:["Ces CGU peuvent évoluer, notamment à la fin de la bêta. En cas de changement important, tu seras prévenu dans l'application avant qu'il s'applique."] },
+    { title:"14. Droit applicable",
+      p:[`Les CGU sont soumises au droit français. En cas de désaccord, écris-nous d'abord à ${PM_CONTACT_EMAIL} : nous chercherons une solution amiable. À défaut, les tribunaux français sont compétents.`] }
   ],
   confidentialite: [
-    { title:"1. Responsable de traitement",
-      p:["Le responsable du traitement des données personnelles collectées via PassionMeet est identifié ci-dessous, conformément au RGPD et à la loi Informatique et Libertés."],
-      placeholder:"dénomination, adresse, contact du responsable de traitement / DPO" },
-    { title:"2. Données collectées",
-      ul:["Identification et profil : prénom, âge, photos, bio, centres d'intérêt, mode de recherche","Contact et connexion : email, identifiants, adresse IP","Document d'identité (vérification KYC)","Géolocalisation, avec consentement préalable","Activités créées, réservées, favoris, historique","Contenu des messages échangés","Données de paiement, traitées par le prestataire tiers","Position en temps réel, si partage volontaire activé"] },
-    { title:"3. Finalités et bases légales",
-      ul:["Gestion du compte — exécution du contrat","Mise en relation et matching — exécution du contrat","Vérification d'identité — intérêt légitime / obligation légale","Géolocalisation — consentement","Abonnements et facturation — exécution du contrat","Sécurité et signalements — intérêt légitime","Communications marketing — consentement","Amélioration du service — intérêt légitime"] },
-    { title:"4. Destinataires des données",
-      p:["Les données sont destinées aux équipes habilitées de PassionMeet et à ses sous-traitants : hébergement et authentification (ex. Firebase/Google Cloud), hébergement de l'application (ex. Netlify), prestataire de paiement, prestataire KYC. Aucune vente de données à des tiers à des fins commerciales."] },
-    { title:"5. Transferts hors Union européenne",
-      p:["Certains sous-traitants peuvent traiter des données hors de l'UE (notamment aux États-Unis) ; ces transferts sont encadrés par des garanties appropriées (clauses contractuelles types ou décision d'adéquation)."],
-      placeholder:"liste précise des sous-traitants et de leur localisation" },
-    { title:"6. Durée de conservation",
-      ul:["Profil et compte : durée de vie du compte","Document d'identité : durée strictement limitée à la vérification","Géolocalisation ponctuelle : non conservée au-delà de la session","Messages : durée de vie du compte, sauf nécessité de sécurité","Facturation : durée légale de conservation comptable"],
-      placeholder:"durées précises à arrêter avec le DPO/avocat" },
-    { title:"7. Droits des utilisateurs",
-      p:["Accès, rectification, effacement, limitation, opposition, portabilité, directives post-mortem. Ces droits s'exercent auprès de PassionMeet, avec possibilité de réclamation auprès de la CNIL (www.cnil.fr) en cas de réponse insatisfaisante."],
-      placeholder:"adresse email dédiée à l'exercice des droits" },
-    { title:"8. Sécurité des données",
-      p:["PassionMeet met en œuvre des mesures techniques et organisationnelles appropriées (chiffrement, contrôle d'accès, authentification sécurisée) pour protéger les données personnelles."] },
-    { title:"9. Cookies et traceurs",
-      p:["L'application utilise des cookies techniques nécessaires au fonctionnement, ainsi que, sous réserve du consentement, des cookies de mesure d'audience et de personnalisation, gérables via les paramètres."] },
-    { title:"10. Mineurs",
-      p:["L'application est strictement réservée aux personnes majeures. Toute inscription identifiée comme émanant d'un mineur entraîne la suppression immédiate du compte."] },
-    { title:"11. Modification de la politique",
-      p:["La présente politique peut être mise à jour ; toute modification substantielle sera notifiée avant son entrée en vigueur."] },
-    { title:"12. Contact",
-      p:["Pour toute question relative à la présente politique ou à l'exercice de vos droits :"],
-      placeholder:"coordonnées complètes du DPO ou du responsable de traitement" }
+    { title:"1. En bref",
+      ul:["Nous collectons seulement ce qui sert à faire fonctionner l'application","Nous ne vendons jamais tes données et il n'y a aucune publicité","Ta position exacte n'est jamais montrée : les autres voient seulement une distance approximative","Ta préférence « qui je veux rencontrer » n'est jamais montrée aux autres membres","Tu peux supprimer ton compte à tout moment"] },
+    { title:"2. Responsable du traitement",
+      p:[`${PM_EDITOR_NAME}, particulier, éditeur de PassionMeet. Contact pour toute question ou demande : ${PM_CONTACT_EMAIL}.`] },
+    { title:"3. Données collectées et pourquoi",
+      ul:["<b>Compte</b> : adresse email (ou compte Google), identifiant de connexion → te connecter et sécuriser ton compte","<b>Profil</b> : prénom, âge, genre, photos, bio, ville, passions, ce que tu recherches (amitié, amour, sorties), situation familiale si tu la renseignes → afficher ton profil et te proposer des personnes et des sorties","<b>Position</b> : coordonnées enregistrées arrondies à environ 1 km → calculer les distances. Les autres membres ne voient qu'une distance en kilomètres","<b>Préférence de rencontre</b> (les genres que tu veux rencontrer en amour) → filtrer les profils proposés","<b>Activité dans l'application</b> : likes, matchs, invitations, messages, sorties créées ou rejointes, présence aux sorties, envies de sorties → faire fonctionner ces services et afficher ton indicateur de fiabilité","<b>Partage de position</b> en direct, seulement si tu l'actives pour une sortie → permettre au proche de ton choix de te suivre pendant la durée choisie","<b>Notifications</b> : l'identifiant technique de ton navigateur, si tu les acceptes → t'envoyer les alertes","<b>Signalements et blocages</b> → assurer la sécurité des membres"] },
+    { title:"4. Information sensible : ta préférence de rencontre",
+      p:["Les genres que tu souhaites rencontrer en amour peuvent révéler ton orientation sexuelle, une donnée dite « sensible » (article 9 du RGPD). Nous ne l'utilisons qu'avec ton accord explicite, recueilli par une case à cocher, uniquement pour filtrer les profils proposés. Elle n'est jamais montrée aux autres membres. Tu peux la modifier ou la retirer à tout moment dans les filtres de Découvrir (choisir « Tout le monde » l'efface)."] },
+    { title:"5. Bases légales",
+      ul:["Exécution du contrat (les CGU) : compte, profil, mise en relation, messages, sorties","Consentement : préférence de rencontre, position, notifications, partage de position — retirable à tout moment","Intérêt légitime : sécurité, modération, prévention des abus, amélioration de l'application"] },
+    { title:"6. Qui voit quoi",
+      ul:["<b>Les autres membres connectés</b> : ton prénom, âge, genre, photos, bio, ville, passions, ce que tu recherches et une distance approximative","<b>Tes matchs et contacts</b> : en plus, les messages que vous échangez","<b>Les participants d'une sortie</b> : ton prénom, ton âge et tes messages dans la discussion de groupe","<b>Personne d'autre</b> : sans compte, il est impossible de consulter les profils"] },
+    { title:"7. Prestataires techniques",
+      p:["Pour fonctionner, PassionMeet s'appuie sur des prestataires qui traitent certaines données pour notre compte :"],
+      ul:["<b>Supabase</b> : base de données et stockage des photos, serveurs situés à Londres (Royaume-Uni, pays reconnu par l'Union européenne comme offrant une protection adéquate)","<b>Google Firebase</b> : connexion à ton compte (email, identifiant), avec des transferts possibles vers les États-Unis encadrés par le Data Privacy Framework UE–États-Unis","<b>Vercel</b> : hébergement de l'application (États-Unis, même encadrement)","<b>Services de notifications</b> de ton navigateur (Apple, Google ou Mozilla), si tu actives les notifications","<b>OpenStreetMap / CARTO</b> : cartes et recherche d'adresses","<b>Unsplash, Pexels, Wikimedia, Google Fonts</b> : images d'illustration et polices, chargées depuis leurs serveurs (ils reçoivent alors ton adresse IP, comme pour n'importe quel site)"],
+      p2:["Aucune donnée n'est vendue ni utilisée à des fins publicitaires."] },
+    { title:"8. Durée de conservation",
+      ul:["Profil, photos et préférences : tant que ton compte existe","À la suppression de ton compte : ton profil est anonymisé (« Utilisateur supprimé »), tes photos, ta bio, tes passions et ta position sont effacées immédiatement","Messages : conservés tant que la conversation existe pour l'autre personne, affichés sous « Utilisateur supprimé »","Partage de position en direct : effacé à la fin du partage","Signalements : un an après leur traitement, pour la sécurité des membres","Comptes inactifs depuis plus de 2 ans : supprimés, après un email de prévenance"] },
+    { title:"9. Tes droits",
+      p:[`Tu peux à tout moment demander à accéder à tes données, les corriger, les effacer, en limiter l'utilisation, t'y opposer, les récupérer dans un format lisible, ou retirer ton consentement. Écris à ${PM_CONTACT_EMAIL} : nous répondons sous un mois. Tu peux aussi corriger la plupart de tes informations directement dans ton profil, et supprimer ton compte depuis les réglages.`,
+         "Si tu estimes que tes droits ne sont pas respectés, tu peux saisir la CNIL (www.cnil.fr)."] },
+    { title:"10. Sécurité",
+      p:["Les échanges sont chiffrés (HTTPS). L'accès aux données est limité par des règles de sécurité côté serveur : chacun ne peut modifier que ses propres informations, et les messages ne sont lisibles que par les membres de la conversation."] },
+    { title:"11. Cookies et stockage local",
+      p:["PassionMeet n'utilise ni cookie publicitaire ni outil de mesure d'audience. L'application garde seulement sur ton téléphone quelques réglages nécessaires à son fonctionnement (session de connexion, mode sombre, choix concernant les notifications)."] },
+    { title:"12. Personnes mineures",
+      p:["PassionMeet est réservé aux personnes de 18 ans et plus. Un compte créé par une personne mineure est supprimé dès que nous en avons connaissance."] },
+    { title:"13. Modifications",
+      p:["Cette politique peut évoluer, notamment à la fin de la bêta. En cas de changement important, tu seras prévenu dans l'application."] }
+  ],
+  mentions: [
+    { title:"Éditeur",
+      p:[`PassionMeet est édité par ${PM_EDITOR_NAME}, particulier, dans le cadre d'un projet personnel non commercial (version bêta gratuite).`,
+         `Contact : ${PM_CONTACT_EMAIL}`,
+         `Directeur de la publication : ${PM_EDITOR_NAME}.`] },
+    { title:"Hébergement de l'application",
+      p:["Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis — vercel.com"] },
+    { title:"Hébergement des données",
+      p:["Supabase Inc. — supabase.com. Données stockées sur des serveurs situés à Londres (Royaume-Uni)."] },
+    { title:"Crédits",
+      p:["Photos d'illustration : Unsplash et Pexels (licences gratuites), Wikimedia Commons. Cartes : © les contributeurs d'OpenStreetMap, © CARTO."] }
   ]
 };
 
@@ -6899,7 +7060,7 @@ function renderLegalPanel(){
   const panel = document.getElementById('legal-panel');
   const articles = legalContent[currentLegalTab];
   panel.innerHTML = `
-    <div class="legal-warning">Document de travail — brouillon en cours de relecture juridique</div>
+    <div class="legal-warning">Version bêta — en vigueur au ${PM_LEGAL_DATE}</div>${PM_EDITOR_NAME.includes('[') ? `<div class="legal-placeholder">À compléter : ton nom complet dans PM_EDITOR_NAME</div>` : ''}
     ${articles.map(a => `
       <div class="legal-article">
         <h4>${a.title}</h4>
@@ -7180,6 +7341,14 @@ function toggleDiscoverGenderPref(el){
   const gender = el.getAttribute('data-gender');
   el.classList.toggle('sel');
   const selected = Array.from(document.querySelectorAll('#df-gender-pills .pill.sel')).map(p => p.getAttribute('data-gender'));
+  // Donnée sensible : accord explicite avant de l'enregistrer, si pas déjà donné.
+  if(selected.length && !myProfile.sensitiveConsentAt){
+    if(!confirm("PassionMeet va utiliser ce choix pour te proposer des profils. C'est une information sensible : elle n'est jamais montrée aux autres membres, et tu peux la retirer à tout moment. Tu es d'accord ?")){
+      el.classList.toggle('sel');
+      return;
+    }
+    myProfile.sensitiveConsentAt = new Date().toISOString();
+  }
   myProfile.genderPreferences = selected;
   saveProfileLocally();
   swipeIndex = 0;
