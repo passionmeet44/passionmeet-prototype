@@ -2762,8 +2762,8 @@
         <div class="wiz-sub">Choisis jusqu'où tu es prêt(e) à aller. Tu pourras changer ça quand tu veux.</div>
         <div style="margin-top:16px;">
     <div class="range-row">
-      <div class="range-label">Distance de recherche <span id="prefs-distance-value">20 km</span></div>
-      <input type="range" min="1" max="100" value="20" id="prefs-distance" oninput="setRadius(this.value)">
+      <div class="range-label">Distance de recherche <span id="prefs-distance-value">60 km</span></div>
+      <input type="range" min="1" max="100" value="60" id="prefs-distance" oninput="setRadius(this.value)">
       <div id="prefs-radius-map"></div>
       <div id="prefs-radius-map-note" style="font-size:11px; color:#9584A0; margin-top:6px;"></div>
     </div>
@@ -2930,8 +2930,8 @@
       
     </div>
     <div class="radius-slider-row">
-      <div class="range-label">Rayon de recherche <span id="swipe-radius-value">20 km</span></div>
-      <input type="range" min="1" max="100" value="20" id="swipe-radius-input" oninput="setRadius(this.value)">
+      <div class="range-label">Rayon de recherche <span id="swipe-radius-value">60 km</span></div>
+      <input type="range" min="1" max="100" value="60" id="swipe-radius-input" oninput="setRadius(this.value)">
     </div>
     <div class="sw-toolbar">
       <div class="time-filter-row" id="swipe-mode-filter-row">
@@ -5356,8 +5356,9 @@ const firebaseConfig = {
 };
 let firebaseAuth = null;
 let currentFirebaseUser = null;
-let currentRadius = 20; // déclarée tôt : utilisée par loadStoredRadius(), appelée dès le chargement de la page
-let activityRadius = 20; // idem, distance dédiée aux activités, indépendante de currentRadius
+const PM_DEFAULT_RADIUS = 60; // rayon par défaut (déclaré tôt, utilisé dès le chargement)
+let currentRadius = 60; // déclarée tôt : utilisée par loadStoredRadius(), appelée dès le chargement de la page
+let activityRadius = 60; // idem, distance dédiée aux activités, indépendante de currentRadius
 const RADIUS_STORAGE_KEY = 'passionmeet_search_radius';
 const ACTIVITY_RADIUS_STORAGE_KEY = 'passionmeet_activity_radius';
 let isPremiumUser = false; // déclarée tôt : utilisée par mapSupabaseProfileToMyProfile(), qui peut être
@@ -5511,7 +5512,7 @@ function mapSupabaseProfileToMyProfile(row){
   myProfile.minAgeSet = row.min_age != null;
   if(row.min_age != null) myProfile.ageMin = row.min_age;
   if(row.max_age != null) myProfile.ageMax = row.max_age;
-  if(row.max_distance != null) myProfile.radiusKm = row.max_distance;
+  if(row.max_distance != null) myProfile.radiusKm = pmUpgradeOldRadius(row.max_distance, 'pm_r60_profile');
   // Même formule exacte que le trigger SQL côté serveur : jamais de logique différente.
   // (avant : seul « is_premium » comptait, un Premium de 7 jours ne s'arrêtait jamais)
   isPremiumUser = !!row.is_premium && (!row.premium_until || new Date(row.premium_until) > new Date());
@@ -6263,7 +6264,7 @@ function signUpWithEmail(){
 let myProfile = {
   name: '', age: '', bio: '', hasKids: false, isNewcomer: false, isSingleParent: false, canCarpool: false, subPassions: [], photos: [],
   interests: [], modes: ['friend','love'],
-  radiusKm: 20, ageMin: 28, ageMax: 45,
+  radiusKm: 60, ageMin: 28, ageMax: 45,
   city: '', latitude: null, longitude: null, intent: '', supabaseId: null
 };
 
@@ -7285,13 +7286,23 @@ function syncRadiusUI(km){
   if(prefsValueEl) prefsValueEl.textContent = km + ' km';
 }
 
+// Rayon par défaut : 60 km (tout le 44 entre Nantes et Saint-Nazaire).
+// L'ancien défaut (20 km) jamais modifié passe une fois à 60 km.
+function pmUpgradeOldRadius(km, key){
+  try{
+    if(km === 20 && !localStorage.getItem(key)){ localStorage.setItem(key, '1'); return PM_DEFAULT_RADIUS; }
+    localStorage.setItem(key, '1');
+  } catch(e){}
+  return km;
+}
 function loadStoredRadius(){
-  let km = 20;
+  let km = PM_DEFAULT_RADIUS;
   try{
     const stored = localStorage.getItem(RADIUS_STORAGE_KEY);
     if(stored !== null){
       const parsed = parseInt(stored, 10);
-      if(!isNaN(parsed)) km = parsed;
+      if(!isNaN(parsed)) km = pmUpgradeOldRadius(parsed, 'pm_r60_search');
+      if(km !== parsed) localStorage.setItem(RADIUS_STORAGE_KEY, km);
     }
   } catch(e){}
   syncRadiusUI(km);
@@ -7309,12 +7320,13 @@ function setActivityRadius(km){
 }
 
 function loadStoredActivityRadius(){
-  let km = 20;
+  let km = PM_DEFAULT_RADIUS;
   try{
     const stored = localStorage.getItem(ACTIVITY_RADIUS_STORAGE_KEY);
     if(stored !== null){
       const parsed = parseInt(stored, 10);
-      if(!isNaN(parsed)) km = parsed;
+      if(!isNaN(parsed)) km = pmUpgradeOldRadius(parsed, 'pm_r60_activity');
+      if(km !== parsed) localStorage.setItem(ACTIVITY_RADIUS_STORAGE_KEY, km);
     }
   } catch(e){}
   activityRadius = km;
@@ -7426,9 +7438,9 @@ function togglePrioritizeSharedPassions(){
 }
 
 function resetDiscoverFilters(){
-  setRadius(20);
-  document.getElementById('df-radius-input').value = 20;
-  document.getElementById('df-radius-value').textContent = '20 km';
+  setRadius(PM_DEFAULT_RADIUS);
+  document.getElementById('df-radius-input').value = PM_DEFAULT_RADIUS;
+  document.getElementById('df-radius-value').textContent = PM_DEFAULT_RADIUS + ' km';
   myProfile.ageMin = 18; myProfile.ageMax = 99;
   document.getElementById('df-age-min').value = 18;
   document.getElementById('df-age-max').value = 99;
@@ -9938,7 +9950,7 @@ function resetActivityFilters(){
   document.getElementById('activity-category-filter').value = 'tous';
   document.getElementById('activity-city-filter').value = '';
   document.getElementById('activity-passion-chip').classList.remove('active');
-  setActivityRadius(20);
+  setActivityRadius(PM_DEFAULT_RADIUS);
   catalogFilterQuery = '';
   catalogFilterCategory = 'tous';
   activityCityFilter = '';
