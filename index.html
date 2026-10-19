@@ -2458,6 +2458,75 @@
   .wiz-consent u{ font-weight:700; }
   body.dark-mode .wiz-consent{ background:rgba(255,255,255,0.07); color:inherit; }
 </style>
+<style id="pm-match-likes-v2">
+  /* Popup de match */
+  .match-overlay{ background:radial-gradient(120% 75% at 50% 0%, #6B3A6E 0%, #3E1F44 55%, #22102A 100%) !important; align-items:stretch !important; }
+  .mo-glow{ position:absolute; left:50%; bottom:-30%; width:140%; height:60%; transform:translateX(-50%); border-radius:50%;
+    background:radial-gradient(closest-side, rgba(242,146,75,.38), rgba(242,146,75,0)); pointer-events:none; }
+  .mo-card{ position:relative; z-index:2; width:100%; max-width:420px; margin:0 auto; text-align:center; overflow-y:auto;
+    padding:calc(env(safe-area-inset-top) + 34px) 22px calc(env(safe-area-inset-bottom) + 22px); display:flex; flex-direction:column; justify-content:center; }
+  .mo-eyebrow{ font-size:12px; font-weight:800; letter-spacing:2.4px; text-transform:uppercase; color:#F6B94D; margin-bottom:6px; }
+  .match-overlay .match-title{ font-size:32px !important; margin-bottom:22px !important; line-height:1.1; }
+  .mo-photos{ position:relative; height:190px; margin:0 auto 18px; width:250px; }
+  .mo-photo{ position:absolute; top:6px; width:128px; height:170px; border-radius:22px; border:3px solid #fff; background-color:#6B3A6E; background-size:cover; background-position:center;
+    box-shadow:0 18px 38px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:44px; font-weight:800; color:#fff; }
+  .mo-photo-me{ left:4px; transform:rotate(-8deg); animation:mo-in-left .65s cubic-bezier(.34,1.4,.64,1) backwards; }
+  .mo-photo-them{ right:4px; transform:rotate(8deg); animation:mo-in-right .65s cubic-bezier(.34,1.4,.64,1) .12s backwards; }
+  @keyframes mo-in-left{ from{ transform:translateX(-90px) rotate(-22deg); opacity:0; } to{ transform:rotate(-8deg); opacity:1; } }
+  @keyframes mo-in-right{ from{ transform:translateX(90px) rotate(22deg); opacity:0; } to{ transform:rotate(8deg); opacity:1; } }
+  .mo-badge{ position:absolute; left:50%; bottom:2px; width:58px; height:58px; margin-left:-29px; border-radius:50%; z-index:3;
+    background:linear-gradient(135deg,#F6B94D,#E5722A); border:3px solid #fff; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 22px rgba(229,114,42,.55); animation:mo-badge-in .5s cubic-bezier(.34,1.6,.64,1) .45s backwards, mo-pulse 2.4s ease-in-out 1.2s infinite; }
+  .mo-badge.friend{ background:linear-gradient(135deg,#B57BB6,#8B5A8C); box-shadow:0 8px 22px rgba(139,90,140,.55); }
+  @keyframes mo-badge-in{ from{ transform:scale(0); } to{ transform:scale(1); } }
+  @keyframes mo-pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.08); } }
+  .match-overlay .match-name{ font-size:20px !important; margin-bottom:4px !important; }
+  .match-overlay .match-sub{ font-size:13.5px !important; color:rgba(255,236,220,.85) !important; margin-bottom:12px !important; }
+  .mo-commons{ display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px; margin-bottom:16px; min-height:4px; }
+  .mo-commons-label{ font-size:11px; font-weight:700; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:1px; margin-right:2px; }
+  .mo-chip{ font-size:12px; font-weight:700; color:#3E1F44; background:#FFE7C7; padding:5px 11px; border-radius:20px; }
+  .mo-ice-label{ text-align:left; font-size:12px; font-weight:800; color:rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:1.2px; margin:4px 2px 8px; }
+  .match-overlay .match-suggestions{ flex-direction:row !important; overflow-x:auto; gap:8px !important; margin:0 -22px 12px !important; padding:0 22px 4px; scrollbar-width:none; }
+  .match-overlay .match-suggestions::-webkit-scrollbar{ display:none; }
+  .match-overlay .match-suggestion-chip{ flex:0 0 auto; width:220px; white-space:normal; font-size:13px !important; padding:11px 14px !important;
+    background:rgba(255,255,255,.1) !important; border:1.5px solid rgba(255,255,255,.22) !important; border-radius:16px !important; transition:background .2s, border-color .2s; }
+  .match-overlay .match-suggestion-chip.sel{ background:rgba(246,185,77,.2) !important; border-color:#F6B94D !important; }
+  .mo-compose{ display:flex; gap:8px; align-items:center; background:#fff; border-radius:30px; padding:6px 6px 6px 18px; box-shadow:0 10px 26px rgba(0,0,0,.25); }
+  .mo-compose input{ flex:1; border:none; outline:none; background:transparent; font-size:16px; color:#3E1F44; font-family:var(--font-body); min-width:0; }
+  .mo-send{ width:44px; height:44px; border-radius:50%; border:none; cursor:pointer; flex-shrink:0; background:linear-gradient(135deg,#F2924B,#E5722A); display:flex; align-items:center; justify-content:center; }
+  .match-overlay .match-continue{ margin-top:14px !important; color:rgba(255,255,255,.7) !important; text-decoration:none !important; }
+  .match-overlay.locked .mo-compose, .match-overlay.locked .match-suggestion-chip, .match-overlay.locked .match-continue{ pointer-events:none; opacity:.5; }
+  .mo-spark{ position:absolute; bottom:-12px; border-radius:50%; opacity:0; animation:mo-rise linear infinite; filter:blur(.3px); }
+  @keyframes mo-rise{ 0%{ transform:translateY(0); opacity:0; } 15%{ opacity:.9; } 100%{ transform:translateY(-105vh); opacity:0; } }
+  @media (max-height:700px){ .mo-photos{ height:160px; } .mo-photo{ width:108px; height:144px; } .match-overlay .match-title{ font-size:27px !important; margin-bottom:14px !important; } }
+
+  /* « Vous avez été liké·e » — compte gratuit */
+  .lk-teaser{ margin:0 20px 18px; display:flex; align-items:center; gap:16px; padding:14px 16px; border-radius:22px; cursor:pointer;
+    background:linear-gradient(135deg,#FFF6EC,#F7E9F3); border:1px solid rgba(139,90,140,.14); box-shadow:0 8px 22px rgba(62,31,68,.08); }
+  .lk-stack{ position:relative; width:92px; height:84px; flex-shrink:0; }
+  .lk-ghost{ position:absolute; top:6px; width:52px; height:70px; border-radius:14px; overflow:hidden; border:2.5px solid #fff; box-shadow:0 6px 14px rgba(62,31,68,.18); }
+  .lk-ghost-bg{ position:absolute; inset:-10px; filter:blur(8px); }
+  .lk-ghost-0{ left:0; transform:rotate(-9deg); z-index:1; } .lk-ghost-0 .lk-ghost-bg{ background:linear-gradient(160deg,#C98BA8,#8B5A8C); }
+  .lk-ghost-1{ left:20px; top:2px; z-index:2; } .lk-ghost-1 .lk-ghost-bg{ background:linear-gradient(160deg,#F6B94D,#E5722A); }
+  .lk-ghost-2{ left:40px; transform:rotate(9deg); z-index:1; } .lk-ghost-2 .lk-ghost-bg{ background:linear-gradient(160deg,#B57BB6,#5E3462); }
+  .lk-ghost-sil{ position:absolute; inset:0; width:100%; height:100%; filter:blur(1.5px); }
+  .lk-count{ position:absolute; right:-4px; bottom:-2px; z-index:3; min-width:28px; height:28px; padding:0 7px; border-radius:14px; box-sizing:border-box;
+    background:linear-gradient(135deg,#F2924B,#E5722A); color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2.5px solid #fff; }
+  .lk-teaser-text{ flex:1; display:flex; flex-direction:column; gap:4px; text-align:left; }
+  .lk-teaser-text b{ font-family:var(--font-display); font-size:16px; color:var(--plum); }
+  .lk-teaser-text span{ font-size:12.5px; color:#8C7896; line-height:1.4; }
+  .lk-teaser-chev{ font-size:26px; color:#C9B3CF; font-weight:300; }
+  body.dark-mode .lk-teaser{ background:linear-gradient(135deg,#2E2235,#3A2440); border-color:rgba(255,255,255,.08); }
+  body.dark-mode .lk-teaser-text b{ color:#F3E4F4; } body.dark-mode .lk-teaser-text span{ color:#B9A8C2; }
+  /* « Vous avez été liké·e » — Premium */
+  .lk-cards{ display:flex; gap:12px; padding:0 20px 18px; overflow-x:auto; scrollbar-width:none; }
+  .lk-cards::-webkit-scrollbar{ display:none; }
+  .lk-card{ position:relative; flex:0 0 auto; width:104px; height:140px; border-radius:18px; overflow:hidden; cursor:pointer; box-shadow:0 8px 18px rgba(62,31,68,.16); }
+  .lk-card-bg{ position:absolute; inset:0; background-size:cover; background-position:center; }
+  .lk-card-info{ position:absolute; left:0; right:0; bottom:0; padding:22px 9px 8px; background:linear-gradient(180deg,rgba(34,16,42,0),rgba(34,16,42,.82));
+    color:#fff; text-align:left; display:flex; flex-direction:column; }
+  .lk-card-info b{ font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .lk-card-info span{ font-size:11px; opacity:.85; }
+</style>
 </head>
 <body>
 
@@ -3807,9 +3876,9 @@
     <div class="tag-comment-card">
       <div class="tag-comment-title" id="tag-comment-title">Un mot pour elle/lui ?</div>
       <textarea class="tag-comment-input" id="tag-comment-input" rows="3"></textarea>
+      <div class="cp-meta" style="font-size:12px; margin:6px 2px 0; line-height:1.4;">Les messages s'échangent après un match : le tien sera prêt à envoyer dès que vous matcherez.</div>
       <div class="tag-comment-actions">
-        <button class="tag-comment-btn friend" onclick="sendTagComment('friend')">🤝 Envoyer en ami</button>
-        <button class="tag-comment-btn love" onclick="sendTagComment('love')">💜 Envoyer en amour</button>
+        <button class="tag-comment-btn love" style="flex:1;" onclick="sendTagComment('love')">💜 Liker et garder ce message</button>
       </div>
       <div class="tag-comment-cancel" onclick="closeTagComment()">Annuler</div>
     </div>
@@ -3822,19 +3891,26 @@
 
   <!-- MATCH OVERLAY -->
   <div class="match-overlay" id="match-overlay">
+    <div class="mo-glow"></div>
     <div class="confetti-container" id="confetti-container"></div>
-    <div class="match-card">
-      <div class="match-title" id="match-overlay-title">C'est un Match !</div>
-      <div class="match-avatars">
-        <div class="match-avatar match-avatar-me" id="match-overlay-me">C</div>
-        <div class="match-hearts" id="match-hearts"><span>💜</span><span>✨</span><span>💫</span></div>
-        <div class="match-avatar" id="match-overlay-photo"></div>
+    <div class="mo-card">
+      <div class="mo-eyebrow" id="mo-eyebrow">C'est un match</div>
+      <div class="match-title" id="match-overlay-title">Vous vous plaisez !</div>
+      <div class="mo-photos">
+        <div class="mo-photo mo-photo-me" id="match-overlay-me"></div>
+        <div class="mo-photo mo-photo-them" id="match-overlay-photo"></div>
+        <div class="mo-badge" id="mo-badge"></div>
       </div>
       <div class="match-name" id="match-overlay-name"></div>
       <div class="match-sub" id="match-overlay-sub"></div>
-      <button class="btn-primary" style="width:100%; margin-top:14px;" onclick="messageMatchedProfile()">💬 Envoyer un message</button>
+      <div class="mo-commons" id="mo-commons"></div>
+      <div class="mo-ice-label">Pour briser la glace</div>
       <div class="match-suggestions" id="match-suggestions"></div>
-      <div class="match-continue" onclick="closeMatchOverlay()">Continuer à swiper</div>
+      <div class="mo-compose">
+        <input type="text" id="mo-input" placeholder="Écris ton premier message…" autocomplete="off" onkeydown="if(event.key==='Enter') sendMatchFirstMessage()">
+        <button class="mo-send" onclick="sendMatchFirstMessage()" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+      </div>
+      <div class="match-continue" onclick="closeMatchOverlay()">Plus tard</div>
     </div>
   </div>
 </div>
@@ -9318,15 +9394,18 @@ function closeTagComment(){
   document.getElementById('tag-comment-overlay').classList.remove('show');
 }
 
+// Les messages ne s'échangent qu'après un match : le commentaire est gardé de
+// côté et proposé dans le champ du popup si le match arrive. Le like, lui, est
+// un vrai like (même parcours que le bouton 💜) — plus aucun faux match.
+const pmIcebreakers = {};
 function sendTagComment(type){
   const text = document.getElementById('tag-comment-input').value.trim();
   if(!text || !currentTagCommentProfile) return;
   const profile = currentTagCommentProfile;
   closeTagComment();
-  showToast(`Commentaire envoyé à ${profile.name.split(' ')[0]}`, type === 'love' ? '💜' : '🤝');
-  swipeIndex++;
-  renderSwipeStack();
-  setTimeout(()=> showMatchOverlay(profile, type), 350);
+  if(profile.supabaseId) pmIcebreakers[profile.supabaseId] = text;
+  showToast(`Like envoyé à ${profile.name.split(' ')[0]} — ton message sera prêt si vous matchez`, '💜');
+  swipeAction('love');
 }
 
 function getSuggestedMessages(profile){
@@ -9379,53 +9458,75 @@ function getSuggestedMessages(profile){
 
 function spawnConfetti(type){
   const container = document.getElementById('confetti-container');
-  const pieces = type === 'friend'
-    ? ['🎉','🤝','✨','🎊','⭐️','🟡']
-    : ['🎉','💜','✨','🎊','💫','💖'];
+  const colors = type === 'friend' ? ['#F6B94D','#FFE7C7','#C98BA8','#ffffff'] : ['#F2924B','#F6B94D','#E8A0BF','#ffffff'];
   container.innerHTML = '';
-  for(let i=0; i<18; i++){
-    const span = document.createElement('span');
-    span.className = 'confetti-piece';
-    span.textContent = pieces[i % pieces.length];
-    span.style.left = (Math.random()*100) + '%';
-    span.style.animationDelay = (Math.random()*1.5) + 's';
-    span.style.animationDuration = (2.2 + Math.random()*1.4) + 's';
-    container.appendChild(span);
+  for(let i = 0; i < 26; i++){
+    const d = document.createElement('span');
+    d.className = 'mo-spark';
+    const size = 4 + Math.random() * 7;
+    d.style.cssText = `left:${Math.random()*100}%; width:${size}px; height:${size}px; background:${colors[i % colors.length]}; animation-delay:${(Math.random()*2.2).toFixed(2)}s; animation-duration:${(3.2+Math.random()*2.4).toFixed(2)}s;`;
+    container.appendChild(d);
   }
 }
 
+const PM_ICON_HEART = '<svg viewBox="0 0 24 24" width="26" height="26" fill="#fff"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.1 0 3.6 1.1 4.4 2.5.8-1.4 2.3-2.5 4.4-2.5 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+const PM_ICON_FRIENDS = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 14.3c2.6-.3 4.6 1.3 5 4.7"/></svg>';
 function showMatchOverlay(profile, type, realMatchId){
-  document.getElementById('match-overlay-photo').style.background = profile.color;
-  document.getElementById('match-overlay-photo').textContent = profile.initial;
-  document.getElementById('match-overlay-name').textContent = profile.name;
-  document.getElementById('match-overlay-title').textContent = type==='love' ? "💜 Match Rencontre !" : "🤝 Match Amitié !";
-  document.getElementById('match-overlay-sub').textContent = type==='love'
-    ? "Vous vous plaisez tous les deux."
-    : "Vous avez envie de faire connaissance.";
-  const heartsEl = document.getElementById('match-hearts');
-  heartsEl.innerHTML = type === 'friend'
-    ? '<span>🤝</span><span>✨</span><span>⭐️</span>'
-    : '<span>💜</span><span>✨</span><span>💫</span>';
+  const firstName = (profile.name || '').split(' ')[0] || 'cette personne';
+  const isLove = type === 'love';
+  const them = document.getElementById('match-overlay-photo');
+  if(profile.photo){
+    them.style.background = ''; them.style.backgroundImage = `url('${profile.photo}')`; them.textContent = '';
+  } else {
+    them.style.backgroundImage = ''; them.style.background = profile.color || 'linear-gradient(135deg,#8B5A8C,#C98BA8)';
+    them.textContent = profile.initial || firstName.charAt(0).toUpperCase();
+  }
   const meEl = document.getElementById('match-overlay-me');
   if(myProfile.photos && myProfile.photos.length){
-    meEl.style.backgroundImage = `url('${myProfile.photos[0]}')`;
-    meEl.style.backgroundSize = 'cover';
-    meEl.style.backgroundPosition = 'center';
-    meEl.textContent = '';
+    meEl.style.background = ''; meEl.style.backgroundImage = `url('${myProfile.photos[0]}')`; meEl.textContent = '';
   } else {
-    meEl.style.backgroundImage = '';
-    meEl.textContent = (myProfile.name || 'C').charAt(0).toUpperCase();
+    meEl.style.backgroundImage = ''; meEl.style.background = 'linear-gradient(135deg,#F6B94D,#E5722A)';
+    meEl.textContent = (myProfile.name || 'M').charAt(0).toUpperCase();
   }
+  document.getElementById('mo-eyebrow').textContent = isLove ? "C'est un match" : 'Nouvelle amitié';
+  document.getElementById('match-overlay-title').textContent = isLove ? 'Vous vous plaisez !' : "Le courant passe !";
+  document.getElementById('mo-badge').innerHTML = isLove ? PM_ICON_HEART : PM_ICON_FRIENDS;
+  document.getElementById('mo-badge').classList.toggle('friend', !isLove);
+  document.getElementById('match-overlay-name').textContent = `Toi et ${firstName}${profile.age ? ', ' + profile.age + ' ans' : ''}`;
+  document.getElementById('match-overlay-sub').textContent = isLove
+    ? "Vous vous êtes likés tous les deux. À toi de faire le premier pas 😉"
+    : "Vous avez envie de faire connaissance.";
+  const mine = (myProfile.interests || []).map(i => String(i).toLowerCase());
+  const commons = (profile.tags || []).filter(t => mine.some(i => i.includes(String(t).toLowerCase()) || String(t).toLowerCase().includes(i))).slice(0, 3);
+  document.getElementById('mo-commons').innerHTML = commons.length
+    ? `<span class="mo-commons-label">En commun</span>` + commons.map(c => `<span class="mo-chip">${escapeHtml(c)}</span>`).join('')
+    : '';
   window.pendingMatchProfile = { profile, type, realMatchId: realMatchId || null };
-  const suggestionsEl = document.getElementById('match-suggestions');
-  suggestionsEl.innerHTML = getSuggestedMessages(profile).map(text =>
-    `<div class="match-suggestion-chip" onclick="sendSuggestedMessage(this)">${text}</div>`
+  document.getElementById('match-suggestions').innerHTML = getSuggestedMessages(profile).slice(0, 5).map(text =>
+    `<div class="match-suggestion-chip" onclick="pickMatchSuggestion(this)">${escapeHtml(text)}</div>`
   ).join('');
+  const input = document.getElementById('mo-input');
+  input.placeholder = `Écris à ${firstName}…`;
+  input.value = (profile.supabaseId && pmIcebreakers[profile.supabaseId]) || '';
   spawnConfetti(type);
   const overlay = document.getElementById('match-overlay');
   overlay.classList.add('show', 'locked');
   clearTimeout(window._matchLockTimer);
-  window._matchLockTimer = setTimeout(() => overlay.classList.remove('locked'), 1600);
+  window._matchLockTimer = setTimeout(() => overlay.classList.remove('locked'), 1400);
+}
+
+// Une idée de message se place dans le champ : on peut la modifier avant d'envoyer.
+function pickMatchSuggestion(el){
+  const input = document.getElementById('mo-input');
+  input.value = el.textContent;
+  document.querySelectorAll('#match-suggestions .match-suggestion-chip').forEach(c => c.classList.toggle('sel', c === el));
+}
+function sendMatchFirstMessage(){
+  const text = (document.getElementById('mo-input').value || '').trim();
+  if(!text){ messageMatchedProfile(); return; }
+  const data = window.pendingMatchProfile;
+  if(data && data.profile && data.profile.supabaseId) delete pmIcebreakers[data.profile.supabaseId];
+  sendSuggestedMessage({ textContent: text });
 }
 
 function closeMatchOverlay(){
@@ -12954,46 +13055,38 @@ async function renderMatchesLikedYou(){
       // Compte gratuit : who_liked_me ne renvoie aucune identité exploitable pour
       // ces comptes (même règle qu'avant) — cercles floutés génériques, jamais
       // une vraie photo qu'on ferait semblant de flouter.
-      const circlesHtml = data.slice(0, 8).map(() => `
-        <div class="liked-you-item" onclick="showScreen('premium')">
-          <div class="liked-you-circle">
-            <div class="liked-you-circle-inner">
-              <div class="liked-you-circle-bg blurred" style="background:linear-gradient(135deg,#8B5A8C,#C98BA8);"></div>
-              <div class="liked-you-veil"></div>
-              <div class="liked-you-lock">🔒</div>
-            </div>
-          </div>
-        </div>
-      `).join('');
+      const n = data.length;
+      const ghosts = [0,1,2].slice(0, Math.min(3, n)).map(i => `
+        <div class="lk-ghost lk-ghost-${i}"><div class="lk-ghost-bg"></div>
+          <svg class="lk-ghost-sil" viewBox="0 0 60 80"><circle cx="30" cy="30" r="13" fill="rgba(255,255,255,.55)"/><path d="M6 80c2-16 12-26 24-26s22 10 24 26z" fill="rgba(255,255,255,.55)"/></svg>
+        </div>`).join('');
       section.innerHTML = `
         <div class="match-section-title">👀 Vous avez été liké·e</div>
-        <div class="match-section-sub">${data.length} personne${data.length>1?'s':''} ${data.length>1?'s\'intéressent':'s\'intéresse'} à toi</div>
-        <div class="liked-you-row">${circlesHtml}</div>
-        <div style="padding:0 20px;"><button class="lk-cta" onclick="premiumReturnScreen='matches'; showScreen('premium')">✨ Découvrir qui avec PassionMeet+</button></div>
+        <div class="lk-teaser" onclick="premiumReturnScreen='matches'; showScreen('premium')">
+          <div class="lk-stack">${ghosts}<span class="lk-count">${n > 99 ? '99+' : n}</span></div>
+          <div class="lk-teaser-text">
+            <b>${n} personne${n>1?'s':''} ${n>1?'t\'ont':'t\'a'} liké·e</b>
+            <span>Leur identité reste secrète… pour l'instant. Découvre qui avec PassionMeet+.</span>
+          </div>
+          <div class="lk-teaser-chev">›</div>
+        </div>
       `;
       return;
     }
 
-    const circlesHtml = (await Promise.all(data.slice(0, 10).map(async (r) => {
+    const cardsHtml = (await Promise.all(data.slice(0, 10).map(async (r) => {
       const photoUrl = await getMainPhotoForProfile(r.liker_profile_id);
-      const bgStyle = photoUrl
-        ? `background-image:url('${photoUrl}');`
-        : `background:linear-gradient(135deg,#8B5A8C,#C98BA8);`;
+      const bgStyle = photoUrl ? `background-image:url('${photoUrl}');` : `background:linear-gradient(135deg,#8B5A8C,#C98BA8);`;
       return `
-        <div class="liked-you-item" onclick="showScreen('swipe')">
-          <div class="liked-you-circle">
-            <div class="liked-you-circle-inner">
-              <div class="liked-you-circle-bg" style="${bgStyle}"></div>
-            </div>
-          </div>
-          <div class="liked-you-name">${escapeHtml(r.first_name || 'Membre')}</div>
-        </div>
-      `;
+        <div class="lk-card" onclick="openLoveDiscovery()">
+          <div class="lk-card-bg" style="${bgStyle}"></div>
+          <div class="lk-card-info"><b>${escapeHtml(r.first_name || 'Membre')}</b>${r.age ? `<span>${r.age} ans</span>` : ''}</div>
+        </div>`;
     }))).join('');
     section.innerHTML = `
       <div class="match-section-title">👀 Vous avez été liké·e</div>
-      <div class="match-section-sub">Sans match réciproque pour l'instant</div>
-      <div class="liked-you-row">${circlesHtml}</div>
+      <div class="match-section-sub">Like-les en retour pour créer le match</div>
+      <div class="lk-cards">${cardsHtml}</div>
     `;
   } catch(e){
     console.warn('[Matchs] "Qui vous a liké" impossible :', e.message);
